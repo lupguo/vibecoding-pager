@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
-	"github.com/wailsapp/wails/v3/pkg/icons"
 	"pager/internal/settings"
 )
 
@@ -14,6 +13,9 @@ import (
 //
 //go:embed all:frontend/dist
 var assets embed.FS
+
+//go:embed assets/tray-icon@2x.png
+var trayIconData []byte
 
 func main() {
 	// ── Core state layer ────────────────────────────────────────────────────────
@@ -74,9 +76,8 @@ func main() {
 	// ── System tray ─────────────────────────────────────────────────────────────
 	tray := wailsApp.SystemTray.New()
 
-	// Default icon: Wails built-in macOS template icon (monochrome, auto-tinted by OS).
-	// TODO(v1.5): replace with custom Pager icon assets.
-	tray.SetTemplateIcon(icons.SystrayMacTemplate)
+	// Custom Pager tray icon (blue-purple gradient squircle with white P).
+	tray.SetTemplateIcon(trayIconData)
 	tray.SetTooltip("Pager — AI agent monitor")
 
 	// Give App a reference to the tray so the registry onChange callback can update
