@@ -3,64 +3,100 @@
 @tailwind utilities;
 
 :root {
-  --pager-bg: rgba(255, 255, 255, 0.85);
-  --pager-header-bg: rgba(255, 255, 255, 0.9);
-  --pager-border: rgba(0, 0, 0, 0.08);
+  --pager-opacity: 0.92;
+  --pager-bg: rgba(246, 246, 248, var(--pager-opacity));
+  --pager-header-bg: rgba(252, 252, 254, 0.95);
+  --pager-border: rgba(0, 0, 0, 0.12);
   --pager-text: #1d1d1f;
   --pager-text-primary: #1d1d1f;
-  --pager-text-secondary: rgba(0, 0, 0, 0.45);
-  --pager-text-muted: rgba(0, 0, 0, 0.35);
-  --pager-text-faint: rgba(0, 0, 0, 0.2);
+  --pager-text-secondary: rgba(0, 0, 0, 0.55);
+  --pager-text-muted: rgba(0, 0, 0, 0.4);
+  --pager-text-faint: rgba(0, 0, 0, 0.25);
   --pager-red: #ff3b30;
-  --pager-green: #34c759;
+  --pager-green: #28a745;
   --pager-blue: #007aff;
-  --pager-gray-dot: rgba(0, 0, 0, 0.2);
-  --pager-filter-bg: rgba(0, 0, 0, 0.04);
-  --pager-filter-active: rgba(0, 0, 0, 0.06);
-  --pager-badge-bg: rgba(88, 86, 214, 0.1);
+  --pager-gray-dot: rgba(0, 0, 0, 0.3);
+  --pager-filter-bg: rgba(0, 0, 0, 0.05);
+  --pager-filter-active: rgba(0, 0, 0, 0.08);
+  --pager-badge-bg: rgba(88, 86, 214, 0.12);
   --pager-badge-text: #5856d6;
-  --pager-tool-bg: rgba(0, 0, 0, 0.04);
-  --pager-tool-text: rgba(0, 0, 0, 0.45);
-  --pager-card-attention-bg: rgba(255, 59, 48, 0.04);
-  --pager-card-attention-border: rgba(255, 59, 48, 0.1);
-  --pager-card-running-bg: rgba(52, 199, 89, 0.04);
-  --pager-card-running-border: rgba(52, 199, 89, 0.08);
-  --pager-card-done-bg: transparent;
-  --pager-card-done-border: rgba(0, 0, 0, 0.04);
-  --pager-detail-bg: rgba(0, 0, 0, 0.03);
-  --pager-detail-border: rgba(0, 0, 0, 0.05);
-  --pager-detail-text: rgba(0, 0, 0, 0.5);
+  --pager-tool-bg: rgba(0, 122, 255, 0.08);
+  --pager-tool-text: #007aff;
+  --pager-card-attention-bg: rgba(255, 59, 48, 0.06);
+  --pager-card-attention-border: rgba(255, 59, 48, 0.2);
+  --pager-card-running-bg: rgba(40, 167, 69, 0.05);
+  --pager-card-running-border: rgba(40, 167, 69, 0.15);
+  --pager-card-done-bg: rgba(0, 0, 0, 0.02);
+  --pager-card-done-border: rgba(0, 0, 0, 0.08);
+  --pager-detail-bg: rgba(0, 0, 0, 0.04);
+  --pager-detail-border: rgba(0, 0, 0, 0.06);
+  --pager-detail-text: rgba(0, 0, 0, 0.55);
 }
 
+:root.light {
+  --pager-bg: rgba(246, 246, 248, var(--pager-opacity));
+}
+
+:root.dark {
+  --pager-bg: rgba(30, 30, 32, var(--pager-opacity));
+  --pager-header-bg: rgba(38, 38, 40, 0.96);
+  --pager-border: rgba(255, 255, 255, 0.1);
+  --pager-text: #f5f5f7;
+  --pager-text-primary: rgba(255, 255, 255, 0.92);
+  --pager-text-secondary: rgba(255, 255, 255, 0.55);
+  --pager-text-muted: rgba(255, 255, 255, 0.4);
+  --pager-text-faint: rgba(255, 255, 255, 0.22);
+  --pager-red: #ff453a;
+  --pager-green: #30d158;
+  --pager-blue: #0a84ff;
+  --pager-gray-dot: rgba(255, 255, 255, 0.35);
+  --pager-filter-bg: rgba(255, 255, 255, 0.06);
+  --pager-filter-active: rgba(255, 255, 255, 0.1);
+  --pager-badge-bg: rgba(130, 120, 255, 0.15);
+  --pager-badge-text: #b4a5ff;
+  --pager-tool-bg: rgba(10, 132, 255, 0.12);
+  --pager-tool-text: #64b5f6;
+  --pager-card-attention-bg: rgba(255, 69, 58, 0.08);
+  --pager-card-attention-border: rgba(255, 69, 58, 0.2);
+  --pager-card-running-bg: rgba(48, 209, 88, 0.06);
+  --pager-card-running-border: rgba(48, 209, 88, 0.15);
+  --pager-card-done-bg: rgba(255, 255, 255, 0.02);
+  --pager-card-done-border: rgba(255, 255, 255, 0.06);
+  --pager-detail-bg: rgba(0, 0, 0, 0.3);
+  --pager-detail-border: rgba(255, 255, 255, 0.06);
+  --pager-detail-text: rgba(255, 255, 255, 0.55);
+}
+
+/* System preference fallback (no class = "system" theme) */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --pager-bg: rgba(44, 44, 46, 0.92);
-    --pager-header-bg: rgba(44, 44, 46, 0.95);
-    --pager-border: rgba(255, 255, 255, 0.08);
-    --pager-text: #ffffff;
-    --pager-text-primary: rgba(255, 255, 255, 0.88);
-    --pager-text-secondary: rgba(255, 255, 255, 0.45);
-    --pager-text-muted: rgba(255, 255, 255, 0.35);
-    --pager-text-faint: rgba(255, 255, 255, 0.2);
+  :root:not(.light) {
+    --pager-bg: rgba(30, 30, 32, var(--pager-opacity));
+    --pager-header-bg: rgba(38, 38, 40, 0.96);
+    --pager-border: rgba(255, 255, 255, 0.1);
+    --pager-text: #f5f5f7;
+    --pager-text-primary: rgba(255, 255, 255, 0.92);
+    --pager-text-secondary: rgba(255, 255, 255, 0.55);
+    --pager-text-muted: rgba(255, 255, 255, 0.4);
+    --pager-text-faint: rgba(255, 255, 255, 0.22);
     --pager-red: #ff453a;
     --pager-green: #30d158;
     --pager-blue: #0a84ff;
-    --pager-gray-dot: rgba(255, 255, 255, 0.25);
-    --pager-filter-bg: rgba(255, 255, 255, 0.05);
-    --pager-filter-active: rgba(255, 255, 255, 0.08);
-    --pager-badge-bg: rgba(120, 120, 255, 0.12);
-    --pager-badge-text: #a78bfa;
-    --pager-tool-bg: rgba(255, 255, 255, 0.06);
-    --pager-tool-text: rgba(255, 255, 255, 0.45);
-    --pager-card-attention-bg: rgba(255, 69, 58, 0.06);
-    --pager-card-attention-border: rgba(255, 69, 58, 0.12);
-    --pager-card-running-bg: rgba(48, 209, 88, 0.04);
-    --pager-card-running-border: rgba(48, 209, 88, 0.08);
-    --pager-card-done-bg: transparent;
-    --pager-card-done-border: rgba(255, 255, 255, 0.04);
+    --pager-gray-dot: rgba(255, 255, 255, 0.35);
+    --pager-filter-bg: rgba(255, 255, 255, 0.06);
+    --pager-filter-active: rgba(255, 255, 255, 0.1);
+    --pager-badge-bg: rgba(130, 120, 255, 0.15);
+    --pager-badge-text: #b4a5ff;
+    --pager-tool-bg: rgba(10, 132, 255, 0.12);
+    --pager-tool-text: #64b5f6;
+    --pager-card-attention-bg: rgba(255, 69, 58, 0.08);
+    --pager-card-attention-border: rgba(255, 69, 58, 0.2);
+    --pager-card-running-bg: rgba(48, 209, 88, 0.06);
+    --pager-card-running-border: rgba(48, 209, 88, 0.15);
+    --pager-card-done-bg: rgba(255, 255, 255, 0.02);
+    --pager-card-done-border: rgba(255, 255, 255, 0.06);
     --pager-detail-bg: rgba(0, 0, 0, 0.3);
-    --pager-detail-border: rgba(255, 255, 255, 0.04);
-    --pager-detail-text: rgba(255, 255, 255, 0.5);
+    --pager-detail-border: rgba(255, 255, 255, 0.06);
+    --pager-detail-text: rgba(255, 255, 255, 0.55);
   }
 }
 
@@ -71,14 +107,74 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
 }
 
-::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--pager-text-faint); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--pager-text-muted); }
 
 @keyframes pulse-status {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.35; }
+  50% { opacity: 0.4; }
 }
 .animate-pulse-status {
   animation: pulse-status 2s ease-in-out infinite;
+}
+
+/* Settings panel utility classes */
+.settings-dropdown {
+  padding: 3px 10px;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 5px;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  outline: none;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 20px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='rgba(0,0,0,0.3)'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+}
+.dark .settings-dropdown,
+:root:not(.light) .settings-dropdown {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.7);
+  border-color: rgba(255, 255, 255, 0.1);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='rgba(255,255,255,0.4)'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+}
+
+.settings-segmented {
+  display: flex;
+  gap: 1px;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 6px;
+  padding: 2px;
+}
+.dark .settings-segmented {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.settings-segmented-btn {
+  padding: 3px 10px;
+  font-size: 11px;
+  border-radius: 4px;
+  color: rgba(0, 0, 0, 0.5);
+  transition: all 0.15s;
+}
+.dark .settings-segmented-btn {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.settings-segmented-btn.active {
+  background: #fff;
+  color: rgba(0, 0, 0, 0.85);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+.dark .settings-segmented-btn.active {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
 }
