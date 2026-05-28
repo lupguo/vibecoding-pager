@@ -85,7 +85,7 @@ end tell`, tty)
 	return runOsa(script)
 }
 
-func jumpWezTerm(tty string) error {
+func jumpWezTerm(_ string) error {
 	return activateApp("WezTerm")
 }
 

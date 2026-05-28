@@ -20,7 +20,7 @@ func ExtractContent(toolName string, toolInput json.RawMessage) (contentRaw, con
 }
 
 func extractRaw(toolName string, toolInput json.RawMessage) string {
-	unmarshal := func(v interface{}) bool {
+	unmarshal := func(v any) bool {
 		return json.Unmarshal(toolInput, v) == nil
 	}
 
