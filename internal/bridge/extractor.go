@@ -70,6 +70,21 @@ func extractRaw(toolName string, toolInput json.RawMessage) string {
 		if unmarshal(&in) && in.Description != "" {
 			return "子任务: " + in.Description
 		}
+	case "AskUserQuestion":
+		var in AskUserQuestionInput
+		if unmarshal(&in) && len(in.Questions) > 0 && in.Questions[0].Question != "" {
+			return in.Questions[0].Question
+		}
+	case "Agent":
+		var in AgentInput
+		if unmarshal(&in) {
+			if in.Description != "" {
+				return "子任务: " + in.Description
+			}
+			if in.Prompt != "" {
+				return "子任务: " + in.Prompt
+			}
+		}
 	}
 
 	// MCP tools: mcp__github__create_pr etc.

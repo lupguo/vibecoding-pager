@@ -2,6 +2,7 @@ package bridge
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 )
 
@@ -126,5 +127,29 @@ func TestExtractContent_EmptyInput(t *testing.T) {
 	raw, _ := ExtractContent("Bash", input)
 	if raw != "Bash" {
 		t.Errorf("raw = %q, want %q", raw, "Bash")
+	}
+}
+
+func TestExtractContent_AskUserQuestion(t *testing.T) {
+	input := `{"questions":[{"question":"你偏好哪种 UI 风格？","header":"UI","options":[],"multiSelect":false}]}`
+	_, content := ExtractContent("AskUserQuestion", json.RawMessage(input))
+	if !strings.Contains(content, "你偏好哪种 UI 风格") {
+		t.Errorf("content = %q, want to contain question text", content)
+	}
+}
+
+func TestExtractContent_Agent(t *testing.T) {
+	input := `{"prompt":"Review the code for security issues","description":"Security review"}`
+	_, content := ExtractContent("Agent", json.RawMessage(input))
+	if !strings.Contains(content, "Security review") {
+		t.Errorf("content = %q, want to contain description", content)
+	}
+}
+
+func TestExtractContent_AgentFallbackToPrompt(t *testing.T) {
+	input := `{"prompt":"Review the code for security issues"}`
+	raw, _ := ExtractContent("Agent", json.RawMessage(input))
+	if !strings.Contains(raw, "Review the code") {
+		t.Errorf("raw = %q, want to contain prompt text", raw)
 	}
 }

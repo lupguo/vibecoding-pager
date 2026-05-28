@@ -46,3 +46,16 @@ type WebSearchInput struct {
 type TaskInput struct {
 	Description string `json:"description"`
 }
+
+// AskUserQuestionInput is tool_input for AskUserQuestion tool.
+type AskUserQuestionInput struct {
+	Questions []struct {
+		Question string `json:"question"`
+	} `json:"questions"`
+}
+
+// AgentInput is tool_input for Agent tool.
+type AgentInput struct {
+	Prompt      string `json:"prompt"`
+	Description string `json:"description"`
+}
