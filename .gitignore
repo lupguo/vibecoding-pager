@@ -1,0 +1,14 @@
+# Build output (binary)
+/pager
+
+# Node modules
+frontend/node_modules/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
