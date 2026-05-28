@@ -2,9 +2,83 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --pager-bg: rgba(255, 255, 255, 0.85);
+  --pager-header-bg: rgba(255, 255, 255, 0.9);
+  --pager-border: rgba(0, 0, 0, 0.08);
+  --pager-text: #1d1d1f;
+  --pager-text-primary: #1d1d1f;
+  --pager-text-secondary: rgba(0, 0, 0, 0.45);
+  --pager-text-muted: rgba(0, 0, 0, 0.35);
+  --pager-text-faint: rgba(0, 0, 0, 0.2);
+  --pager-red: #ff3b30;
+  --pager-green: #34c759;
+  --pager-blue: #007aff;
+  --pager-gray-dot: rgba(0, 0, 0, 0.2);
+  --pager-filter-bg: rgba(0, 0, 0, 0.04);
+  --pager-filter-active: rgba(0, 0, 0, 0.06);
+  --pager-badge-bg: rgba(88, 86, 214, 0.1);
+  --pager-badge-text: #5856d6;
+  --pager-tool-bg: rgba(0, 0, 0, 0.04);
+  --pager-tool-text: rgba(0, 0, 0, 0.45);
+  --pager-card-attention-bg: rgba(255, 59, 48, 0.04);
+  --pager-card-attention-border: rgba(255, 59, 48, 0.1);
+  --pager-card-running-bg: rgba(52, 199, 89, 0.04);
+  --pager-card-running-border: rgba(52, 199, 89, 0.08);
+  --pager-card-done-bg: transparent;
+  --pager-card-done-border: rgba(0, 0, 0, 0.04);
+  --pager-detail-bg: rgba(0, 0, 0, 0.03);
+  --pager-detail-border: rgba(0, 0, 0, 0.05);
+  --pager-detail-text: rgba(0, 0, 0, 0.5);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --pager-bg: rgba(44, 44, 46, 0.92);
+    --pager-header-bg: rgba(44, 44, 46, 0.95);
+    --pager-border: rgba(255, 255, 255, 0.08);
+    --pager-text: #ffffff;
+    --pager-text-primary: rgba(255, 255, 255, 0.88);
+    --pager-text-secondary: rgba(255, 255, 255, 0.45);
+    --pager-text-muted: rgba(255, 255, 255, 0.35);
+    --pager-text-faint: rgba(255, 255, 255, 0.2);
+    --pager-red: #ff453a;
+    --pager-green: #30d158;
+    --pager-blue: #0a84ff;
+    --pager-gray-dot: rgba(255, 255, 255, 0.25);
+    --pager-filter-bg: rgba(255, 255, 255, 0.05);
+    --pager-filter-active: rgba(255, 255, 255, 0.08);
+    --pager-badge-bg: rgba(120, 120, 255, 0.12);
+    --pager-badge-text: #a78bfa;
+    --pager-tool-bg: rgba(255, 255, 255, 0.06);
+    --pager-tool-text: rgba(255, 255, 255, 0.45);
+    --pager-card-attention-bg: rgba(255, 69, 58, 0.06);
+    --pager-card-attention-border: rgba(255, 69, 58, 0.12);
+    --pager-card-running-bg: rgba(48, 209, 88, 0.04);
+    --pager-card-running-border: rgba(48, 209, 88, 0.08);
+    --pager-card-done-bg: transparent;
+    --pager-card-done-border: rgba(255, 255, 255, 0.04);
+    --pager-detail-bg: rgba(0, 0, 0, 0.3);
+    --pager-detail-border: rgba(255, 255, 255, 0.04);
+    --pager-detail-text: rgba(255, 255, 255, 0.5);
+  }
+}
+
 body {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--pager-text-faint); border-radius: 3px; }
+
+@keyframes pulse-status {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.animate-pulse-status {
+  animation: pulse-status 2s ease-in-out infinite;
 }

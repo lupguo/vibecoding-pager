@@ -1,6 +1,28 @@
 import { create } from 'zustand'
+import { Events } from '@wailsio/runtime'
+import { ListSessions } from '../../bindings/pager/sessionservice.js'
 
-export type SessionStatus = 'waiting' | 'active' | 'finished' | 'error'
+export type AttentionLevel = 'attention' | 'running' | 'done'
+export type FilterLevel = AttentionLevel
+
+export interface AgentEvent {
+  agent: string
+  host: string
+  cwd: string
+  tty: string
+  session_id: string
+  term_program: string
+  iterm_session_id?: string
+  event_type: string
+  tool_name: string
+  tool_use_id: string
+  content: string
+  content_raw: string
+  attention_level: AttentionLevel
+  agent_label: string
+  permission_mode?: string
+  timestamp: string
+}
 
 export interface Session {
   Key: string
@@ -10,42 +32,63 @@ export interface Session {
   TTY: string
   TermProgram: string
   ITermSessionID: string
-  Status: SessionStatus
-  LastEvent: {
-    Content: string
-    ContentRaw: string
-    ToolName: string
-    EventType: string
-  } | null
+  Status: string
+  AttentionLevel: AttentionLevel
+  AgentLabel: string
+  SessionID: string
+  LastEvent: AgentEvent | null
+  PendingTools: Record<string, AgentEvent | null>
   UpdatedAt: string
 }
 
 interface SessionStore {
   sessions: Session[]
+  filter: FilterLevel
   setSessions: (sessions: Session[]) => void
+  setFilter: (filter: FilterLevel) => void
+  filteredSessions: () => Session[]
 }
 
-export const useSessionStore = create<SessionStore>((set) => ({
+export const useSessionStore = create<SessionStore>((set, get) => ({
   sessions: [],
+  filter: 'attention' as FilterLevel,
+
   setSessions: (sessions) =>
     set({
       sessions: [...sessions].sort(
         (a, b) => new Date(b.UpdatedAt).getTime() - new Date(a.UpdatedAt).getTime()
       ),
     }),
+
+  setFilter: (filter) => set({ filter }),
+
+  filteredSessions: () => {
+    const { sessions, filter } = get()
+    return sessions.filter((s) => s.AttentionLevel === filter)
+  },
 }))
 
-// Initialize session sync with Wails events.
-export function initSessionSync() {
-  // Wails runtime injects globals at runtime, try to use them
-  try {
-    if (typeof window !== 'undefined' && (window as any).runtime) {
-      const runtime = (window as any).runtime
-      runtime.EventsOn('sessions-updated', (sessions: Session[]) => {
-        useSessionStore.getState().setSessions(sessions ?? [])
-      })
-    }
-  } catch {
-    console.warn('[pager] Wails runtime not available')
+export function useSessionCounts() {
+  const sessions = useSessionStore((s) => s.sessions)
+  return {
+    attention: sessions.filter((s) => s.AttentionLevel === 'attention').length,
+    running: sessions.filter((s) => s.AttentionLevel === 'running').length,
+    done: sessions.filter((s) => s.AttentionLevel === 'done').length,
   }
+}
+
+export function initSessionSync() {
+  ListSessions()
+    .then((sessions: any) => {
+      const valid = (sessions ?? []).filter((s: any) => s !== null)
+      useSessionStore.getState().setSessions(valid)
+    })
+    .catch((err: unknown) => {
+      console.warn('[pager] ListSessions failed:', err)
+    })
+
+  Events.On('sessions-updated', (ev: any) => {
+    const sessions = ev?.data ?? ev ?? []
+    useSessionStore.getState().setSessions(Array.isArray(sessions) ? sessions : [])
+  })
 }
