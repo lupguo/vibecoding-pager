@@ -1,10 +1,34 @@
 #!/bin/bash
 # Install pager-cc-bridge hook into ~/.claude/settings.json
-# Usage: ./install-hooks.sh /path/to/pager-cc-bridge
+# Usage: ./install-hooks.sh /path/to/pager-cc-bridge [--agent LABEL]
 
 set -e
 
-BRIDGE_PATH="${1:?Usage: $0 /path/to/pager-cc-bridge}"
+BRIDGE_PATH=""
+AGENT_LABEL="CC"
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --agent)
+      AGENT_LABEL="$2"
+      shift 2
+      ;;
+    *)
+      if [ -z "$BRIDGE_PATH" ]; then
+        BRIDGE_PATH="$1"
+      fi
+      shift
+      ;;
+  esac
+done
+
+if [ -z "$BRIDGE_PATH" ]; then
+  echo "Usage: $0 /path/to/pager-cc-bridge [--agent LABEL]"
+  echo "  --agent LABEL   Agent identifier shown in Pager UI (default: CC)"
+  echo "  Examples: CC, CC-Int, Codex, MyAgent"
+  exit 1
+fi
 
 if [ ! -x "$BRIDGE_PATH" ]; then
   echo "Error: $BRIDGE_PATH does not exist or is not executable"
@@ -13,14 +37,14 @@ fi
 
 SETTINGS="$HOME/.claude/settings.json"
 
-HOOK_CONFIG=$(cat <<'EOF'
+HOOK_CONFIG=$(cat <<EOF
 {
   "hooks": {
     "PreToolUse": [{
       "matcher": "*",
       "hooks": [{
         "type": "command",
-        "command": "%BRIDGE_PATH% pre_tool_use",
+        "command": "$BRIDGE_PATH pre_tool_use --agent $AGENT_LABEL",
         "async": true,
         "timeout": 5
       }]
@@ -29,7 +53,7 @@ HOOK_CONFIG=$(cat <<'EOF'
       "matcher": "*",
       "hooks": [{
         "type": "command",
-        "command": "%BRIDGE_PATH% post_tool_use",
+        "command": "$BRIDGE_PATH post_tool_use --agent $AGENT_LABEL",
         "async": true,
         "timeout": 5
       }]
@@ -37,7 +61,7 @@ HOOK_CONFIG=$(cat <<'EOF'
     "Stop": [{
       "hooks": [{
         "type": "command",
-        "command": "%BRIDGE_PATH% stop",
+        "command": "$BRIDGE_PATH stop --agent $AGENT_LABEL",
         "async": true,
         "timeout": 5
       }]
@@ -46,9 +70,6 @@ HOOK_CONFIG=$(cat <<'EOF'
 }
 EOF
 )
-
-# Replace placeholder with actual bridge path
-HOOK_CONFIG="${HOOK_CONFIG//\%BRIDGE_PATH\%/$BRIDGE_PATH}"
 
 # Backup existing config
 [ -f "$SETTINGS" ] && cp "$SETTINGS" "$SETTINGS.pager-backup"
@@ -66,4 +87,5 @@ else
 fi
 
 echo "✓ Hook installed to $SETTINGS"
+echo "  Agent label: $AGENT_LABEL"
 echo "  Restart Claude Code to activate."

@@ -22,7 +22,7 @@ func main() {
 
 	// SessionService exposes registry operations to the React frontend.
 	// It shares the same registry pointer as App.
-	svc := &SessionService{reg: myApp.Registry()}
+	svc := &SessionService{reg: myApp.registry()}
 
 	// ── Wails application ───────────────────────────────────────────────────────
 	// API adaptations from PRD:
@@ -70,7 +70,7 @@ func main() {
 
 	// Give App a reference to the tray so the registry onChange callback can update
 	// the icon / label when session status changes.
-	myApp.SetTray(tray)
+	myApp.setTray(tray)
 
 	// ── Quit menu ───────────────────────────────────────────────────────────────
 	quitMenu := wailsApp.NewMenu()
