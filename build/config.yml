@@ -1,0 +1,36 @@
+version: '3'
+
+info:
+  companyName: "sapaude"
+  productName: "Pager"
+  productIdentifier: "com.sapaude.pager"
+  description: "AI coding agents status monitor for macOS"
+  copyright: "(c) 2026, sapaude"
+  version: "0.1.0"
+
+dev_mode:
+  root_path: .
+  log_level: warn
+  debounce: 1000
+  ignore:
+    dir:
+      - .git
+      - node_modules
+      - frontend
+      - bin
+    file:
+      - .DS_Store
+      - .gitignore
+      - "*_test.go"
+    watched_extension:
+      - "*.go"
+    git_ignore: true
+  executes:
+    - cmd: cd frontend && npm install
+      type: once
+    - cmd: cd frontend && npm run dev
+      type: background
+    - cmd: go build -o bin/Pager .
+      type: blocking
+    - cmd: ./bin/Pager
+      type: primary
