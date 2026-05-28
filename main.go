@@ -25,9 +25,13 @@ func main() {
 	// It shares the same registry pointer as App.
 	svc := &SessionService{reg: myApp.registry()}
 
+	// window is declared here (nil) so the settingsSvc closure below can capture it by
+	// reference.  It is assigned after wailsApp is created; Go closures capture variables
+	// (not values), so by the time onChange fires the pointer is always valid.
+	var window *application.WebviewWindow
+
 	settingsSvc := NewSettingsService(func(cfg settings.Settings) {
-		// TODO: wire hotkey re-registration in later task
-		_ = cfg
+		registerHotkey(window, cfg.HotkeyToggle)
 	})
 
 	// ── Wails application ───────────────────────────────────────────────────────
@@ -86,7 +90,7 @@ func main() {
 	// API adaptations from PRD:
 	//   PRD used app.NewWebviewWindowWithOptions() — real API is app.Window.NewWithOptions()
 	//   PRD used application.NewRGBA(0,0,0,0)     — confirmed available in this version
-	window := wailsApp.Window.NewWithOptions(application.WebviewWindowOptions{
+	window = wailsApp.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:         "Pager",
 		Name:          "pager-panel",
 		Width:         400,
@@ -130,6 +134,10 @@ func main() {
 	// Attach the popup window so clicking the tray icon toggles it.
 	// WindowOffset(5) leaves a small gap between icon and panel edge.
 	tray.AttachWindow(window).WindowOffset(5)
+
+	// Register initial global hotkey (default: Alt+E, overridden by saved settings).
+	initialCfg, _ := settings.LoadFrom(settings.DefaultPath())
+	registerHotkey(window, initialCfg.HotkeyToggle)
 
 	// ── Run ─────────────────────────────────────────────────────────────────────
 	if err := wailsApp.Run(); err != nil {
