@@ -28,6 +28,13 @@ const (
 	StatusError    = "error"
 )
 
+// AttentionLevel constants
+const (
+	AttentionAttention = "attention"
+	AttentionRunning   = "running"
+	AttentionDone      = "done"
+)
+
 // AgentEvent is the single cross-layer data structure.
 // Bridge fills all fields; server and UI are read-only consumers.
 type AgentEvent struct {
@@ -43,11 +50,18 @@ type AgentEvent struct {
 	ToolUseID      string `json:"tool_use_id"`
 	Content        string `json:"content"`
 	ContentRaw     string `json:"content_raw"`
+	AttentionLevel string `json:"attention_level"`
+	AgentLabel     string `json:"agent_label"`
+	PermissionMode string `json:"permission_mode,omitempty"`
 	RawPayload     json.RawMessage `json:"raw_payload,omitempty"`
 	Timestamp      time.Time       `json:"timestamp"`
 }
 
-// SessionKey returns the unique session identifier (host:cwd:tty triple).
+// SessionKey returns the unique session identifier.
+// Prefers CC-native session_id; falls back to host:cwd:tty triple.
 func (e *AgentEvent) SessionKey() string {
+	if e.SessionID != "" {
+		return e.SessionID
+	}
 	return e.Host + ":" + e.CWD + ":" + e.TTY
 }
