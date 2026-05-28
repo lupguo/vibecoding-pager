@@ -1,0 +1,43 @@
+{
+  "nav": {
+    "general": "基本设置",
+    "about": "关于"
+  },
+  "general": {
+    "title": "基本设置",
+    "appearance": "外观",
+    "language": "语言",
+    "theme": "主题",
+    "themeLight": "浅色",
+    "themeDark": "深色",
+    "themeSystem": "系统",
+    "opacity": "透明度",
+    "hotkeys": "快捷键",
+    "hotkeyToggle": "唤起窗口",
+    "hotkeyToggleDesc": "全局快捷键打开 Pager 面板",
+    "hotkeyRecording": "按下新快捷键...",
+    "notifications": "通知",
+    "notificationLevel": "通知级别",
+    "notificationLevelDesc": "选择何时发送系统通知",
+    "notifyAll": "所有消息",
+    "notifyAttentionOnly": "仅需确认时"
+  },
+  "about": {
+    "title": "关于",
+    "description": "AI coding agents 状态感知层",
+    "version": "版本",
+    "author": "作者",
+    "checkUpdate": "检查更新",
+    "github": "GitHub",
+    "copyright": "© 2026 sapaude · Built with Wails v3"
+  },
+  "session": {
+    "title": "Pager",
+    "attention": "需确认",
+    "running": "执行中",
+    "done": "已完成",
+    "jumpToTerminal": "跳转到终端",
+    "session": "会话",
+    "path": "路径"
+  }
+}

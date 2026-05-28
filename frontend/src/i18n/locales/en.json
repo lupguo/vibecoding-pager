@@ -1,0 +1,43 @@
+{
+  "nav": {
+    "general": "General",
+    "about": "About"
+  },
+  "general": {
+    "title": "General",
+    "appearance": "Appearance",
+    "language": "Language",
+    "theme": "Theme",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeSystem": "System",
+    "opacity": "Opacity",
+    "hotkeys": "Shortcuts",
+    "hotkeyToggle": "Toggle Window",
+    "hotkeyToggleDesc": "Global shortcut to open Pager panel",
+    "hotkeyRecording": "Press new shortcut...",
+    "notifications": "Notifications",
+    "notificationLevel": "Notification Level",
+    "notificationLevelDesc": "Choose when to send system notifications",
+    "notifyAll": "All messages",
+    "notifyAttentionOnly": "Only when confirmation needed"
+  },
+  "about": {
+    "title": "About",
+    "description": "Status awareness layer for AI coding agents",
+    "version": "Version",
+    "author": "Author",
+    "checkUpdate": "Check for Updates",
+    "github": "GitHub",
+    "copyright": "© 2026 sapaude · Built with Wails v3"
+  },
+  "session": {
+    "title": "Pager",
+    "attention": "Attention",
+    "running": "Running",
+    "done": "Done",
+    "jumpToTerminal": "Jump to terminal",
+    "session": "Session",
+    "path": "Path"
+  }
+}
