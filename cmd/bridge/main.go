@@ -15,10 +15,7 @@ import (
 func main() {
 	defer os.Exit(0)
 
-	eventType := "unknown"
-	if len(os.Args) > 1 {
-		eventType = os.Args[1]
-	}
+	eventType, agentLabel := parseArgs(os.Args[1:])
 
 	raw, err := io.ReadAll(os.Stdin)
 	if err != nil {
@@ -33,6 +30,7 @@ func main() {
 	_ = json.Unmarshal(raw, &in)
 
 	contentRaw, content := bridge.ExtractContent(in.ToolName, in.ToolInput)
+	attentionLevel := bridge.DetermineAttentionLevel(eventType, in.PermissionMode)
 
 	e := event.AgentEvent{
 		Agent:          event.AgentClaudeCode,
@@ -47,11 +45,32 @@ func main() {
 		ToolUseID:      in.ToolUseID,
 		Content:        content,
 		ContentRaw:     contentRaw,
+		AttentionLevel: attentionLevel,
+		AgentLabel:     agentLabel,
+		PermissionMode: in.PermissionMode,
 		RawPayload:     raw,
 		Timestamp:      time.Now(),
 	}
 
 	bridge.PostEvent(e)
+}
+
+// parseArgs extracts event type and --agent flag from command-line args.
+// Usage: pager-cc-bridge <event_type> [--agent <label>]
+func parseArgs(args []string) (eventType, agentLabel string) {
+	eventType = "unknown"
+	agentLabel = "CC" // default
+
+	for i := 0; i < len(args); i++ {
+		switch {
+		case args[i] == "--agent" && i+1 < len(args):
+			agentLabel = args[i+1]
+			i++ // skip next
+		case !strings.HasPrefix(args[i], "--") && eventType == "unknown":
+			eventType = args[i]
+		}
+	}
+	return
 }
 
 func detectTTY() string {

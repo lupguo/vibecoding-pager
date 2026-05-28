@@ -4,11 +4,12 @@ import "encoding/json"
 
 // CCHookInput is the JSON structure CC passes via stdin to hooks.
 type CCHookInput struct {
-	SessionID string          `json:"session_id"`
-	CWD       string          `json:"cwd"`
-	ToolName  string          `json:"tool_name"`
-	ToolInput json.RawMessage `json:"tool_input"`
-	ToolUseID string          `json:"tool_use_id"`
+	SessionID      string          `json:"session_id"`
+	CWD            string          `json:"cwd"`
+	ToolName       string          `json:"tool_name"`
+	ToolInput      json.RawMessage `json:"tool_input"`
+	ToolUseID      string          `json:"tool_use_id"`
+	PermissionMode string          `json:"permission_mode"`
 }
 
 // BashInput is tool_input for Bash tool.
