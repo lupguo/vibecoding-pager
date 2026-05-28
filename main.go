@@ -6,6 +6,7 @@ import (
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/icons"
+	"pager/internal/settings"
 )
 
 // frontend/dist is built by the React toolchain (npm run build).
@@ -23,6 +24,11 @@ func main() {
 	// SessionService exposes registry operations to the React frontend.
 	// It shares the same registry pointer as App.
 	svc := &SessionService{reg: myApp.registry()}
+
+	settingsSvc := NewSettingsService(func(cfg settings.Settings) {
+		// TODO: wire hotkey re-registration in later task
+		_ = cfg
+	})
 
 	// ── Wails application ───────────────────────────────────────────────────────
 	// API adaptations from PRD:
@@ -44,6 +50,7 @@ func main() {
 		Services: []application.Service{
 			application.NewService(myApp),
 			application.NewService(svc),
+			application.NewService(settingsSvc),
 		},
 
 		// Embed the built React app.
@@ -72,13 +79,6 @@ func main() {
 	// the icon / label when session status changes.
 	myApp.setTray(tray)
 
-	// ── Quit menu ───────────────────────────────────────────────────────────────
-	quitMenu := wailsApp.NewMenu()
-	quitMenu.Add("Quit Pager").OnClick(func(_ *application.Context) {
-		wailsApp.Quit()
-	})
-	tray.SetMenu(quitMenu)
-
 	// ── Popup window ────────────────────────────────────────────────────────────
 	// Frameless, always-on-top, initially hidden.
 	// Clicking the tray icon shows it (AttachWindow below).
@@ -98,7 +98,36 @@ func main() {
 		BackgroundColour: application.NewRGBA(0, 0, 0, 0),
 	})
 
-	// Attach the window so clicking the tray icon toggles it.
+	// ── Settings window ─────────────────────────────────────────────────────────
+	// Non-frameless, normal resize-disabled window for the settings UI.
+	// Hidden by default; opened via the tray menu "偏好设置..." item.
+	settingsWindow := wailsApp.Window.NewWithOptions(application.WebviewWindowOptions{
+		Title:         "Pager 设置",
+		Name:          "pager-settings",
+		Width:         720,
+		Height:        520,
+		Hidden:        true,
+		DisableResize: true,
+		URL:           "#/settings",
+	})
+
+	// ── Tray menu ───────────────────────────────────────────────────────────────
+	trayMenu := wailsApp.NewMenu()
+	trayMenu.Add("偏好设置...").
+		SetAccelerator("CmdOrCtrl+,").
+		OnClick(func(_ *application.Context) {
+			settingsWindow.Show()
+			settingsWindow.Focus()
+		})
+	trayMenu.AddSeparator()
+	trayMenu.Add("退出 Pager").
+		SetAccelerator("CmdOrCtrl+Q").
+		OnClick(func(_ *application.Context) {
+			wailsApp.Quit()
+		})
+	tray.SetMenu(trayMenu)
+
+	// Attach the popup window so clicking the tray icon toggles it.
 	// WindowOffset(5) leaves a small gap between icon and panel edge.
 	tray.AttachWindow(window).WindowOffset(5)
 
