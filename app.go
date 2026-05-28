@@ -8,6 +8,7 @@ import (
 	"pager/internal/notify"
 	"pager/internal/registry"
 	"pager/internal/server"
+	"pager/internal/settings"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
@@ -47,7 +48,8 @@ func NewApp() *App {
 		// 2. Show a macOS system notification for the triggering event.
 		//    notify.Show internally filters: only pre_tool_use / stop / error fire a notification.
 		if len(sessions) > 0 && sessions[0].LastEvent != nil {
-			notify.Show(sessions[0].LastEvent)
+			cfg, _ := settings.LoadFrom(settings.DefaultPath())
+			notify.ShowFull(sessions[0].LastEvent, cfg.NotificationLevel, cfg.Language)
 		}
 
 		// 3. Update the tray icon to reflect aggregate session status.
@@ -77,13 +79,13 @@ func (a *App) ServiceShutdown() error {
 }
 
 // Registry returns the session registry so other services (SessionService) can share it.
-func (a *App) Registry() *registry.Registry {
+func (a *App) registry() *registry.Registry {
 	return a.reg
 }
 
 // SetTray stores the system tray reference so the onChange callback can update its icon.
 // Must be called from main.go before app.Run().
-func (a *App) SetTray(tray *application.SystemTray) {
+func (a *App) setTray(tray *application.SystemTray) {
 	a.tray = tray
 }
 

@@ -8,6 +8,78 @@ import (
 	"pager/internal/event"
 )
 
+// ShouldNotify determines whether an event should trigger a system notification
+// based on the configured notification level.
+func ShouldNotify(e *event.AgentEvent, level string) bool {
+	switch level {
+	case "all":
+		switch e.EventType {
+		case event.EventPreToolUse, event.EventStop, event.EventError:
+			return true
+		}
+		return false
+	case "attention_only":
+		if e.EventType == event.EventStop || e.EventType == event.EventError {
+			return true
+		}
+		if e.EventType == event.EventPreToolUse && e.AttentionLevel == event.AttentionAttention {
+			return true
+		}
+		return false
+	default:
+		return false
+	}
+}
+
+// Notification text by language
+var notifyText = map[string]map[string]string{
+	"zh": {
+		"waiting":  "等待确认: ",
+		"finished": "任务完成",
+		"error":    " [错误]",
+	},
+	"en": {
+		"waiting":  "Waiting: ",
+		"finished": "Task completed",
+		"error":    " [Error]",
+	},
+}
+
+func getText(lang, key string) string {
+	if m, ok := notifyText[lang]; ok {
+		if v, ok := m[key]; ok {
+			return v
+		}
+	}
+	return notifyText["zh"][key]
+}
+
+// ShowFull is the main notification entrypoint with all configuration.
+func ShowFull(e *event.AgentEvent, level string, lang string) {
+	if !ShouldNotify(e, level) {
+		return
+	}
+
+	var title, body string
+	switch e.EventType {
+	case event.EventPreToolUse:
+		title = fmt.Sprintf("%s · %s", agentLabel(e.Agent), lastPath(e.CWD))
+		body = e.Content
+		if body == "" {
+			body = getText(lang, "waiting") + e.ToolName
+		}
+	case event.EventStop:
+		title = fmt.Sprintf("%s · %s", agentLabel(e.Agent), lastPath(e.CWD))
+		body = getText(lang, "finished")
+	case event.EventError:
+		title = fmt.Sprintf("%s · %s%s", agentLabel(e.Agent), lastPath(e.CWD), getText(lang, "error"))
+		body = e.Content
+	default:
+		return
+	}
+	showOsascript(title, body)
+}
+
 // Show triggers a macOS system notification based on event type.
 // Uses osascript. Only fires for pre_tool_use, stop, and error events.
 func Show(e *event.AgentEvent) {
