@@ -6,8 +6,10 @@ import App from './App'
 import SettingsPanel from './pages/SettingsPanel'
 import './index.css'
 import { initSessionSync } from './store/sessions'
+import { initSettings } from './store/settings'
 
 initSessionSync()
+initSettings()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
