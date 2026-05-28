@@ -42,6 +42,8 @@ Date: 2026-05-28
 | 设置项 | 控件类型 | 选项 | 默认值 |
 |--------|----------|------|--------|
 | 语言 | Dropdown | 中文 / English | 中文 |
+
+语言切换即时生效（i18next hot switch），无需重启应用。
 | 主题 | Segmented Control | 浅色 / 深色 / 系统 | 系统 |
 | 透明度 | Slider | 0% ~ 100% | 75% |
 
@@ -195,10 +197,60 @@ Wails v3 不内置全局热键注册。方案：
 - **主题：** 前端根据 settings.theme 设置 `<html>` 的 class（`light` / `dark`），CSS 变量体系已支持 dark mode（现有 `prefers-color-scheme` media query 改为 class-based）
 - **透明度：** 修改 `--pager-bg` 的 alpha 值，通过 Wails event 通知 popup window 实时更新
 
+## 多语言 i18n
+
+**方案：** 前端使用轻量 i18n 方案（`i18next` + `react-i18next`），Go 侧不涉及多语言。
+
+**翻译文件结构：**
+
+```
+frontend/src/i18n/
+├── index.ts          # i18next 初始化配置
+├── locales/
+│   ├── zh.json       # 中文翻译
+│   └── en.json       # 英文翻译
+```
+
+**翻译范围：**
+
+- 配置面板所有 UI 文本（导航、标签、描述、选项）
+- Session popup 面板文本（header、filter 标签、card 内容标签）
+- 通知文本（`notify.go` 中的中文字符串需改为从配置读取 language 后选择对应文案，或保持 osascript 通知用固定语言）
+
+**语言切换逻辑：**
+
+1. 前端 settings store 中 language 变更时调用 `i18next.changeLanguage(lang)`
+2. 所有组件通过 `useTranslation()` hook 获取翻译文本，自动响应语言变化
+3. Go 侧通知文本：根据 settings.language 选择中/英文案（硬编码 map，不引入 Go i18n 库）
+
+## App Icon
+
+**设计：** 与关于页面一致的渐变色圆角方形图标
+
+- 渐变：`linear-gradient(135deg, #007aff, #5856d6)`（蓝→紫）
+- 形状：macOS 标准圆角方形（squircle）
+- 前景：白色 📟 符号或简化的 "P" 字母
+- 尺寸：生成 1024×1024 母版，导出 16/32/64/128/256/512/1024 px 各尺寸
+- 格式：`icon.icns`（macOS app icon）+ 22×22 template PNG（tray icon）
+
+**文件位置：**
+
+```
+assets/
+├── icon.icns              # macOS .app icon
+├── icon.png               # 1024px 母版
+├── tray-icon.png          # 22×22 template icon (monochrome)
+└── tray-icon@2x.png       # 44×44 retina tray icon
+```
+
+**集成：**
+
+- `main.go` 中 `tray.SetTemplateIcon()` 改用自定义 tray icon
+- Wails build config 中引用 `assets/icon.icns` 作为 .app 图标
+
 ## 不实现（本次范围外）
 
 - 热键录制的冲突检测（与其他应用快捷键冲突时不处理）
-- 多语言 i18n 框架（v1 仅中文/英文硬编码切换）
 - 检查更新的自动更新功能（仅打开 GitHub releases）
 - 配置导入/导出
 - 配置文件 schema migration（v1 只有一个版本）
