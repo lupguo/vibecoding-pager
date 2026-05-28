@@ -1,8 +1,11 @@
-# Build output (binary)
-/pager
+# Build output
+bin/
+*.exe
+*.app
 
-# Node modules
+# Frontend
 frontend/node_modules/
+frontend/dist/
 
 # IDE
 .idea/
@@ -12,3 +15,6 @@ frontend/node_modules/
 
 # OS
 .DS_Store
+
+# Temp
+/tmp/
