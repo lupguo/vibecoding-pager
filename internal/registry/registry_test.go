@@ -11,6 +11,7 @@ func makeEvent(eventType, toolName, toolUseID, cwd, tty string) *event.AgentEven
 	return &event.AgentEvent{
 		Agent:     event.AgentClaudeCode,
 		Host:      "local",
+		SessionID: "test-session-" + cwd,
 		CWD:       cwd,
 		TTY:       tty,
 		EventType: eventType,
@@ -36,8 +37,8 @@ func TestApply_PreToolUse_CreatesSession(t *testing.T) {
 	if s.Status != event.StatusWaiting {
 		t.Errorf("status = %q, want %q", s.Status, event.StatusWaiting)
 	}
-	if s.Key != "local:/project:/dev/ttys001" {
-		t.Errorf("key = %q, want %q", s.Key, "local:/project:/dev/ttys001")
+	if s.Key != "test-session-/project" {
+		t.Errorf("key = %q, want %q", s.Key, "test-session-/project")
 	}
 	if _, ok := s.PendingTools["tu-1"]; !ok {
 		t.Error("tu-1 should be in PendingTools")
@@ -148,5 +149,45 @@ func TestGetByTTY(t *testing.T) {
 	_, ok = reg.GetByTTY("/dev/ttys999")
 	if ok {
 		t.Error("should not find non-existent TTY")
+	}
+}
+
+func TestApply_SessionID_Key(t *testing.T) {
+	reg := New(func([]*Session) {})
+
+	e1 := makeEvent(event.EventPreToolUse, "Bash", "tu-1", "/project", "/dev/ttys001")
+	e1.SessionID = "session-aaa"
+	reg.Apply(e1)
+
+	e2 := makeEvent(event.EventPreToolUse, "Bash", "tu-2", "/project", "/dev/ttys001")
+	e2.SessionID = "session-bbb"
+	reg.Apply(e2)
+
+	sessions := reg.ListSorted()
+	if len(sessions) != 2 {
+		t.Fatalf("expected 2 sessions (different session_id), got %d", len(sessions))
+	}
+}
+
+func TestApply_FallbackKey_NoSessionID(t *testing.T) {
+	reg := New(func([]*Session) {})
+
+	e := &event.AgentEvent{
+		Agent:     event.AgentClaudeCode,
+		Host:      "local",
+		SessionID: "",
+		CWD:       "/project",
+		TTY:       "/dev/ttys001",
+		EventType: event.EventPreToolUse,
+		ToolName:  "Bash",
+		ToolUseID: "tu-1",
+		Content:   "test",
+		Timestamp: time.Now(),
+	}
+	reg.Apply(e)
+
+	sessions := reg.ListSorted()
+	if sessions[0].Key != "local:/project:/dev/ttys001" {
+		t.Errorf("fallback key = %q, want host:cwd:tty format", sessions[0].Key)
 	}
 }

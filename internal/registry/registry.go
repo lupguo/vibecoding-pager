@@ -18,6 +18,9 @@ type Session struct {
 	TermProgram    string                       `json:"TermProgram"`
 	ITermSessionID string                       `json:"ITermSessionID"`
 	Status         string                       `json:"Status"`
+	AttentionLevel string                       `json:"AttentionLevel"`
+	AgentLabel     string                       `json:"AgentLabel"`
+	SessionID      string                       `json:"SessionID"`
 	LastEvent      *event.AgentEvent            `json:"LastEvent"`
 	PendingTools   map[string]*event.AgentEvent `json:"PendingTools"`
 	UpdatedAt      time.Time                    `json:"UpdatedAt"`
@@ -52,6 +55,7 @@ func (r *Registry) Apply(e *event.AgentEvent) {
 			Host:         e.Host,
 			CWD:          e.CWD,
 			TTY:          e.TTY,
+			SessionID:    e.SessionID,
 			PendingTools: make(map[string]*event.AgentEvent),
 		}
 		r.sessions[key] = s
@@ -69,6 +73,14 @@ func (r *Registry) Apply(e *event.AgentEvent) {
 	s.UpdatedAt = e.Timestamp
 	if s.UpdatedAt.IsZero() {
 		s.UpdatedAt = time.Now()
+	}
+
+	// Update attention level and agent label from event
+	if e.AttentionLevel != "" {
+		s.AttentionLevel = e.AttentionLevel
+	}
+	if e.AgentLabel != "" {
+		s.AgentLabel = e.AgentLabel
 	}
 
 	switch e.EventType {
