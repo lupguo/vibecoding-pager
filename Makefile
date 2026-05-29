@@ -7,13 +7,15 @@ BRIDGE_BIN  := $(BIN_DIR)/pager-cc-bridge
 APP_BIN     := $(BIN_DIR)/$(APP_NAME)
 FRONTEND    := frontend
 VITE_PORT   := 9245
+HTTP_PORT   := 7421
 
-.PHONY: dev build run clean test bridge frontend-deps frontend-build bindings icon lint
+.PHONY: dev build run clean test bridge frontend-deps frontend-build bindings icon lint stop
 
 # ─── Development ─────────────────────────────────────────────────────────────
 
 ## Run in dev mode (Wails hot-reload + Vite HMR)
-dev:
+## Automatically kills any previous dev processes on the same ports.
+dev: stop
 	wails3 dev -config ./build/config.yml -port $(VITE_PORT)
 
 ## Run frontend dev server only (for UI iteration without Go rebuild)
@@ -73,6 +75,12 @@ lint:
 
 # ─── Housekeeping ────────────────────────────────────────────────────────────
 
+## Stop any running Pager dev processes (frees ports 9245 + 7421)
+stop:
+	@lsof -ti:$(VITE_PORT) | xargs kill -9 2>/dev/null || true
+	@lsof -ti:$(HTTP_PORT) | xargs kill -9 2>/dev/null || true
+	@sleep 0.5
+
 ## Clean build artifacts
 clean:
 	rm -rf $(BIN_DIR) $(FRONTEND)/dist
@@ -86,7 +94,8 @@ rebuild: clean frontend-deps build
 help:
 	@echo "Pager Development Commands:"
 	@echo ""
-	@echo "  make dev            Run in dev mode (Wails + Vite hot reload)"
+	@echo "  make dev            Run in dev mode (auto-kills previous instance)"
+	@echo "  make stop           Stop running dev processes (free ports)"
 	@echo "  make dev-frontend   Run frontend only (Vite HMR)"
 	@echo "  make build          Build production .app"
 	@echo "  make build-go       Build Go binary only"
