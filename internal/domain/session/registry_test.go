@@ -1,15 +1,15 @@
-package registry
+package session
 
 import (
 	"testing"
 	"time"
 
-	"pager/internal/event"
+	"pager/internal/domain/entity"
 )
 
-func makeEvent(eventType, toolName, toolUseID, cwd, tty string) *event.AgentEvent {
-	return &event.AgentEvent{
-		Agent:     event.AgentClaudeCode,
+func makeEvent(eventType, toolName, toolUseID, cwd, tty string) *entity.AgentEvent {
+	return &entity.AgentEvent{
+		Agent:     entity.AgentClaudeCode,
 		Host:      "local",
 		SessionID: "test-session-" + cwd,
 		CWD:       cwd,
@@ -26,7 +26,7 @@ func TestApply_PreToolUse_CreatesSession(t *testing.T) {
 	var called int
 	reg := New(func(sessions []*Session) { called++ })
 
-	e := makeEvent(event.EventPreToolUse, "Bash", "tu-1", "/project", "/dev/ttys001")
+	e := makeEvent(entity.EventPreToolUse, "Bash", "tu-1", "/project", "/dev/ttys001")
 	reg.Apply(e)
 
 	sessions := reg.ListSorted()
@@ -34,8 +34,8 @@ func TestApply_PreToolUse_CreatesSession(t *testing.T) {
 		t.Fatalf("expected 1 session, got %d", len(sessions))
 	}
 	s := sessions[0]
-	if s.Status != event.StatusWaiting {
-		t.Errorf("status = %q, want %q", s.Status, event.StatusWaiting)
+	if s.Status != entity.StatusWaiting {
+		t.Errorf("status = %q, want %q", s.Status, entity.StatusWaiting)
 	}
 	if s.Key != "test-session-/project" {
 		t.Errorf("key = %q, want %q", s.Key, "test-session-/project")
@@ -52,15 +52,15 @@ func TestApply_PostToolUse_ClearsPending(t *testing.T) {
 	var lastSessions []*Session
 	reg := New(func(sessions []*Session) { lastSessions = sessions })
 
-	reg.Apply(makeEvent(event.EventPreToolUse, "Bash", "tu-1", "/p", "/dev/ttys001"))
-	reg.Apply(makeEvent(event.EventPostToolUse, "Bash", "tu-1", "/p", "/dev/ttys001"))
+	reg.Apply(makeEvent(entity.EventPreToolUse, "Bash", "tu-1", "/p", "/dev/ttys001"))
+	reg.Apply(makeEvent(entity.EventPostToolUse, "Bash", "tu-1", "/p", "/dev/ttys001"))
 
 	if len(lastSessions) != 1 {
 		t.Fatalf("expected 1 session, got %d", len(lastSessions))
 	}
 	s := lastSessions[0]
-	if s.Status != event.StatusActive {
-		t.Errorf("status = %q, want %q", s.Status, event.StatusActive)
+	if s.Status != entity.StatusActive {
+		t.Errorf("status = %q, want %q", s.Status, entity.StatusActive)
 	}
 	if len(s.PendingTools) != 0 {
 		t.Errorf("PendingTools should be empty, has %d", len(s.PendingTools))
@@ -71,19 +71,19 @@ func TestApply_PostToolUse_MultiplePending(t *testing.T) {
 	var lastSessions []*Session
 	reg := New(func(sessions []*Session) { lastSessions = sessions })
 
-	reg.Apply(makeEvent(event.EventPreToolUse, "Bash", "tu-1", "/p", "/dev/ttys001"))
-	reg.Apply(makeEvent(event.EventPreToolUse, "Edit", "tu-2", "/p", "/dev/ttys001"))
+	reg.Apply(makeEvent(entity.EventPreToolUse, "Bash", "tu-1", "/p", "/dev/ttys001"))
+	reg.Apply(makeEvent(entity.EventPreToolUse, "Edit", "tu-2", "/p", "/dev/ttys001"))
 
-	reg.Apply(makeEvent(event.EventPostToolUse, "Bash", "tu-1", "/p", "/dev/ttys001"))
+	reg.Apply(makeEvent(entity.EventPostToolUse, "Bash", "tu-1", "/p", "/dev/ttys001"))
 	s := lastSessions[0]
-	if s.Status != event.StatusWaiting {
-		t.Errorf("status = %q, want %q (still has pending)", s.Status, event.StatusWaiting)
+	if s.Status != entity.StatusWaiting {
+		t.Errorf("status = %q, want %q (still has pending)", s.Status, entity.StatusWaiting)
 	}
 
-	reg.Apply(makeEvent(event.EventPostToolUse, "Edit", "tu-2", "/p", "/dev/ttys001"))
+	reg.Apply(makeEvent(entity.EventPostToolUse, "Edit", "tu-2", "/p", "/dev/ttys001"))
 	s = lastSessions[0]
-	if s.Status != event.StatusActive {
-		t.Errorf("status = %q, want %q", s.Status, event.StatusActive)
+	if s.Status != entity.StatusActive {
+		t.Errorf("status = %q, want %q", s.Status, entity.StatusActive)
 	}
 }
 
@@ -91,12 +91,12 @@ func TestApply_Stop(t *testing.T) {
 	var lastSessions []*Session
 	reg := New(func(sessions []*Session) { lastSessions = sessions })
 
-	reg.Apply(makeEvent(event.EventPreToolUse, "Bash", "tu-1", "/p", "/dev/ttys001"))
-	reg.Apply(makeEvent(event.EventStop, "", "", "/p", "/dev/ttys001"))
+	reg.Apply(makeEvent(entity.EventPreToolUse, "Bash", "tu-1", "/p", "/dev/ttys001"))
+	reg.Apply(makeEvent(entity.EventStop, "", "", "/p", "/dev/ttys001"))
 
 	s := lastSessions[0]
-	if s.Status != event.StatusFinished {
-		t.Errorf("status = %q, want %q", s.Status, event.StatusFinished)
+	if s.Status != entity.StatusFinished {
+		t.Errorf("status = %q, want %q", s.Status, entity.StatusFinished)
 	}
 }
 
@@ -104,23 +104,23 @@ func TestApply_Error(t *testing.T) {
 	var lastSessions []*Session
 	reg := New(func(sessions []*Session) { lastSessions = sessions })
 
-	reg.Apply(makeEvent(event.EventPreToolUse, "Bash", "tu-1", "/p", "/dev/ttys001"))
-	reg.Apply(makeEvent(event.EventError, "", "", "/p", "/dev/ttys001"))
+	reg.Apply(makeEvent(entity.EventPreToolUse, "Bash", "tu-1", "/p", "/dev/ttys001"))
+	reg.Apply(makeEvent(entity.EventError, "", "", "/p", "/dev/ttys001"))
 
 	s := lastSessions[0]
-	if s.Status != event.StatusError {
-		t.Errorf("status = %q, want %q", s.Status, event.StatusError)
+	if s.Status != entity.StatusError {
+		t.Errorf("status = %q, want %q", s.Status, entity.StatusError)
 	}
 }
 
 func TestListSorted_OrderByUpdatedAt(t *testing.T) {
 	reg := New(func([]*Session) {})
 
-	e1 := makeEvent(event.EventPreToolUse, "Bash", "tu-1", "/project-a", "/dev/ttys001")
+	e1 := makeEvent(entity.EventPreToolUse, "Bash", "tu-1", "/project-a", "/dev/ttys001")
 	e1.Timestamp = time.Now().Add(-10 * time.Second)
 	reg.Apply(e1)
 
-	e2 := makeEvent(event.EventPreToolUse, "Bash", "tu-2", "/project-b", "/dev/ttys002")
+	e2 := makeEvent(entity.EventPreToolUse, "Bash", "tu-2", "/project-b", "/dev/ttys002")
 	e2.Timestamp = time.Now()
 	reg.Apply(e2)
 
@@ -136,7 +136,7 @@ func TestListSorted_OrderByUpdatedAt(t *testing.T) {
 func TestGetByTTY(t *testing.T) {
 	reg := New(func([]*Session) {})
 
-	reg.Apply(makeEvent(event.EventPreToolUse, "Bash", "tu-1", "/p", "/dev/ttys005"))
+	reg.Apply(makeEvent(entity.EventPreToolUse, "Bash", "tu-1", "/p", "/dev/ttys005"))
 
 	s, ok := reg.GetByTTY("/dev/ttys005")
 	if !ok {
@@ -155,11 +155,11 @@ func TestGetByTTY(t *testing.T) {
 func TestApply_SessionID_Key(t *testing.T) {
 	reg := New(func([]*Session) {})
 
-	e1 := makeEvent(event.EventPreToolUse, "Bash", "tu-1", "/project", "/dev/ttys001")
+	e1 := makeEvent(entity.EventPreToolUse, "Bash", "tu-1", "/project", "/dev/ttys001")
 	e1.SessionID = "session-aaa"
 	reg.Apply(e1)
 
-	e2 := makeEvent(event.EventPreToolUse, "Bash", "tu-2", "/project", "/dev/ttys001")
+	e2 := makeEvent(entity.EventPreToolUse, "Bash", "tu-2", "/project", "/dev/ttys001")
 	e2.SessionID = "session-bbb"
 	reg.Apply(e2)
 
@@ -172,13 +172,13 @@ func TestApply_SessionID_Key(t *testing.T) {
 func TestApply_FallbackKey_NoSessionID(t *testing.T) {
 	reg := New(func([]*Session) {})
 
-	e := &event.AgentEvent{
-		Agent:     event.AgentClaudeCode,
+	e := &entity.AgentEvent{
+		Agent:     entity.AgentClaudeCode,
 		Host:      "local",
 		SessionID: "",
 		CWD:       "/project",
 		TTY:       "/dev/ttys001",
-		EventType: event.EventPreToolUse,
+		EventType: entity.EventPreToolUse,
 		ToolName:  "Bash",
 		ToolUseID: "tu-1",
 		Content:   "test",

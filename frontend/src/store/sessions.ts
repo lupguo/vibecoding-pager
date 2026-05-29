@@ -46,10 +46,9 @@ interface SessionStore {
   filter: FilterLevel
   setSessions: (sessions: Session[]) => void
   setFilter: (filter: FilterLevel) => void
-  filteredSessions: () => Session[]
 }
 
-export const useSessionStore = create<SessionStore>((set, get) => ({
+export const useSessionStore = create<SessionStore>((set) => ({
   sessions: [],
   filter: 'attention' as FilterLevel,
 
@@ -61,11 +60,6 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     }),
 
   setFilter: (filter) => set({ filter }),
-
-  filteredSessions: () => {
-    const { sessions, filter } = get()
-    return sessions.filter((s) => s.AttentionLevel === filter)
-  },
 }))
 
 export function useSessionCounts() {
@@ -81,7 +75,9 @@ export function initSessionSync() {
   ListSessions()
     .then((sessions: any) => {
       const valid = (sessions ?? []).filter((s: any) => s !== null)
-      useSessionStore.getState().setSessions(valid)
+      if (valid.length > 0) {
+        useSessionStore.getState().setSessions(valid)
+      }
     })
     .catch((err: unknown) => {
       console.warn('[pager] ListSessions failed:', err)
@@ -89,6 +85,13 @@ export function initSessionSync() {
 
   Events.On('sessions-updated', (ev: any) => {
     const sessions = ev?.data ?? ev ?? []
-    useSessionStore.getState().setSessions(Array.isArray(sessions) ? sessions : [])
+    if (!Array.isArray(sessions)) return
+
+    // Defer state update to next microtask to escape WKWebView's evaluateJavaScript
+    // synchronous execution context. Without this, React's useSyncExternalStore
+    // cannot properly schedule re-renders from zustand state changes.
+    queueMicrotask(() => {
+      useSessionStore.getState().setSessions(sessions)
+    })
   })
 }

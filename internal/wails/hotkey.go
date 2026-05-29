@@ -1,7 +1,7 @@
-package main
+package wails
 
 import (
-	"log"
+	"log/slog"
 	"strings"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -10,9 +10,6 @@ import (
 
 var currentHotkey *hotkey.Hotkey
 
-// keyMap maps uppercase letter strings to macOS virtual key codes.
-// The hotkey package uses named constants (Carbon HIToolbox codes),
-// not raw ASCII values, so a lookup map is required.
 var keyMap = map[string]hotkey.Key{
 	"A": hotkey.KeyA, "B": hotkey.KeyB, "C": hotkey.KeyC, "D": hotkey.KeyD,
 	"E": hotkey.KeyE, "F": hotkey.KeyF, "G": hotkey.KeyG, "H": hotkey.KeyH,
@@ -24,42 +21,38 @@ var keyMap = map[string]hotkey.Key{
 	"0": hotkey.Key0, "1": hotkey.Key1, "2": hotkey.Key2, "3": hotkey.Key3,
 	"4": hotkey.Key4, "5": hotkey.Key5, "6": hotkey.Key6, "7": hotkey.Key7,
 	"8": hotkey.Key8, "9": hotkey.Key9,
-	"SPACE":  hotkey.KeySpace,
-	"RETURN": hotkey.KeyReturn,
-	"ESCAPE": hotkey.KeyEscape,
-	"DELETE": hotkey.KeyDelete,
-	"TAB":    hotkey.KeyTab,
-	"LEFT":   hotkey.KeyLeft,
-	"RIGHT":  hotkey.KeyRight,
-	"UP":     hotkey.KeyUp,
-	"DOWN":   hotkey.KeyDown,
-	"F1":  hotkey.KeyF1,  "F2":  hotkey.KeyF2,  "F3":  hotkey.KeyF3,
-	"F4":  hotkey.KeyF4,  "F5":  hotkey.KeyF5,  "F6":  hotkey.KeyF6,
-	"F7":  hotkey.KeyF7,  "F8":  hotkey.KeyF8,  "F9":  hotkey.KeyF9,
+	"SPACE": hotkey.KeySpace, "RETURN": hotkey.KeyReturn,
+	"ESCAPE": hotkey.KeyEscape, "DELETE": hotkey.KeyDelete, "TAB": hotkey.KeyTab,
+	"LEFT": hotkey.KeyLeft, "RIGHT": hotkey.KeyRight,
+	"UP": hotkey.KeyUp, "DOWN": hotkey.KeyDown,
+	"F1": hotkey.KeyF1, "F2": hotkey.KeyF2, "F3": hotkey.KeyF3,
+	"F4": hotkey.KeyF4, "F5": hotkey.KeyF5, "F6": hotkey.KeyF6,
+	"F7": hotkey.KeyF7, "F8": hotkey.KeyF8, "F9": hotkey.KeyF9,
 	"F10": hotkey.KeyF10, "F11": hotkey.KeyF11, "F12": hotkey.KeyF12,
 }
 
-// registerHotkey registers a global hotkey to toggle the popup window.
-// Unregisters the previous hotkey if one exists.
-func registerHotkey(window *application.WebviewWindow, hotkeyStr string) {
-	// Unregister previous
+var logger = slog.Default().With("module", "hotkey")
+
+// RegisterHotkey registers a global hotkey to toggle the popup window.
+func RegisterHotkey(window *application.WebviewWindow, hotkeyStr string) {
 	if currentHotkey != nil {
 		currentHotkey.Unregister()
 		currentHotkey = nil
 	}
 
-	mods, key, ok := parseHotkey(hotkeyStr)
+	mods, key, ok := ParseHotkey(hotkeyStr)
 	if !ok {
-		log.Printf("[pager] invalid hotkey string: %s", hotkeyStr)
+		logger.Warn("invalid hotkey string", "key", hotkeyStr)
 		return
 	}
 
 	hk := hotkey.New(mods, key)
 	if err := hk.Register(); err != nil {
-		log.Printf("[pager] hotkey register failed: %v", err)
+		logger.Error("hotkey register failed", "err", err, "key", hotkeyStr)
 		return
 	}
 	currentHotkey = hk
+	logger.Info("hotkey registered", "key", hotkeyStr)
 
 	go func() {
 		for range hk.Keydown() {
@@ -73,8 +66,8 @@ func registerHotkey(window *application.WebviewWindow, hotkeyStr string) {
 	}()
 }
 
-// parseHotkey converts "Alt+E" format to hotkey modifiers and key.
-func parseHotkey(s string) ([]hotkey.Modifier, hotkey.Key, bool) {
+// ParseHotkey converts "Alt+E" format to hotkey modifiers and key.
+func ParseHotkey(s string) ([]hotkey.Modifier, hotkey.Key, bool) {
 	parts := strings.Split(s, "+")
 	if len(parts) < 2 {
 		return nil, 0, false

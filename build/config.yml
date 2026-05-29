@@ -26,11 +26,9 @@ dev_mode:
       - "*.go"
     git_ignore: true
   executes:
-    - cmd: cd frontend && npm install
-      type: once
-    - cmd: cd frontend && npm run dev
-      type: background
-    - cmd: go build -o bin/Pager .
+    - cmd: go build -buildvcs=false -gcflags=all="-l" -o bin/Pager .
       type: blocking
+    - cmd: wails3 task common:dev:frontend
+      type: background
     - cmd: ./bin/Pager
       type: primary

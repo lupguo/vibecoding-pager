@@ -1,11 +1,11 @@
-package registry
+package session
 
 import (
 	"sort"
 	"sync"
 	"time"
 
-	"pager/internal/event"
+	"pager/internal/domain/entity"
 )
 
 // Session represents an active agent session.
@@ -21,8 +21,8 @@ type Session struct {
 	AttentionLevel string                       `json:"AttentionLevel"`
 	AgentLabel     string                       `json:"AgentLabel"`
 	SessionID      string                       `json:"SessionID"`
-	LastEvent      *event.AgentEvent            `json:"LastEvent"`
-	PendingTools   map[string]*event.AgentEvent `json:"PendingTools"`
+	LastEvent      *entity.AgentEvent            `json:"LastEvent"`
+	PendingTools   map[string]*entity.AgentEvent `json:"PendingTools"`
 	UpdatedAt      time.Time                    `json:"UpdatedAt"`
 }
 
@@ -42,7 +42,7 @@ func New(onChange func([]*Session)) *Registry {
 }
 
 // Apply processes an AgentEvent and updates the Registry state.
-func (r *Registry) Apply(e *event.AgentEvent) {
+func (r *Registry) Apply(e *entity.AgentEvent) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -56,7 +56,7 @@ func (r *Registry) Apply(e *event.AgentEvent) {
 			CWD:          e.CWD,
 			TTY:          e.TTY,
 			SessionID:    e.SessionID,
-			PendingTools: make(map[string]*event.AgentEvent),
+			PendingTools: make(map[string]*entity.AgentEvent),
 		}
 		r.sessions[key] = s
 	}
@@ -84,23 +84,23 @@ func (r *Registry) Apply(e *event.AgentEvent) {
 	}
 
 	switch e.EventType {
-	case event.EventPreToolUse:
-		s.Status = event.StatusWaiting
+	case entity.EventPreToolUse:
+		s.Status = entity.StatusWaiting
 		if e.ToolUseID != "" {
 			s.PendingTools[e.ToolUseID] = e
 		}
-	case event.EventPostToolUse:
+	case entity.EventPostToolUse:
 		if e.ToolUseID != "" {
 			delete(s.PendingTools, e.ToolUseID)
 		}
 		if len(s.PendingTools) == 0 {
-			s.Status = event.StatusActive
+			s.Status = entity.StatusActive
 		}
-	case event.EventStop:
-		s.Status = event.StatusFinished
-		s.PendingTools = make(map[string]*event.AgentEvent)
-	case event.EventError:
-		s.Status = event.StatusError
+	case entity.EventStop:
+		s.Status = entity.StatusFinished
+		s.PendingTools = make(map[string]*entity.AgentEvent)
+	case entity.EventError:
+		s.Status = entity.StatusError
 	}
 
 	if r.onChange != nil {

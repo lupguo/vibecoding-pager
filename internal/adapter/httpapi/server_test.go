@@ -1,4 +1,4 @@
-package server
+package httpapi
 
 import (
 	"bytes"
@@ -8,20 +8,20 @@ import (
 	"testing"
 	"time"
 
-	"pager/internal/event"
-	"pager/internal/registry"
+	"pager/internal/domain/entity"
+	"pager/internal/domain/session"
 )
 
 func TestHandleEvent_ValidPost(t *testing.T) {
-	reg := registry.New(func([]*registry.Session) {})
+	reg := session.New(func([]*session.Session) {})
 	srv := New(reg)
 
-	e := event.AgentEvent{
-		Agent:     event.AgentClaudeCode,
+	e := entity.AgentEvent{
+		Agent:     entity.AgentClaudeCode,
 		Host:      "local",
 		CWD:       "/project",
 		TTY:       "/dev/ttys001",
-		EventType: event.EventPreToolUse,
+		EventType: entity.EventPreToolUse,
 		ToolName:  "Bash",
 		ToolUseID: "tu-1",
 		Content:   "go build",
@@ -46,7 +46,7 @@ func TestHandleEvent_ValidPost(t *testing.T) {
 }
 
 func TestHandleEvent_RejectsGet(t *testing.T) {
-	reg := registry.New(func([]*registry.Session) {})
+	reg := session.New(func([]*session.Session) {})
 	srv := New(reg)
 
 	req := httptest.NewRequest(http.MethodGet, "/event", nil)
@@ -60,7 +60,7 @@ func TestHandleEvent_RejectsGet(t *testing.T) {
 }
 
 func TestHandleEvent_BadJSON(t *testing.T) {
-	reg := registry.New(func([]*registry.Session) {})
+	reg := session.New(func([]*session.Session) {})
 	srv := New(reg)
 
 	req := httptest.NewRequest(http.MethodPost, "/event", bytes.NewReader([]byte("not json")))
@@ -74,7 +74,7 @@ func TestHandleEvent_BadJSON(t *testing.T) {
 }
 
 func TestHandleSessions(t *testing.T) {
-	reg := registry.New(func([]*registry.Session) {})
+	reg := session.New(func([]*session.Session) {})
 	srv := New(reg)
 
 	req := httptest.NewRequest(http.MethodGet, "/sessions", nil)

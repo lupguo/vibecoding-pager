@@ -1,5 +1,6 @@
 # Build output
 bin/
+bridge
 *.exe
 *.app
 
@@ -12,6 +13,9 @@ frontend/dist/
 .vscode/
 *.swp
 *.swo
+
+# Task runner cache
+.task/
 
 # OS
 .DS_Store

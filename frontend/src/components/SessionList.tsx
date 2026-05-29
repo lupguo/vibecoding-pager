@@ -1,8 +1,23 @@
+import { useMemo } from 'react'
 import { useSessionStore } from '../store/sessions'
 import SessionCard from './SessionCard'
 
 export default function SessionList() {
-  const filteredSessions = useSessionStore((s) => s.filteredSessions())
+  const sessions = useSessionStore((s) => s.sessions)
+  const filter = useSessionStore((s) => s.filter)
+
+  const filteredSessions = useMemo(() => {
+    const filtered = sessions.filter((s) => s.AttentionLevel === filter)
+    // Smart fallback: if current filter is empty but sessions exist, show first non-empty level
+    if (filtered.length === 0 && sessions.length > 0) {
+      const levels: Array<'attention' | 'running' | 'done'> = ['attention', 'running', 'done']
+      for (const level of levels) {
+        const found = sessions.filter((s) => s.AttentionLevel === level)
+        if (found.length > 0) return found
+      }
+    }
+    return filtered
+  }, [sessions, filter])
 
   if (filteredSessions.length === 0) {
     return (

@@ -5,24 +5,24 @@ import (
 	"os/exec"
 	"strings"
 
-	"pager/internal/event"
+	"pager/internal/domain/entity"
 )
 
 // ShouldNotify determines whether an event should trigger a system notification
 // based on the configured notification level.
-func ShouldNotify(e *event.AgentEvent, level string) bool {
+func ShouldNotify(e *entity.AgentEvent, level string) bool {
 	switch level {
 	case "all":
 		switch e.EventType {
-		case event.EventPreToolUse, event.EventStop, event.EventError:
+		case entity.EventPreToolUse, entity.EventStop, entity.EventError:
 			return true
 		}
 		return false
 	case "attention_only":
-		if e.EventType == event.EventStop || e.EventType == event.EventError {
+		if e.EventType == entity.EventStop || e.EventType == entity.EventError {
 			return true
 		}
-		if e.EventType == event.EventPreToolUse && e.AttentionLevel == event.AttentionAttention {
+		if e.EventType == entity.EventPreToolUse && e.AttentionLevel == entity.AttentionAttention {
 			return true
 		}
 		return false
@@ -55,23 +55,23 @@ func getText(lang, key string) string {
 }
 
 // ShowFull is the main notification entrypoint with all configuration.
-func ShowFull(e *event.AgentEvent, level string, lang string) {
+func ShowFull(e *entity.AgentEvent, level string, lang string) {
 	if !ShouldNotify(e, level) {
 		return
 	}
 
 	var title, body string
 	switch e.EventType {
-	case event.EventPreToolUse:
+	case entity.EventPreToolUse:
 		title = fmt.Sprintf("%s · %s", agentLabel(e.Agent), lastPath(e.CWD))
 		body = e.Content
 		if body == "" {
 			body = getText(lang, "waiting") + e.ToolName
 		}
-	case event.EventStop:
+	case entity.EventStop:
 		title = fmt.Sprintf("%s · %s", agentLabel(e.Agent), lastPath(e.CWD))
 		body = getText(lang, "finished")
-	case event.EventError:
+	case entity.EventError:
 		title = fmt.Sprintf("%s · %s%s", agentLabel(e.Agent), lastPath(e.CWD), getText(lang, "error"))
 		body = e.Content
 	default:
@@ -82,19 +82,19 @@ func ShowFull(e *event.AgentEvent, level string, lang string) {
 
 // Show triggers a macOS system notification based on event type.
 // Uses osascript. Only fires for pre_tool_use, stop, and error events.
-func Show(e *event.AgentEvent) {
+func Show(e *entity.AgentEvent) {
 	var title, body string
 	switch e.EventType {
-	case event.EventPreToolUse:
+	case entity.EventPreToolUse:
 		title = fmt.Sprintf("%s · %s", agentLabel(e.Agent), lastPath(e.CWD))
 		body = e.Content
 		if body == "" {
 			body = "等待确认: " + e.ToolName
 		}
-	case event.EventStop:
+	case entity.EventStop:
 		title = fmt.Sprintf("%s · %s", agentLabel(e.Agent), lastPath(e.CWD))
 		body = "任务完成"
-	case event.EventError:
+	case entity.EventError:
 		title = fmt.Sprintf("%s · %s [错误]", agentLabel(e.Agent), lastPath(e.CWD))
 		body = e.Content
 	default:
@@ -125,9 +125,9 @@ func sanitize(s string) string {
 
 func agentLabel(agent string) string {
 	switch agent {
-	case event.AgentClaudeCode:
+	case entity.AgentClaudeCode:
 		return "Claude Code"
-	case event.AgentCodex:
+	case entity.AgentCodex:
 		return "Codex"
 	default:
 		return agent

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"pager/internal/bridge"
-	"pager/internal/event"
+	"pager/internal/adapter/bridge"
+	"pager/internal/domain/entity"
 )
 
 func main() {
@@ -32,8 +32,8 @@ func main() {
 	contentRaw, content := bridge.ExtractContent(in.ToolName, in.ToolInput)
 	attentionLevel := bridge.DetermineAttentionLevel(eventType, in.PermissionMode)
 
-	e := event.AgentEvent{
-		Agent:          event.AgentClaudeCode,
+	e := entity.AgentEvent{
+		Agent:          entity.AgentClaudeCode,
 		Host:           "local",
 		SessionID:      in.SessionID,
 		CWD:            firstNonEmpty(in.CWD, os.Getenv("PWD")),
