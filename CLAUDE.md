@@ -5,11 +5,15 @@ macOS MenuBar app for AI coding agent status awareness. CC hooks push events -> 
 ## Commands
 
 ```bash
-task dev              # Run in dev mode (Wails + Vite hot reload)
-task build            # Build production .app
-task run              # Run production build
-cd frontend && npm install  # Install frontend deps
-go build ./cmd/bridge       # Build pager-cc-bridge binary
+make dev              # Run in dev mode (Wails + Vite hot reload)
+make build            # Build production .app
+make run              # Build and run
+make bridge           # Build pager-cc-bridge binary
+make frontend-deps    # Install frontend deps
+make bindings         # Regenerate Wails bindings (after changing Go services)
+make test             # Run all Go tests
+make lint             # Go vet + TypeScript check
+make help             # Show all available targets
 ```
 
 ## Architecture
