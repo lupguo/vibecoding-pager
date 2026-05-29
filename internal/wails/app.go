@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
+	"github.com/wailsapp/wails/v3/pkg/events"
 
 	"pager/internal/adapter/httpapi"
 	"pager/internal/adapter/notify"
@@ -93,6 +94,7 @@ func NewPagerApp(assets embed.FS) *application.App {
 		Frameless:        true,
 		AlwaysOnTop:      true,
 		DisableResize:    true,
+		HideOnFocusLost:  true, // B3 fix: hide when clicking outside
 		BackgroundColour: application.NewRGBA(0, 0, 0, 0),
 	})
 
@@ -105,6 +107,13 @@ func NewPagerApp(assets embed.FS) *application.App {
 		Hidden:        true,
 		DisableResize: true,
 		URL:           "#/settings",
+	})
+
+	// B1 fix: Intercept window close → hide instead of destroy.
+	// Without this, closing the settings window destroys it and Show() becomes a no-op.
+	settingsWindow.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
+		e.Cancel()
+		settingsWindow.Hide()
 	})
 
 	// ── Tray menu ───────────────────────────────────────────────────────────

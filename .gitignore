@@ -1,6 +1,5 @@
 # Build output
 bin/
-bridge
 *.exe
 *.app
 

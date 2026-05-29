@@ -31,13 +31,19 @@ func Jump(req JumpRequest) error {
 func jumpITerm(req JumpRequest) error {
 	var script string
 	if req.ITermSessionID != "" {
+		// ITERM_SESSION_ID format is "w0t0p0:GUID" but iTerm2's AppleScript
+		// "unique id" is just the GUID part. Strip the prefix.
+		guid := req.ITermSessionID
+		if idx := strings.Index(guid, ":"); idx >= 0 {
+			guid = guid[idx+1:]
+		}
 		script = fmt.Sprintf(`
 tell application "iTerm2"
   activate
   repeat with w in windows
     repeat with t in tabs of w
       repeat with s in sessions of t
-        if (unique id of s) contains "%s" then
+        if (unique id of s) is "%s" then
           select w
           tell t to select
           tell s to select
@@ -46,7 +52,7 @@ tell application "iTerm2"
       end repeat
     end repeat
   end repeat
-end tell`, req.ITermSessionID)
+end tell`, guid)
 	} else {
 		script = fmt.Sprintf(`
 tell application "iTerm2"

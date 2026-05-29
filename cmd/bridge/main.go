@@ -30,7 +30,7 @@ func main() {
 	_ = json.Unmarshal(raw, &in)
 
 	contentRaw, content := bridge.ExtractContent(in.ToolName, in.ToolInput)
-	attentionLevel := bridge.DetermineAttentionLevel(eventType, in.PermissionMode)
+	attentionLevel := bridge.DetermineAttentionLevel(eventType, in.PermissionMode, in.ToolName)
 
 	e := entity.AgentEvent{
 		Agent:          entity.AgentClaudeCode,
