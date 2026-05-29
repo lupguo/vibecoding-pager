@@ -5,7 +5,7 @@
 :root {
   --pager-opacity: 0.92;
   --pager-bg: rgba(246, 246, 248, var(--pager-opacity));
-  --pager-header-bg: rgba(252, 252, 254, 0.95);
+  --pager-header-bg: rgba(252, 252, 254, var(--pager-opacity));
   --pager-border: rgba(0, 0, 0, 0.12);
   --pager-text: #1d1d1f;
   --pager-text-primary: #1d1d1f;
@@ -39,7 +39,7 @@
 
 :root.dark {
   --pager-bg: rgba(30, 30, 32, var(--pager-opacity));
-  --pager-header-bg: rgba(38, 38, 40, 0.96);
+  --pager-header-bg: rgba(38, 38, 40, var(--pager-opacity));
   --pager-border: rgba(255, 255, 255, 0.1);
   --pager-text: #f5f5f7;
   --pager-text-primary: rgba(255, 255, 255, 0.92);
@@ -71,7 +71,7 @@
 @media (prefers-color-scheme: dark) {
   :root:not(.light) {
     --pager-bg: rgba(30, 30, 32, var(--pager-opacity));
-    --pager-header-bg: rgba(38, 38, 40, 0.96);
+    --pager-header-bg: rgba(38, 38, 40, var(--pager-opacity));
     --pager-border: rgba(255, 255, 255, 0.1);
     --pager-text: #f5f5f7;
     --pager-text-primary: rgba(255, 255, 255, 0.92);
