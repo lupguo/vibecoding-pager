@@ -26,7 +26,7 @@ export function GetSettings() {
 }
 
 /**
- * UpdateSettings saves new settings and triggers onChange.
+ * UpdateSettings saves new settings, broadcasts change event, and triggers onChange.
  * @param {config$0.Settings} cfg
  * @returns {$CancellablePromise<void>}
  */

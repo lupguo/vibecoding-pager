@@ -4,7 +4,9 @@
 
 import * as SessionBinding from "./sessionbinding.js";
 import * as SettingsBinding from "./settingsbinding.js";
+import * as WindowBinding from "./windowbinding.js";
 export {
     SessionBinding,
-    SettingsBinding
+    SettingsBinding,
+    WindowBinding
 };

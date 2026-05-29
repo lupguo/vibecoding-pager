@@ -47,6 +47,20 @@ export class Settings {
              */
             this["notification_level"] = "";
         }
+        if (!("popup_width" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["popup_width"] = 0;
+        }
+        if (!("popup_pinned" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["popup_pinned"] = false;
+        }
 
         Object.assign(this, $$source);
     }

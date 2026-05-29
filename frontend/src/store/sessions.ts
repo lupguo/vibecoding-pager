@@ -3,7 +3,6 @@ import { Events } from '@wailsio/runtime'
 import { ListSessions } from '../../bindings/pager/internal/wails/sessionbinding.js'
 
 export type AttentionLevel = 'attention' | 'running' | 'done'
-export type FilterLevel = AttentionLevel
 
 export interface AgentEvent {
   agent: string
@@ -41,34 +40,69 @@ export interface Session {
   UpdatedAt: string
 }
 
+export interface ProjectGroup {
+  project: string
+  sessions: Session[]
+}
+
 interface SessionStore {
   sessions: Session[]
-  filter: FilterLevel
   setSessions: (sessions: Session[]) => void
-  setFilter: (filter: FilterLevel) => void
 }
+
+const DONE_TIMEOUT_MS = 30 * 60 * 1000 // 30 minutes
 
 export const useSessionStore = create<SessionStore>((set) => ({
   sessions: [],
-  filter: 'attention' as FilterLevel,
-
   setSessions: (sessions) =>
     set({
       sessions: [...sessions].sort(
         (a, b) => new Date(b.UpdatedAt).getTime() - new Date(a.UpdatedAt).getTime()
       ),
     }),
-
-  setFilter: (filter) => set({ filter }),
 }))
 
-export function useSessionCounts() {
+/** Filter out done sessions older than 30 minutes */
+function filterExpiredDone(sessions: Session[]): Session[] {
+  const now = Date.now()
+  return sessions.filter((s) => {
+    if (s.AttentionLevel !== 'done') return true
+    const updatedAt = new Date(s.UpdatedAt).getTime()
+    return now - updatedAt < DONE_TIMEOUT_MS
+  })
+}
+
+/** Extract project name from CWD (last path segment) */
+function projectFromCWD(cwd: string): string {
+  const segments = cwd.split('/').filter(Boolean)
+  return segments[segments.length - 1] || cwd
+}
+
+/** Group sessions by project, ordered by most recent activity */
+export function useProjectGroups(): ProjectGroup[] {
   const sessions = useSessionStore((s) => s.sessions)
-  return {
-    attention: sessions.filter((s) => s.AttentionLevel === 'attention').length,
-    running: sessions.filter((s) => s.AttentionLevel === 'running').length,
-    done: sessions.filter((s) => s.AttentionLevel === 'done').length,
+  const visible = filterExpiredDone(sessions)
+
+  const groupMap = new Map<string, Session[]>()
+  for (const s of visible) {
+    const project = projectFromCWD(s.CWD)
+    const group = groupMap.get(project) || []
+    group.push(s)
+    groupMap.set(project, group)
   }
+
+  const groups: ProjectGroup[] = Array.from(groupMap.entries()).map(([project, sessions]) => ({
+    project,
+    sessions,
+  }))
+
+  groups.sort((a, b) => {
+    const aTime = new Date(a.sessions[0]?.UpdatedAt || 0).getTime()
+    const bTime = new Date(b.sessions[0]?.UpdatedAt || 0).getTime()
+    return bTime - aTime
+  })
+
+  return groups
 }
 
 export function initSessionSync() {
@@ -86,10 +120,6 @@ export function initSessionSync() {
   Events.On('sessions-updated', (ev: any) => {
     const sessions = ev?.data ?? ev ?? []
     if (!Array.isArray(sessions)) return
-
-    // Defer state update to next microtask to escape WKWebView's evaluateJavaScript
-    // synchronous execution context. Without this, React's useSyncExternalStore
-    // cannot properly schedule re-renders from zustand state changes.
     queueMicrotask(() => {
       useSessionStore.getState().setSessions(sessions)
     })

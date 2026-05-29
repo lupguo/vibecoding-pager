@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { Events } from '@wailsio/runtime'
 import i18n from '../i18n'
 
 export interface Settings {
@@ -7,6 +8,8 @@ export interface Settings {
   opacity: number
   hotkey_toggle: string
   notification_level: string
+  popup_width: number
+  popup_pinned: boolean
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -15,6 +18,8 @@ const DEFAULT_SETTINGS: Settings = {
   opacity: 75,
   hotkey_toggle: 'Alt+E',
   notification_level: 'attention_only',
+  popup_width: 380,
+  popup_pinned: false,
 }
 
 interface SettingsStore {
@@ -47,6 +52,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     const updated = { ...current, ...partial }
     set({ settings: updated })
 
+    // Apply locally for immediate feedback
     if (partial.language) i18n.changeLanguage(partial.language)
     if (partial.theme) applyTheme(partial.theme)
     if (partial.opacity !== undefined) applyOpacity(partial.opacity)
@@ -60,7 +66,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   },
 }))
 
-function applyTheme(theme: string) {
+export function applyTheme(theme: string) {
   const root = document.documentElement
   root.classList.remove('light', 'dark')
   if (theme === 'light' || theme === 'dark') {
@@ -68,10 +74,20 @@ function applyTheme(theme: string) {
   }
 }
 
-function applyOpacity(opacity: number) {
+export function applyOpacity(opacity: number) {
   document.documentElement.style.setProperty('--pager-opacity', String(opacity / 100))
 }
 
 export function initSettings() {
   useSettingsStore.getState().loadSettings()
+
+  // Cross-window sync: when settings change in another window, apply here too
+  Events.On('settings-changed', (ev: any) => {
+    const cfg = ev?.data ?? ev
+    if (!cfg) return
+    useSettingsStore.setState({ settings: cfg })
+    i18n.changeLanguage(cfg.language)
+    applyTheme(cfg.theme)
+    applyOpacity(cfg.opacity)
+  })
 }
