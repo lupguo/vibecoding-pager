@@ -48,8 +48,8 @@ export default function SessionCard({ session }: Props) {
   const statusTag = isAttention
     ? { text: 'WAITING', cls: 'bg-[rgba(255,69,58,0.15)] text-[--pager-red]' }
     : isRunning
-    ? { text: 'ACTIVE', cls: 'bg-[rgba(48,209,88,0.12)] text-[--pager-green]' }
-    : { text: 'DONE', cls: 'bg-[rgba(255,255,255,0.06)] text-[--pager-text-muted]' }
+    ? { text: 'WORKING', cls: 'bg-[rgba(48,209,88,0.12)] text-[--pager-green]' }
+    : { text: 'IDLE', cls: 'bg-[rgba(255,255,255,0.06)] text-[--pager-text-muted]' }
 
   return (
     <div

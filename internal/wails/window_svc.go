@@ -27,7 +27,14 @@ func (w *WindowBinding) SetPinned(pinned bool) error {
 
 	cfg, _ := config.LoadFrom(w.configPath)
 	cfg.PopupPinned = pinned
-	return config.SaveTo(w.configPath, cfg)
+	if err := config.SaveTo(w.configPath, cfg); err != nil {
+		return err
+	}
+	// Broadcast so all frontend stores stay in sync
+	if app := application.Get(); app != nil {
+		app.Event.Emit("settings-changed", cfg)
+	}
+	return nil
 }
 
 // SetPopupWidth persists the user-adjusted width.

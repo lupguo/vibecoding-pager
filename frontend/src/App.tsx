@@ -62,7 +62,7 @@ function App() {
     <div className="w-full h-screen bg-[--pager-bg] backdrop-blur-2xl text-[--pager-text] overflow-hidden rounded-xl border border-[--pager-border] flex flex-col">
       {/* Navbar — drag region (Wails v3 uses --wails-draggable CSS property) */}
       <header
-        className="sticky top-0 z-10 bg-[--pager-header-bg] backdrop-blur-xl px-3 py-2.5 border-b border-[--pager-border] flex items-center justify-between"
+        className="sticky top-0 z-10 bg-[--pager-header-bg] backdrop-blur-xl px-3 border-b border-[--pager-border] flex items-center justify-between h-[38px]"
         style={{ '--wails-draggable': 'drag' } as React.CSSProperties}
       >
         {/* Left: Pin button */}
