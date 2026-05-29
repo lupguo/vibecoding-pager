@@ -31,7 +31,7 @@ export default function SettingsPanel() {
          style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" }}>
       {/* Custom titlebar — draggable */}
       <div
-        className="h-[38px] flex items-center justify-between px-3 border-b border-[rgba(0,0,0,0.08)] dark:border-[rgba(255,255,255,0.06)] bg-[rgba(246,246,248,0.98)] dark:bg-[rgba(30,30,32,0.98)] shrink-0"
+        className="h-[38px] flex items-center justify-between px-3 border-b border-[rgba(0,0,0,0.08)] dark:border-[rgba(255,255,255,0.06)] bg-[rgba(246,246,248,0.98)] dark:bg-[rgba(30,30,32,0.98)] shrink-0 select-none cursor-default"
         style={{ '--wails-draggable': 'drag' } as React.CSSProperties}
       >
         <span className="text-[12px] font-semibold text-[--pager-text-primary] tracking-tight">
