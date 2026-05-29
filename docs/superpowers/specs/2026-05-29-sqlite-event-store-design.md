@@ -372,16 +372,24 @@ type Settings struct {
 | `internal/infra/config/config.go` | 新增 SessionLoadHours 字段 |
 | `frontend/src/store/sessions.ts` | 排序逻辑变更 |
 | `frontend/src/pages/SettingsPanel.tsx` | 新增数据管理 UI 区域 |
-| `go.mod` | 新增 `modernc.org/sqlite` 依赖 |
+| `go.mod` | 新增 `jmoiron/sqlx` + `modernc.org/sqlite` 依赖 |
 
 ---
 
 ## SQLite 驱动选择
 
-使用 `modernc.org/sqlite`（纯 Go，无需 CGo），理由：
-- 纯 Go 编译，无 CGo 跨编译问题
-- macOS 下性能足够（桌面 app 量级）
-- 与 Wails 构建流程兼容
+使用 `jmoiron/sqlx` + `modernc.org/sqlite` 组合：
+
+- **sqlx**：database/sql 薄封装，提供 struct 自动映射（`db` tag）和命名参数，省去 11 字段手写 Scan
+- **modernc.org/sqlite**：纯 Go SQLite 实现，无 CGo 跨编译问题
+- 与我们的 channel + batch flush 架构完全兼容（sqlx 不抢事务控制权）
+- 依赖轻量：sqlx 零间接依赖，modernc 纯 Go
+
+```
+go.mod 新增:
+  github.com/jmoiron/sqlx
+  modernc.org/sqlite
+```
 
 ---
 
