@@ -8,10 +8,10 @@ import { Create as $Create } from "@wailsio/runtime";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import * as event$0 from "../event/models.js";
+import * as entity$0 from "../entity/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import * as time$0 from "../../../time/models.js";
+import * as time$0 from "../../../../time/models.js";
 
 /**
  * Session represents an active agent session.
@@ -102,14 +102,14 @@ export class Session {
         if (!("LastEvent" in $$source)) {
             /**
              * @member
-             * @type {event$0.AgentEvent | null}
+             * @type {entity$0.AgentEvent | null}
              */
             this["LastEvent"] = null;
         }
         if (!("PendingTools" in $$source)) {
             /**
              * @member
-             * @type {{ [_ in string]?: event$0.AgentEvent | null }}
+             * @type {{ [_ in string]?: entity$0.AgentEvent | null }}
              */
             this["PendingTools"] = {};
         }
@@ -144,6 +144,6 @@ export class Session {
 }
 
 // Private type creation functions
-const $$createType0 = event$0.AgentEvent.createFrom;
+const $$createType0 = entity$0.AgentEvent.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
 const $$createType2 = $Create.Map($Create.Any, $$createType1);

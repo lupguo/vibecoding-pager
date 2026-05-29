@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Session } from '../store/sessions'
-import { JumpToTerminal } from '../../bindings/pager/sessionservice.js'
+import { JumpToTerminal } from '../../bindings/pager/internal/wails/sessionbinding.js'
 import { useTranslation } from 'react-i18next'
 
 interface Props {

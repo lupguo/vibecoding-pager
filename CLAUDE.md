@@ -18,23 +18,36 @@ make help             # Show all available targets
 
 ## Architecture
 
+> Full directory convention: see `ARCHITECTURE.md`
+
+**Data flow:**
 ```
 CC hook (stdin) -> pager-cc-bridge -> HTTP POST :7421 -> Wails app (Registry) -> UI + Notification
 ```
 
-- **bridge** (`cmd/bridge/`): Stateless CLI, reads CC hook stdin, posts AgentEvent to server. Must exit 0 always, 1s HTTP timeout.
-- **server** (`internal/server/`): HTTP on 127.0.0.1:7421, receives events, feeds Registry.
-- **registry** (`internal/registry/`): In-memory session state machine. onChange callback pushes to frontend via Wails Events.
-- **notify** (`internal/notify/`): macOS system notifications via osascript.
-- **terminal** (`internal/terminal/`): AppleScript-based terminal tab jump (iTerm2, Terminal.app).
-- **frontend** (`frontend/`): React + TypeScript + Tailwind + zustand. Wails v3 bindings auto-generated.
-- **service** (`service.go`): Go bindings exposed to frontend (ListSessions, JumpToTerminal, DismissSession).
+**Four-layer structure (`internal/`):**
+
+| Layer | Path | Responsibility |
+|-------|------|----------------|
+| Domain | `internal/domain/entity/` | AgentEvent struct + shared constants |
+| Domain | `internal/domain/session/` | Registry state machine |
+| Adapter | `internal/adapter/httpapi/` | HTTP server receiving bridge events |
+| Adapter | `internal/adapter/notify/` | macOS system notifications |
+| Adapter | `internal/adapter/terminal/` | Terminal tab jump (iTerm2, Terminal.app) |
+| Adapter | `internal/adapter/bridge/` | CC hook event parsing (shared with cmd/bridge) |
+| Infra | `internal/infra/log/` | slog structured logging |
+| Infra | `internal/infra/config/` | JSON settings persistence |
+| Infra | `internal/infra/store/` | Storage interface (v1.5: SQLite) |
+| Wails | `internal/wails/` | Framework bindings, lifecycle, hotkey, tray |
+
+**Dependency rule:** domain ← adapter ← wails; infra used by all.
 
 ## Tech Stack
 
-- Go 1.25, Wails v3 (alpha.96)
-- React 18, TypeScript, Tailwind CSS, zustand
+- Go 1.25, Wails v3 (alpha.96), log/slog
+- React 18, TypeScript, Tailwind CSS, zustand, i18next
 - macOS only (osascript, SystemTray, LaunchAgent)
+- `golang.design/x/hotkey` for global shortcuts
 
 ## Non-Negotiable Decisions
 
@@ -44,6 +57,7 @@ These are final. Do not suggest alternatives:
 2. No approve/deny decisions inside Pager
 3. Single-process architecture (Daemon + UI in one Wails process)
 4. AgentEvent is the only cross-layer data structure
+5. Four-layer architecture (domain/adapter/infra/wails) -- see ARCHITECTURE.md
 
 ## Session State Machine
 
@@ -54,15 +68,16 @@ stop          -> Status=finished
 error         -> Status=error
 ```
 
-Session key: `host:cwd:tty` (triple uniquely identifies a session).
+Session key: CC `session_id` (preferred) or `host:cwd:tty` triple (fallback).
 
 ## Code Conventions
 
 - Go: standard library preferred; errors in bridge must be silent (exit 0)
-- Frontend: Tailwind utility classes only, no plugins; zustand for state
-- Wails bindings in `frontend/src/bindings/` are auto-generated -- never edit manually
+- Logging: use `log/slog` with module attribute (via `infra/log.Module("name")`)
+- Naming: Wails bindings = `XxxBinding`, managers = `XxxManager`, files = `*_svc.go`
+- Frontend: Tailwind utility classes only; zustand for state; i18next for i18n
+- Wails bindings in `frontend/bindings/` are auto-generated -- never edit manually
 - Content strings truncated to 60 runes for display; full version in ContentRaw
-- Chinese UI labels (e.g., "等待确认", "任务完成", "执行中")
 
 ## Design Workflow
 
@@ -77,29 +92,32 @@ Do NOT implement these:
 - Text replies to CC from within Pager
 - Multi-machine unified view
 - Codex/other agent bridge (fields reserved, not wired)
-- SQLite persistence (in-memory Registry is sufficient)
+- SQLite persistence (in-memory Registry is sufficient for v1)
 - WebSocket (Wails Events handles Go -> UI push)
 - Linux/Windows support
 
 ## Key Files
 
-| Path                                      | Purpose                            |
-|-------------------------------------------|------------------------------------|
-| `cmd/bridge/main.go`                      | pager-cc-bridge entry point        |
-| `internal/event/types.go`                 | AgentEvent struct (project-wide)   |
-| `internal/registry/registry.go`           | Session state machine              |
-| `internal/server/server.go`               | HTTP server (:7421)                |
-| `internal/notify/notify.go`               | macOS notifications                |
-| `internal/terminal/jump.go`               | Terminal tab jump                  |
-| `app.go`                                  | Wails app lifecycle                |
-| `main.go`                                 | Wails v3 entry + tray setup        |
-| `service.go`                              | SessionService (frontend bindings) |
-| `frontend/src/store/sessions.ts`          | zustand session store              |
-| `frontend/src/components/SessionCard.tsx` | Session card UI                    |
-| `scripts/install-hooks.sh`                | Install CC hooks                   |
-| `scripts/install-launchd.sh`              | Register LaunchAgent               |
+| Path | Purpose |
+|------|---------|
+| `main.go` | Entry point (~20 lines: init log + NewPagerApp + Run) |
+| `internal/wails/app.go` | PagerApp assembly + lifecycle |
+| `internal/wails/session_svc.go` | SessionBinding (frontend ops) |
+| `internal/wails/settings_svc.go` | SettingsBinding (frontend settings) |
+| `internal/wails/hotkey.go` | Global hotkey registration |
+| `internal/domain/entity/event.go` | AgentEvent struct + constants |
+| `internal/domain/session/registry.go` | Session state machine |
+| `internal/adapter/httpapi/server.go` | HTTP server (:7421) |
+| `internal/adapter/notify/notify.go` | macOS notifications |
+| `internal/adapter/terminal/jump.go` | Terminal tab jump |
+| `internal/infra/config/config.go` | Settings persistence |
+| `internal/infra/log/log.go` | slog module logger |
+| `cmd/bridge/main.go` | pager-cc-bridge CLI |
+| `frontend/src/store/sessions.ts` | zustand session store |
+| `frontend/src/pages/SettingsPanel.tsx` | Settings panel UI |
 
 ## References
 
-- Full technical PRD with implementation details: `docs/PRD.md`
+- Directory convention: `ARCHITECTURE.md`
+- Full technical PRD: `docs/PRD.md`
 - Wails v3 docs: `docs/wails/`

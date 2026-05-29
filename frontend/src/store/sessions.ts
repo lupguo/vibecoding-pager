@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { Events } from '@wailsio/runtime'
-import { ListSessions } from '../../bindings/pager/sessionservice.js'
+import { ListSessions } from '../../bindings/pager/internal/wails/sessionbinding.js'
 
 export type AttentionLevel = 'attention' | 'running' | 'done'
 export type FilterLevel = AttentionLevel

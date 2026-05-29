@@ -30,7 +30,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
 
   loadSettings: async () => {
     try {
-      const { GetSettings } = await import('../../bindings/pager/settingsservice.js')
+      const { GetSettings } = await import('../../bindings/pager/internal/wails/settingsbinding.js')
       const cfg = await GetSettings()
       set({ settings: cfg, loaded: true })
       i18n.changeLanguage(cfg.language)
@@ -52,7 +52,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     if (partial.opacity !== undefined) applyOpacity(partial.opacity)
 
     try {
-      const { UpdateSettings } = await import('../../bindings/pager/settingsservice.js')
+      const { UpdateSettings } = await import('../../bindings/pager/internal/wails/settingsbinding.js')
       await UpdateSettings(updated)
     } catch (err) {
       console.error('[pager] UpdateSettings failed:', err)

@@ -8,10 +8,10 @@ import { Create as $Create } from "@wailsio/runtime";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import * as json$0 from "../../../encoding/json/models.js";
+import * as json$0 from "../../../../encoding/json/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import * as time$0 from "../../../time/models.js";
+import * as time$0 from "../../../../time/models.js";
 
 /**
  * AgentEvent is the single cross-layer data structure.
