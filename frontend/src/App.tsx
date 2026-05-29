@@ -60,10 +60,10 @@ function App() {
 
   return (
     <div className="w-full h-screen bg-[--pager-bg] backdrop-blur-2xl text-[--pager-text] overflow-hidden rounded-xl border border-[--pager-border] flex flex-col">
-      {/* Navbar — drag region */}
+      {/* Navbar — drag region (Wails v3 uses --wails-draggable CSS property) */}
       <header
         className="sticky top-0 z-10 bg-[--pager-header-bg] backdrop-blur-xl px-3 py-2.5 border-b border-[--pager-border] flex items-center justify-between"
-        style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+        style={{ '--wails-draggable': 'drag' } as React.CSSProperties}
       >
         {/* Left: Pin button */}
         <button
@@ -71,7 +71,7 @@ function App() {
           className={`w-6 h-6 flex items-center justify-center rounded-[5px] transition-all ${
             pinned ? 'bg-[rgba(10,132,255,0.12)]' : 'hover:bg-[--pager-filter-bg]'
           }`}
-          style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+          style={{ '--wails-draggable': 'none' } as React.CSSProperties}
           title={pinned ? 'Unpin window' : 'Pin window on top'}
         >
           <Pin
@@ -90,7 +90,7 @@ function App() {
         <button
           onClick={handleOpenSettings}
           className="w-6 h-6 flex items-center justify-center rounded-[5px] hover:bg-[--pager-filter-bg] transition-all"
-          style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+          style={{ '--wails-draggable': 'none' } as React.CSSProperties}
           title="Settings"
         >
           <Settings size={14} className="text-[--pager-text-muted]" strokeWidth={2} />

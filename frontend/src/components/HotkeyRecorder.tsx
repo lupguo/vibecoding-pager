@@ -25,9 +25,11 @@ export default function HotkeyRecorder({ value, onChange }: Props) {
     if (e.shiftKey) parts.push('Shift')
     if (e.metaKey) parts.push('Cmd')
 
-    const key = e.key.length === 1 ? e.key.toUpperCase() : e.key
-    if (parts.length === 0) return
-    if (['Control', 'Alt', 'Shift', 'Meta'].includes(e.key)) return
+    // Use e.code instead of e.key to avoid macOS dead key issue
+    // (e.g., Alt+E produces "Dead" via e.key, but e.code gives "KeyE")
+    const key = codeToKey(e.code)
+    if (!key) return // modifier-only press
+    if (parts.length === 0) return // no modifier held
 
     parts.push(key)
     onChange(parts.join('+'))
@@ -49,6 +51,29 @@ export default function HotkeyRecorder({ value, onChange }: Props) {
       {recording ? t('general.hotkeyRecording') : formatHotkeyDisplay(value)}
     </div>
   )
+}
+
+/** Convert KeyboardEvent.code to a clean key name for the hotkey string */
+function codeToKey(code: string): string | null {
+  // Ignore modifier-only codes
+  if (['ControlLeft', 'ControlRight', 'AltLeft', 'AltRight',
+       'ShiftLeft', 'ShiftRight', 'MetaLeft', 'MetaRight'].includes(code)) {
+    return null
+  }
+  // Letter keys: "KeyA" → "A"
+  if (code.startsWith('Key')) return code.slice(3)
+  // Digit keys: "Digit0" → "0"
+  if (code.startsWith('Digit')) return code.slice(5)
+  // Function keys: "F1" → "F1"
+  if (/^F\d+$/.test(code)) return code
+  // Special keys
+  const specialMap: Record<string, string> = {
+    Space: 'Space', Enter: 'Return', Escape: 'Escape',
+    Backspace: 'Delete', Tab: 'Tab', Delete: 'Delete',
+    ArrowLeft: 'Left', ArrowRight: 'Right',
+    ArrowUp: 'Up', ArrowDown: 'Down',
+  }
+  return specialMap[code] || null
 }
 
 function formatHotkeyDisplay(hotkey: string): string {

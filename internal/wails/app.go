@@ -106,8 +106,16 @@ func NewPagerApp(assets embed.FS) *application.App {
 		Frameless:        true,
 		AlwaysOnTop:      initialCfg.PopupPinned,
 		DisableResize:    false,
-		HideOnFocusLost:  !initialCfg.PopupPinned,
+		HideOnFocusLost:  false, // Managed manually via WindowLostFocus hook
 		BackgroundColour: application.NewRGBA(0, 0, 0, 0),
+	})
+
+	// Manual hide-on-focus-lost: only hide when NOT pinned
+	popupWindow.RegisterHook(events.Common.WindowLostFocus, func(e *application.WindowEvent) {
+		cfg, _ := config.LoadFrom(config.DefaultPath())
+		if !cfg.PopupPinned {
+			popupWindow.Hide()
+		}
 	})
 
 	// ── Settings window ─────────────────────────────────────────────────────
@@ -117,6 +125,7 @@ func NewPagerApp(assets embed.FS) *application.App {
 		Width:         720,
 		Height:        520,
 		Hidden:        true,
+		Frameless:     true,
 		DisableResize: true,
 		URL:           "#/settings",
 	})

@@ -97,8 +97,15 @@ func (r *Registry) Apply(e *entity.AgentEvent) {
 			s.Status = entity.StatusActive
 		}
 	case entity.EventStop:
-		s.Status = entity.StatusFinished
-		s.PendingTools = make(map[string]*entity.AgentEvent)
+		// If AskUserQuestion is pending (awaiting user response), keep attention state.
+		// For all other pending tools, stop means the session is done.
+		if hasAskUserPending(s.PendingTools) {
+			s.Status = entity.StatusWaiting
+			// Don't clear PendingTools — AskUserQuestion is still awaiting response
+		} else {
+			s.Status = entity.StatusFinished
+			s.PendingTools = make(map[string]*entity.AgentEvent)
+		}
 	case entity.EventError:
 		s.Status = entity.StatusError
 	}
@@ -154,4 +161,14 @@ func (r *Registry) Remove(key string) {
 	if r.onChange != nil {
 		r.onChange(r.listSortedLocked())
 	}
+}
+
+// hasAskUserPending checks if any pending tool is AskUserQuestion.
+func hasAskUserPending(pending map[string]*entity.AgentEvent) bool {
+	for _, e := range pending {
+		if e != nil && e.ToolName == "AskUserQuestion" {
+			return true
+		}
+	}
+	return false
 }

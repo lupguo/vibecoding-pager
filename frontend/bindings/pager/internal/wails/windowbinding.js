@@ -12,6 +12,14 @@
 import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Create } from "@wailsio/runtime";
 
 /**
+ * Hide hides the settings window (called from settings close button).
+ * @returns {$CancellablePromise<void>}
+ */
+export function Hide() {
+    return $Call.ByID(2367812800);
+}
+
+/**
  * OpenSettings shows the settings window.
  * @returns {$CancellablePromise<void>}
  */

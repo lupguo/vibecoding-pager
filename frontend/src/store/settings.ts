@@ -83,11 +83,12 @@ export function initSettings() {
 
   // Cross-window sync: when settings change in another window, apply here too
   Events.On('settings-changed', (ev: any) => {
-    const cfg = ev?.data ?? ev
-    if (!cfg) return
+    // Wails v3 event data may be wrapped in different structures
+    const cfg = ev?.data?.[0] ?? ev?.data ?? ev
+    if (!cfg || typeof cfg !== 'object') return
     useSettingsStore.setState({ settings: cfg })
-    i18n.changeLanguage(cfg.language)
-    applyTheme(cfg.theme)
-    applyOpacity(cfg.opacity)
+    if (cfg.language) i18n.changeLanguage(cfg.language)
+    if (cfg.theme) applyTheme(cfg.theme)
+    if (cfg.opacity !== undefined) applyOpacity(cfg.opacity)
   })
 }

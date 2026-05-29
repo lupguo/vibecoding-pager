@@ -48,3 +48,8 @@ func (w *WindowBinding) OpenSettings() {
 	w.settings.Show()
 	w.settings.Focus()
 }
+
+// Hide hides the settings window (called from settings close button).
+func (w *WindowBinding) Hide() {
+	w.settings.Hide()
+}

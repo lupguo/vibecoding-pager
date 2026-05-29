@@ -53,7 +53,7 @@ export default function SessionCard({ session }: Props) {
 
   return (
     <div
-      className={`rounded-lg border cursor-pointer transition-all duration-150 hover:shadow-sm ${cardStyles}`}
+      className={`rounded-lg border cursor-pointer transition-all duration-300 hover:shadow-sm ${cardStyles}`}
       onClick={() => setExpanded(!expanded)}
     >
       <div className="px-[10px] py-[8px]">
