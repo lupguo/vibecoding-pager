@@ -3,6 +3,7 @@ package main
 import (
 	"embed"
 	"log"
+	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"pager/internal/settings"
@@ -136,9 +137,14 @@ func main() {
 	// WindowOffset(5) leaves a small gap between icon and panel edge.
 	tray.AttachWindow(window).WindowOffset(5)
 
-	// Register initial global hotkey (default: Alt+E, overridden by saved settings).
-	initialCfg, _ := settings.LoadFrom(settings.DefaultPath())
-	registerHotkey(window, initialCfg.HotkeyToggle)
+	// Register initial global hotkey after a brief delay — the macOS Carbon event
+	// loop (needed by golang.design/x/hotkey) only becomes active inside wailsApp.Run().
+	// Calling registerHotkey before Run() causes a SIGTRAP crash.
+	go func() {
+		time.Sleep(500 * time.Millisecond)
+		initialCfg, _ := settings.LoadFrom(settings.DefaultPath())
+		registerHotkey(window, initialCfg.HotkeyToggle)
+	}()
 
 	// ── Run ─────────────────────────────────────────────────────────────────────
 	if err := wailsApp.Run(); err != nil {
