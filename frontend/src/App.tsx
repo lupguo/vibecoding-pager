@@ -11,6 +11,32 @@ function App() {
     setPinned(settings.popup_pinned ?? false)
   }, [settings.popup_pinned])
 
+  // Save width on window resize (debounced)
+  useEffect(() => {
+    let resizeTimeout: ReturnType<typeof setTimeout>
+
+    const handleResize = () => {
+      clearTimeout(resizeTimeout)
+      resizeTimeout = setTimeout(async () => {
+        const width = window.innerWidth
+        if (width >= 300 && width <= 600) {
+          try {
+            const { SetPopupWidth } = await import('../bindings/pager/internal/wails/windowbinding.js')
+            await SetPopupWidth(width)
+          } catch (err) {
+            console.error('SetPopupWidth failed:', err)
+          }
+        }
+      }, 500)
+    }
+
+    window.addEventListener('resize', handleResize)
+    return () => {
+      clearTimeout(resizeTimeout)
+      window.removeEventListener('resize', handleResize)
+    }
+  }, [])
+
   const handleTogglePin = async () => {
     const newPinned = !pinned
     setPinned(newPinned)
