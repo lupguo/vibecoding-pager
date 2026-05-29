@@ -1,21 +1,19 @@
 import { useState } from 'react'
+import { ArrowRight } from 'lucide-react'
 import type { Session } from '../store/sessions'
 import { JumpToTerminal } from '../../bindings/pager/internal/wails/sessionbinding.js'
-import { useTranslation } from 'react-i18next'
 
 interface Props {
   session: Session
 }
 
 export default function SessionCard({ session }: Props) {
-  const [expanded, setExpanded] = useState(false)
   const [jumping, setJumping] = useState(false)
-  const { t } = useTranslation()
+  const [expanded, setExpanded] = useState(false)
 
   const content = session.LastEvent?.content ?? session.Status
   const contentRaw = session.LastEvent?.content_raw ?? ''
   const toolName = session.LastEvent?.tool_name ?? ''
-  const cwdLast = session.CWD.split('/').filter(Boolean).pop() ?? session.CWD
   const sessionPrefix = (session.SessionID || session.Key || '').slice(0, 8)
   const agentLabel = session.AgentLabel || 'CC'
   const isAttention = session.AttentionLevel === 'attention'
@@ -39,30 +37,43 @@ export default function SessionCard({ session }: Props) {
     ? 'bg-[--pager-card-attention-bg] border-[--pager-card-attention-border] shadow-sm'
     : isRunning
     ? 'bg-[--pager-card-running-bg] border-[--pager-card-running-border]'
-    : 'bg-[--pager-card-done-bg] border-[--pager-card-done-border] opacity-70'
+    : 'bg-[--pager-card-done-bg] border-[--pager-card-done-border] opacity-65'
 
-  // Status indicator dot
   const statusDot = isAttention
     ? 'bg-[--pager-red] animate-pulse-status'
     : isRunning
     ? 'bg-[--pager-green]'
     : 'bg-[--pager-gray-dot]'
 
+  const statusTag = isAttention
+    ? { text: 'WAITING', cls: 'bg-[rgba(255,69,58,0.15)] text-[--pager-red]' }
+    : isRunning
+    ? { text: 'ACTIVE', cls: 'bg-[rgba(48,209,88,0.12)] text-[--pager-green]' }
+    : { text: 'DONE', cls: 'bg-[rgba(255,255,255,0.06)] text-[--pager-text-muted]' }
+
   return (
-    <div className={`rounded-lg border cursor-pointer transition-all duration-150 hover:shadow-sm ${cardStyles}`} onClick={() => setExpanded(!expanded)}>
+    <div
+      className={`rounded-lg border cursor-pointer transition-all duration-150 hover:shadow-sm ${cardStyles}`}
+      onClick={() => setExpanded(!expanded)}
+    >
       <div className="px-[10px] py-[8px]">
-        {/* Row 1: Status dot + Agent badge + project + time */}
+        {/* Row 1: dot → status tag → agent badge ... session_id → time */}
         <div className="flex items-center gap-[6px] mb-[4px]">
-          <span className={`w-[6px] h-[6px] rounded-full shrink-0 ${statusDot}`} />
-          <span className="text-[9px] font-semibold px-[5px] py-[1px] rounded-[3px] bg-[--pager-badge-bg] text-[--pager-badge-text] tracking-wide uppercase">{agentLabel}</span>
-          <span className="text-[11px] font-medium text-[--pager-text-secondary]">{cwdLast}</span>
+          <div className="flex items-center gap-[6px]">
+            <span className={`w-[6px] h-[6px] rounded-full shrink-0 ${statusDot}`} />
+            <span className={`text-[9px] font-semibold px-[5px] py-[1px] rounded-[3px] ${statusTag.cls} tracking-wide`}>
+              {statusTag.text}
+            </span>
+            <span className="text-[9px] font-semibold px-[5px] py-[1px] rounded-[3px] bg-[--pager-badge-bg] text-[--pager-badge-text] tracking-wide uppercase">
+              {agentLabel}
+            </span>
+          </div>
           <span className="flex-1" />
           <span className="text-[9px] text-[--pager-text-faint] font-mono">{sessionPrefix}</span>
-          <span className="text-[9px] text-[--pager-text-faint]">·</span>
           <span className="text-[9px] text-[--pager-text-faint]">{relativeTime}</span>
         </div>
 
-        {/* Row 2: Tool tag + content + jump button */}
+        {/* Row 2: tool tag + content + jump button */}
         <div className="flex items-center justify-between pl-[12px]">
           <div className="flex items-center gap-[6px] flex-1 min-w-0">
             {toolName && (
@@ -70,27 +81,32 @@ export default function SessionCard({ session }: Props) {
                 {toolName.length > 12 ? toolName.slice(0, 12) : toolName}
               </span>
             )}
-            <span className="text-[11px] text-[--pager-text-primary] whitespace-nowrap overflow-hidden text-ellipsis">{content}</span>
+            <span className="text-[11px] text-[--pager-text-primary] whitespace-nowrap overflow-hidden text-ellipsis">
+              {content}
+            </span>
           </div>
-          <button onClick={handleJump} disabled={jumping} title="Jump to terminal" className="ml-[6px] p-[3px] rounded text-[--pager-text-faint] hover:text-[--pager-blue] hover:bg-[--pager-filter-bg] disabled:opacity-30 shrink-0 transition-colors">
+          <button
+            onClick={handleJump}
+            disabled={jumping}
+            title="Jump to terminal"
+            className="ml-[6px] p-[3px] rounded text-[--pager-text-faint] hover:text-[--pager-blue] hover:bg-[--pager-filter-bg] disabled:opacity-30 shrink-0 transition-colors"
+          >
             {jumping ? (
-              <svg className="w-[13px] h-[13px] animate-spin" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="2" strokeDasharray="28" strokeDashoffset="8" /></svg>
+              <svg className="w-[13px] h-[13px] animate-spin" viewBox="0 0 16 16" fill="none">
+                <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="2" strokeDasharray="28" strokeDashoffset="8" />
+              </svg>
             ) : (
-              <svg className="w-[13px] h-[13px]" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M3 8h10M9 4l4 4-4 4" /></svg>
+              <ArrowRight size={13} />
             )}
           </button>
         </div>
 
         {/* Expanded content */}
-        {expanded && (
+        {expanded && contentRaw && (
           <div className="mt-[6px] pl-[12px]">
-            {contentRaw && (
-              <pre className="p-[6px] bg-[--pager-detail-bg] rounded-md text-[10px] leading-relaxed text-[--pager-detail-text] font-mono whitespace-pre-wrap break-all max-h-32 overflow-y-auto border border-[--pager-detail-border] mb-[6px]">{contentRaw}</pre>
-            )}
-            <div className="text-[9px] font-mono text-[--pager-text-faint] leading-[1.6]">
-              <div><span className="text-[--pager-text-muted]">{t('session.session')}:</span> {session.SessionID || session.Key}</div>
-              <div><span className="text-[--pager-text-muted]">{t('session.path')}:</span> {session.CWD}</div>
-            </div>
+            <pre className="p-[6px] bg-[--pager-detail-bg] rounded-md text-[10px] leading-relaxed text-[--pager-detail-text] font-mono whitespace-pre-wrap break-all max-h-32 overflow-y-auto border border-[--pager-detail-border]">
+              {contentRaw}
+            </pre>
           </div>
         )}
       </div>

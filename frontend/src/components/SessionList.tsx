@@ -1,40 +1,34 @@
-import { useMemo } from 'react'
-import { useSessionStore } from '../store/sessions'
+import { Folder } from 'lucide-react'
+import { useProjectGroups } from '../store/sessions'
 import SessionCard from './SessionCard'
+import EmptyState from './EmptyState'
 
 export default function SessionList() {
-  const sessions = useSessionStore((s) => s.sessions)
-  const filter = useSessionStore((s) => s.filter)
+  const groups = useProjectGroups()
 
-  const filteredSessions = useMemo(() => {
-    const filtered = sessions.filter((s) => s.AttentionLevel === filter)
-    // Smart fallback: if current filter is empty but sessions exist, show first non-empty level
-    if (filtered.length === 0 && sessions.length > 0) {
-      const levels: Array<'attention' | 'running' | 'done'> = ['attention', 'running', 'done']
-      for (const level of levels) {
-        const found = sessions.filter((s) => s.AttentionLevel === level)
-        if (found.length > 0) return found
-      }
-    }
-    return filtered
-  }, [sessions, filter])
-
-  if (filteredSessions.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 text-[--pager-text-faint] gap-3">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
-          <path d="M12 6v6l4 2" />
-        </svg>
-        <span className="text-[13px]">No sessions in this view</span>
-      </div>
-    )
+  if (groups.length === 0) {
+    return <EmptyState />
   }
 
   return (
-    <div className="p-[10px] space-y-[5px]">
-      {filteredSessions.map((session) => (
-        <SessionCard key={session.Key} session={session} />
+    <div className="p-[10px] space-y-[12px]">
+      {groups.map((group) => (
+        <div key={group.project}>
+          {/* Project header */}
+          <div className="flex items-center gap-[6px] px-[4px] mb-[6px]">
+            <Folder size={14} className="text-[--pager-text-muted]" strokeWidth={2} />
+            <span className="text-[11px] font-semibold text-[--pager-text-muted] tracking-[0.3px]">
+              {group.project}
+            </span>
+            <span className="flex-1 h-px bg-[--pager-border] opacity-50" />
+          </div>
+          {/* Sessions in this project */}
+          <div className="space-y-[5px]">
+            {group.sessions.map((session) => (
+              <SessionCard key={session.Key} session={session} />
+            ))}
+          </div>
+        </div>
       ))}
     </div>
   )
