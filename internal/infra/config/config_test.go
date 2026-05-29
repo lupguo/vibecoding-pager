@@ -29,6 +29,18 @@ func TestLoadReturnsDefaultsWhenFileNotExists(t *testing.T) {
 	if cfg.NotificationLevel != "attention_only" {
 		t.Errorf("expected default notification_level 'attention_only', got '%s'", cfg.NotificationLevel)
 	}
+	if cfg.PopupWidth != 380 {
+		t.Errorf("expected default popup_width 380, got %d", cfg.PopupWidth)
+	}
+	if cfg.PopupPinned != false {
+		t.Errorf("expected default popup_pinned false, got %v", cfg.PopupPinned)
+	}
+	if cfg.PopupWidth != 380 {
+		t.Errorf("expected default popup_width 380, got %d", cfg.PopupWidth)
+	}
+	if cfg.PopupPinned != false {
+		t.Errorf("expected default popup_pinned false, got %v", cfg.PopupPinned)
+	}
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
 		t.Error("expected file to not be created on Load")
 	}
@@ -44,6 +56,8 @@ func TestSaveAndLoad(t *testing.T) {
 		Opacity:           50,
 		HotkeyToggle:     "Ctrl+Shift+P",
 		NotificationLevel: "all",
+		PopupWidth:        450,
+		PopupPinned:       true,
 	}
 
 	if err := SaveTo(path, cfg); err != nil {

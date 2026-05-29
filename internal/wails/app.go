@@ -56,10 +56,17 @@ func NewPagerApp(assets embed.FS) *application.App {
 	sessionBinding := &SessionBinding{reg: p.reg}
 
 	var popupWindow *application.WebviewWindow
+	var settingsWindow *application.WebviewWindow
 
 	settingsBinding := NewSettingsBinding(func(cfg config.Settings) {
 		RegisterHotkey(popupWindow, cfg.HotkeyToggle)
 	})
+
+	// Load initial config for window defaults
+	initialCfg, _ := config.LoadFrom(config.DefaultPath())
+
+	// WindowBinding will be connected to windows after creation
+	windowBinding := &WindowBinding{configPath: config.DefaultPath()}
 
 	// ── Wails app ───────────────────────────────────────────────────────────
 	wailsApp := application.New(application.Options{
@@ -69,6 +76,7 @@ func NewPagerApp(assets embed.FS) *application.App {
 			application.NewService(p),
 			application.NewService(sessionBinding),
 			application.NewService(settingsBinding),
+			application.NewService(windowBinding),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.BundledAssetFileServer(assets),
@@ -88,18 +96,22 @@ func NewPagerApp(assets embed.FS) *application.App {
 	popupWindow = wailsApp.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:            "Pager",
 		Name:             "pager-panel",
-		Width:            400,
-		Height:           600,
+		Width:            initialCfg.PopupWidth,
+		Height:           520,
+		MinWidth:         300,
+		MaxWidth:         600,
+		MinHeight:        520,
+		MaxHeight:        520,
 		Hidden:           true,
 		Frameless:        true,
-		AlwaysOnTop:      true,
-		DisableResize:    true,
-		HideOnFocusLost:  true, // B3 fix: hide when clicking outside
+		AlwaysOnTop:      initialCfg.PopupPinned,
+		DisableResize:    false,
+		HideOnFocusLost:  !initialCfg.PopupPinned,
 		BackgroundColour: application.NewRGBA(0, 0, 0, 0),
 	})
 
 	// ── Settings window ─────────────────────────────────────────────────────
-	settingsWindow := wailsApp.Window.NewWithOptions(application.WebviewWindowOptions{
+	settingsWindow = wailsApp.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:         "Pager 设置",
 		Name:          "pager-settings",
 		Width:         720,
@@ -116,10 +128,13 @@ func NewPagerApp(assets embed.FS) *application.App {
 		settingsWindow.Hide()
 	})
 
+	// Connect WindowBinding to created windows
+	windowBinding.popup = popupWindow
+	windowBinding.settings = settingsWindow
+
 	// ── Tray menu ───────────────────────────────────────────────────────────
 	trayMenu := wailsApp.NewMenu()
 	trayMenu.Add("偏好设置...").
-		SetAccelerator("CmdOrCtrl+,").
 		OnClick(func(_ *application.Context) {
 			settingsWindow.Show()
 			settingsWindow.Focus()
@@ -138,7 +153,6 @@ func NewPagerApp(assets embed.FS) *application.App {
 	// ── Global hotkey (deferred — needs RunLoop active) ─────────────────────
 	go func() {
 		time.Sleep(500 * time.Millisecond)
-		initialCfg, _ := config.LoadFrom(config.DefaultPath())
 		RegisterHotkey(popupWindow, initialCfg.HotkeyToggle)
 	}()
 

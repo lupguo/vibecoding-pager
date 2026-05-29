@@ -12,6 +12,8 @@ type Settings struct {
 	Opacity           int    `json:"opacity"`
 	HotkeyToggle      string `json:"hotkey_toggle"`
 	NotificationLevel string `json:"notification_level"`
+	PopupWidth        int    `json:"popup_width"`
+	PopupPinned       bool   `json:"popup_pinned"`
 }
 
 func Defaults() Settings {
@@ -21,6 +23,8 @@ func Defaults() Settings {
 		Opacity:           75,
 		HotkeyToggle:     "Alt+E",
 		NotificationLevel: "attention_only",
+		PopupWidth:        380,
+		PopupPinned:       false,
 	}
 }
 
