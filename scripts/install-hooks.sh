@@ -1,91 +1,92 @@
 #!/bin/bash
-# Install pager-cc-bridge hook into ~/.claude/settings.json
-# Usage: ./install-hooks.sh /path/to/pager-cc-bridge [--agent LABEL]
+# Install Pager hook configuration into Claude Code settings.
+# Usage: ./scripts/install-hooks.sh [AGENT_LABEL] [BRIDGE_PATH]
+#
+# AGENT_LABEL defaults to "CC"
+# BRIDGE_PATH defaults to the bin/pager-cc-bridge relative to this script
 
-set -e
+set -euo pipefail
 
-BRIDGE_PATH=""
-AGENT_LABEL="CC"
+AGENT="${1:-CC}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+BRIDGE_PATH="${2:-$SCRIPT_DIR/../bin/pager-cc-bridge}"
+SETTINGS_FILE="$HOME/.claude/settings.json"
 
-# Parse arguments
-while [[ $# -gt 0 ]]; do
-  case $1 in
-    --agent)
-      AGENT_LABEL="$2"
-      shift 2
-      ;;
-    *)
-      if [ -z "$BRIDGE_PATH" ]; then
-        BRIDGE_PATH="$1"
-      fi
-      shift
-      ;;
-  esac
-done
-
-if [ -z "$BRIDGE_PATH" ]; then
-  echo "Usage: $0 /path/to/pager-cc-bridge [--agent LABEL]"
-  echo "  --agent LABEL   Agent identifier shown in Pager UI (default: CC)"
-  echo "  Examples: CC, CC-Int, Codex, MyAgent"
+if [ ! -f "$BRIDGE_PATH" ]; then
+  echo "Error: bridge binary not found at $BRIDGE_PATH"
+  echo "Run 'make bridge' first."
   exit 1
 fi
 
-if [ ! -x "$BRIDGE_PATH" ]; then
-  echo "Error: $BRIDGE_PATH does not exist or is not executable"
-  exit 1
+# Resolve to absolute path
+BRIDGE_PATH="$(cd "$(dirname "$BRIDGE_PATH")" && pwd)/$(basename "$BRIDGE_PATH")"
+
+# Ensure settings directory exists
+mkdir -p "$(dirname "$SETTINGS_FILE")"
+
+# Create settings file if it doesn't exist
+if [ ! -f "$SETTINGS_FILE" ]; then
+  echo '{}' > "$SETTINGS_FILE"
 fi
 
-SETTINGS="$HOME/.claude/settings.json"
+# All 22 hook events to register
+# Format: "HookName:EventType[:matcher]"
+# EventType = CamelCase (matches CC's hook_event_name in stdin JSON)
+python3 << PYTHON
+import json
 
-HOOK_CONFIG=$(cat <<EOF
-{
-  "hooks": {
-    "PreToolUse": [{
-      "matcher": "*",
-      "hooks": [{
+settings_file = "$SETTINGS_FILE"
+bridge_path = "$BRIDGE_PATH"
+agent = "$AGENT"
+
+events = [
+    ("SessionStart",        "SessionStart",        None),
+    ("SessionEnd",          "SessionEnd",          None),
+    ("UserPromptSubmit",    "UserPromptSubmit",    None),
+    ("UserPromptExpansion", "UserPromptExpansion", None),
+    ("Stop",                "Stop",                None),
+    ("StopFailure",         "StopFailure",         None),
+    ("PreToolUse",          "PreToolUse",          "*"),
+    ("PostToolUse",         "PostToolUse",         "*"),
+    ("PostToolUseFailure",  "PostToolUseFailure",  "*"),
+    ("PostToolBatch",       "PostToolBatch",       None),
+    ("PermissionRequest",   "PermissionRequest",   "*"),
+    ("PermissionDenied",    "PermissionDenied",    "*"),
+    ("SubagentStart",       "SubagentStart",       None),
+    ("SubagentStop",        "SubagentStop",        None),
+    ("TaskCreated",         "TaskCreated",         None),
+    ("TaskCompleted",       "TaskCompleted",       None),
+    ("Notification",        "Notification",        None),
+    ("PreCompact",          "PreCompact",          None),
+    ("PostCompact",         "PostCompact",          None),
+    ("InstructionsLoaded",  "InstructionsLoaded",  None),
+    ("Elicitation",         "Elicitation",         None),
+    ("MessageDisplay",      "MessageDisplay",      None),
+]
+
+with open(settings_file, 'r') as f:
+    settings = json.load(f)
+
+if 'hooks' not in settings:
+    settings['hooks'] = {}
+
+for hook_name, event_type, matcher in events:
+    hook_entry = {
         "type": "command",
-        "command": "$BRIDGE_PATH pre_tool_use --agent $AGENT_LABEL",
-        "async": true,
-        "timeout": 5
-      }]
-    }],
-    "PostToolUse": [{
-      "matcher": "*",
-      "hooks": [{
-        "type": "command",
-        "command": "$BRIDGE_PATH post_tool_use --agent $AGENT_LABEL",
-        "async": true,
-        "timeout": 5
-      }]
-    }],
-    "Stop": [{
-      "hooks": [{
-        "type": "command",
-        "command": "$BRIDGE_PATH stop --agent $AGENT_LABEL",
-        "async": true,
-        "timeout": 5
-      }]
-    }]
-  }
-}
-EOF
-)
+        "command": f"{bridge_path} --event {event_type} --agent {agent}",
+        "timeout": 5,
+        "async": True
+    }
+    hook_group = {"hooks": [hook_entry]}
+    if matcher:
+        hook_group["matcher"] = matcher
 
-# Backup existing config
-[ -f "$SETTINGS" ] && cp "$SETTINGS" "$SETTINGS.pager-backup"
+    settings['hooks'][hook_name] = [hook_group]
 
-# Merge or create
-if [ -f "$SETTINGS" ]; then
-  if ! command -v jq &> /dev/null; then
-    echo "Error: jq is required. Install with: brew install jq"
-    exit 1
-  fi
-  jq -s '.[0] * .[1]' "$SETTINGS" <(echo "$HOOK_CONFIG") > "$SETTINGS.tmp" && mv "$SETTINGS.tmp" "$SETTINGS"
-else
-  mkdir -p "$(dirname "$SETTINGS")"
-  echo "$HOOK_CONFIG" > "$SETTINGS"
-fi
+with open(settings_file, 'w') as f:
+    json.dump(settings, f, indent=2)
 
-echo "✓ Hook installed to $SETTINGS"
-echo "  Agent label: $AGENT_LABEL"
-echo "  Restart Claude Code to activate."
+print(f"✓ Installed {len(events)} hooks for agent '{agent}'")
+print(f"  Bridge: {bridge_path}")
+print(f"  Config: {settings_file}")
+PYTHON
