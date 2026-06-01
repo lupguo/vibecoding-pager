@@ -26,7 +26,7 @@ func TestTrackEvent_PreToolUse_CreatesSession(t *testing.T) {
 	var called int
 	tr := NewTracker(func(sessions []*Session) { called++ })
 
-	e := makeEvent(entity.EventPreToolUse, "Bash", "tu-1", "/project", "/dev/ttys001")
+	e := makeEvent("PreToolUse", "Bash", "tu-1", "/project", "/dev/ttys001")
 	tr.TrackEvent(e)
 
 	sessions := tr.ListByRecent()
@@ -52,38 +52,44 @@ func TestTrackEvent_PostToolUse_ClearsPending(t *testing.T) {
 	var lastSessions []*Session
 	tr := NewTracker(func(sessions []*Session) { lastSessions = sessions })
 
-	tr.TrackEvent(makeEvent(entity.EventPreToolUse, "Bash", "tu-1", "/p", "/dev/ttys001"))
-	tr.TrackEvent(makeEvent(entity.EventPostToolUse, "Bash", "tu-1", "/p", "/dev/ttys001"))
+	tr.TrackEvent(makeEvent("PreToolUse", "Bash", "tu-1", "/p", "/dev/ttys001"))
+	tr.TrackEvent(makeEvent("PostToolUse", "Bash", "tu-1", "/p", "/dev/ttys001"))
 
 	if len(lastSessions) != 1 {
 		t.Fatalf("expected 1 session, got %d", len(lastSessions))
 	}
 	s := lastSessions[0]
-	if s.Status != entity.StatusActive {
-		t.Errorf("status = %q, want %q", s.Status, entity.StatusActive)
+	if s.Status != entity.StatusWorking {
+		t.Errorf("status = %q, want %q", s.Status, entity.StatusWorking)
 	}
 	if len(s.PendingTools) != 0 {
 		t.Errorf("PendingTools should be empty, has %d", len(s.PendingTools))
 	}
 }
 
-func TestTrackEvent_PostToolUse_MultiplePending(t *testing.T) {
+func TestTrackEvent_PendingBookkeeping_MultipleTools(t *testing.T) {
 	var lastSessions []*Session
 	tr := NewTracker(func(sessions []*Session) { lastSessions = sessions })
 
-	tr.TrackEvent(makeEvent(entity.EventPreToolUse, "Bash", "tu-1", "/p", "/dev/ttys001"))
-	tr.TrackEvent(makeEvent(entity.EventPreToolUse, "Edit", "tu-2", "/p", "/dev/ttys001"))
+	tr.TrackEvent(makeEvent("PreToolUse", "Bash", "tu-1", "/p", "/dev/ttys001"))
+	tr.TrackEvent(makeEvent("PreToolUse", "Edit", "tu-2", "/p", "/dev/ttys001"))
 
-	tr.TrackEvent(makeEvent(entity.EventPostToolUse, "Bash", "tu-1", "/p", "/dev/ttys001"))
+	tr.TrackEvent(makeEvent("PostToolUse", "Bash", "tu-1", "/p", "/dev/ttys001"))
 	s := lastSessions[0]
-	if s.Status != entity.StatusWaiting {
-		t.Errorf("status = %q, want %q (still has pending)", s.Status, entity.StatusWaiting)
+	if _, ok := s.PendingTools["tu-1"]; ok {
+		t.Error("tu-1 should be cleared from PendingTools after PostToolUse")
+	}
+	if _, ok := s.PendingTools["tu-2"]; !ok {
+		t.Error("tu-2 should still be in PendingTools")
 	}
 
-	tr.TrackEvent(makeEvent(entity.EventPostToolUse, "Edit", "tu-2", "/p", "/dev/ttys001"))
+	tr.TrackEvent(makeEvent("PostToolUse", "Edit", "tu-2", "/p", "/dev/ttys001"))
 	s = lastSessions[0]
-	if s.Status != entity.StatusActive {
-		t.Errorf("status = %q, want %q", s.Status, entity.StatusActive)
+	if len(s.PendingTools) != 0 {
+		t.Errorf("PendingTools should be empty, has %d", len(s.PendingTools))
+	}
+	if s.Status != entity.StatusWorking {
+		t.Errorf("status = %q, want %q", s.Status, entity.StatusWorking)
 	}
 }
 
@@ -91,12 +97,31 @@ func TestTrackEvent_Stop(t *testing.T) {
 	var lastSessions []*Session
 	tr := NewTracker(func(sessions []*Session) { lastSessions = sessions })
 
-	tr.TrackEvent(makeEvent(entity.EventPreToolUse, "Bash", "tu-1", "/p", "/dev/ttys001"))
-	tr.TrackEvent(makeEvent(entity.EventStop, "", "", "/p", "/dev/ttys001"))
+	tr.TrackEvent(makeEvent("PreToolUse", "Bash", "tu-1", "/p", "/dev/ttys001"))
+	tr.TrackEvent(makeEvent("Stop", "", "", "/p", "/dev/ttys001"))
 
 	s := lastSessions[0]
-	if s.Status != entity.StatusFinished {
-		t.Errorf("status = %q, want %q", s.Status, entity.StatusFinished)
+	if s.Status != entity.StatusDone {
+		t.Errorf("status = %q, want %q", s.Status, entity.StatusDone)
+	}
+	if len(s.PendingTools) != 0 {
+		t.Errorf("PendingTools should be cleared on Stop, has %d", len(s.PendingTools))
+	}
+}
+
+func TestTrackEvent_Stop_AskUserQuestionPending(t *testing.T) {
+	var lastSessions []*Session
+	tr := NewTracker(func(sessions []*Session) { lastSessions = sessions })
+
+	tr.TrackEvent(makeEvent("PreToolUse", "AskUserQuestion", "tu-ask", "/p", "/dev/ttys001"))
+	tr.TrackEvent(makeEvent("Stop", "", "", "/p", "/dev/ttys001"))
+
+	s := lastSessions[0]
+	if s.Status != entity.StatusWaiting {
+		t.Errorf("status = %q, want %q (AskUserQuestion still pending)", s.Status, entity.StatusWaiting)
+	}
+	if _, ok := s.PendingTools["tu-ask"]; !ok {
+		t.Error("AskUserQuestion pending should NOT be cleared by Stop")
 	}
 }
 
@@ -104,8 +129,8 @@ func TestTrackEvent_Error(t *testing.T) {
 	var lastSessions []*Session
 	tr := NewTracker(func(sessions []*Session) { lastSessions = sessions })
 
-	tr.TrackEvent(makeEvent(entity.EventPreToolUse, "Bash", "tu-1", "/p", "/dev/ttys001"))
-	tr.TrackEvent(makeEvent(entity.EventError, "", "", "/p", "/dev/ttys001"))
+	tr.TrackEvent(makeEvent("PreToolUse", "Bash", "tu-1", "/p", "/dev/ttys001"))
+	tr.TrackEvent(makeEvent("Error", "", "", "/p", "/dev/ttys001"))
 
 	s := lastSessions[0]
 	if s.Status != entity.StatusError {
@@ -117,23 +142,23 @@ func TestTrackEvent_SessionStart(t *testing.T) {
 	var lastSessions []*Session
 	tr := NewTracker(func(sessions []*Session) { lastSessions = sessions })
 
-	e := makeEvent(entity.EventSessionStart, "", "", "/p", "/dev/ttys001")
+	e := makeEvent("SessionStart", "", "", "/p", "/dev/ttys001")
 	tr.TrackEvent(e)
 
 	s := lastSessions[0]
-	if s.Status != entity.StatusActive {
-		t.Errorf("status = %q, want %q", s.Status, entity.StatusActive)
+	if s.Status != entity.StatusWorking {
+		t.Errorf("status = %q, want %q", s.Status, entity.StatusWorking)
 	}
 }
 
 func TestListByRecent_OrderByUpdatedAt(t *testing.T) {
 	tr := NewTracker(func([]*Session) {})
 
-	e1 := makeEvent(entity.EventPreToolUse, "Bash", "tu-1", "/project-a", "/dev/ttys001")
+	e1 := makeEvent("PreToolUse", "Bash", "tu-1", "/project-a", "/dev/ttys001")
 	e1.Timestamp = time.Now().Add(-10 * time.Second)
 	tr.TrackEvent(e1)
 
-	e2 := makeEvent(entity.EventPreToolUse, "Bash", "tu-2", "/project-b", "/dev/ttys002")
+	e2 := makeEvent("PreToolUse", "Bash", "tu-2", "/project-b", "/dev/ttys002")
 	e2.Timestamp = time.Now()
 	tr.TrackEvent(e2)
 
@@ -149,7 +174,7 @@ func TestListByRecent_OrderByUpdatedAt(t *testing.T) {
 func TestSessionByTTY(t *testing.T) {
 	tr := NewTracker(func([]*Session) {})
 
-	tr.TrackEvent(makeEvent(entity.EventPreToolUse, "Bash", "tu-1", "/p", "/dev/ttys005"))
+	tr.TrackEvent(makeEvent("PreToolUse", "Bash", "tu-1", "/p", "/dev/ttys005"))
 
 	s, ok := tr.SessionByTTY("/dev/ttys005")
 	if !ok {
@@ -168,7 +193,7 @@ func TestSessionByTTY(t *testing.T) {
 func TestSession_ByKey(t *testing.T) {
 	tr := NewTracker(func([]*Session) {})
 
-	e1 := makeEvent(entity.EventPreToolUse, "Bash", "tu-1", "/project", "/dev/ttys001")
+	e1 := makeEvent("PreToolUse", "Bash", "tu-1", "/project", "/dev/ttys001")
 	e1.SessionID = "session-aaa"
 	tr.TrackEvent(e1)
 
@@ -187,7 +212,7 @@ func TestDismiss(t *testing.T) {
 	var lastSessions []*Session
 	tr := NewTracker(func(sessions []*Session) { lastSessions = sessions })
 
-	tr.TrackEvent(makeEvent(entity.EventPreToolUse, "Bash", "tu-1", "/p", "/dev/ttys001"))
+	tr.TrackEvent(makeEvent("PreToolUse", "Bash", "tu-1", "/p", "/dev/ttys001"))
 	if len(lastSessions) != 1 {
 		t.Fatalf("expected 1 session, got %d", len(lastSessions))
 	}
@@ -202,8 +227,8 @@ func TestReplay(t *testing.T) {
 	tr := NewTracker(func([]*Session) {})
 
 	events := []*entity.AgentEvent{
-		makeEvent(entity.EventPreToolUse, "Bash", "tu-1", "/p", "/dev/ttys001"),
-		makeEvent(entity.EventPostToolUse, "Bash", "tu-1", "/p", "/dev/ttys001"),
+		makeEvent("PreToolUse", "Bash", "tu-1", "/p", "/dev/ttys001"),
+		makeEvent("PostToolUse", "Bash", "tu-1", "/p", "/dev/ttys001"),
 	}
 	tr.Replay(events)
 
@@ -211,7 +236,7 @@ func TestReplay(t *testing.T) {
 	if len(sessions) != 1 {
 		t.Fatalf("expected 1 session after replay, got %d", len(sessions))
 	}
-	if sessions[0].Status != entity.StatusActive {
-		t.Errorf("status = %q, want %q", sessions[0].Status, entity.StatusActive)
+	if sessions[0].Status != entity.StatusWorking {
+		t.Errorf("status = %q, want %q", sessions[0].Status, entity.StatusWorking)
 	}
 }
