@@ -10,6 +10,7 @@ export interface Settings {
   notification_level: string
   popup_width: number
   popup_pinned: boolean
+  session_load_hours: number
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -20,6 +21,7 @@ const DEFAULT_SETTINGS: Settings = {
   notification_level: 'attention_only',
   popup_width: 380,
   popup_pinned: false,
+  session_load_hours: 24,
 }
 
 interface SettingsStore {

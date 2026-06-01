@@ -3,9 +3,10 @@ import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 import { useSettingsStore } from '../store/settings'
 import GeneralSettings from './settings/GeneralSettings'
+import DataSettings from './settings/DataSettings'
 import AboutSettings from './settings/AboutSettings'
 
-type Page = 'general' | 'about'
+type Page = 'general' | 'data' | 'about'
 
 export default function SettingsPanel() {
   const { t } = useTranslation()
@@ -14,6 +15,7 @@ export default function SettingsPanel() {
 
   const navItems: { id: Page; icon: string; label: string }[] = [
     { id: 'general', icon: '⚙️', label: t('nav.general') },
+    { id: 'data', icon: '💾', label: settings.language === 'zh' ? '数据' : 'Data' },
     { id: 'about', icon: 'ℹ️', label: t('nav.about') },
   ]
 
@@ -71,6 +73,7 @@ export default function SettingsPanel() {
 
         <div className="flex-1 p-5 overflow-y-auto bg-[#f5f5f7] dark:bg-[#2a2a2c]">
           {page === 'general' && <GeneralSettings />}
+          {page === 'data' && <DataSettings />}
           {page === 'about' && <AboutSettings />}
         </div>
       </div>
