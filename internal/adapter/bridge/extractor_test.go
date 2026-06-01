@@ -154,6 +154,71 @@ func TestExtractContent_AgentFallbackToPrompt(t *testing.T) {
 	}
 }
 
+func TestExtractContent_TaskCreate(t *testing.T) {
+	input := json.RawMessage(`{"subject":"Fix login bug","description":"Form crashes on submit","activeForm":"Fixing login"}`)
+	raw, content := ExtractContent("TaskCreate", input)
+	if raw != "Fix login bug" {
+		t.Errorf("raw: got %q", raw)
+	}
+	if content != "Fix login bug" {
+		t.Errorf("content: got %q", content)
+	}
+}
+
+func TestExtractContent_TaskUpdate(t *testing.T) {
+	input := json.RawMessage(`{"taskId":"1","status":"completed","subject":"Fix login bug"}`)
+	raw, content := ExtractContent("TaskUpdate", input)
+	if raw != "Fix login bug →completed" {
+		t.Errorf("raw: got %q", raw)
+	}
+	if content != "Fix login bug →completed" {
+		t.Errorf("content: got %q", content)
+	}
+}
+
+func TestExtractContent_TaskUpdate_StatusOnly(t *testing.T) {
+	input := json.RawMessage(`{"taskId":"1","status":"in_progress"}`)
+	raw, content := ExtractContent("TaskUpdate", input)
+	if raw != "→in_progress" {
+		t.Errorf("raw: got %q", raw)
+	}
+	if content != "→in_progress" {
+		t.Errorf("content: got %q", content)
+	}
+}
+
+func TestExtractContent_TaskGet(t *testing.T) {
+	input := json.RawMessage(`{"taskId":"1"}`)
+	raw, _ := ExtractContent("TaskGet", input)
+	if raw != "TaskGet" {
+		t.Errorf("raw: got %q", raw)
+	}
+}
+
+func TestExtractContent_TaskList(t *testing.T) {
+	input := json.RawMessage(`{}`)
+	raw, _ := ExtractContent("TaskList", input)
+	if raw != "TaskList" {
+		t.Errorf("raw: got %q", raw)
+	}
+}
+
+func TestExtractContent_LSP(t *testing.T) {
+	input := json.RawMessage(`{"operation":"goToDefinition","filePath":"main.go","line":10,"character":5}`)
+	raw, _ := ExtractContent("LSP", input)
+	if raw != "LSP goToDefinition: main.go" {
+		t.Errorf("raw: got %q", raw)
+	}
+}
+
+func TestExtractContent_NotebookEdit(t *testing.T) {
+	input := json.RawMessage(`{"notebook_path":"/tmp/test.ipynb","new_source":"print('hi')"}`)
+	raw, _ := ExtractContent("NotebookEdit", input)
+	if raw != "/tmp/test.ipynb" {
+		t.Errorf("raw: got %q", raw)
+	}
+}
+
 // --- ExtractEventContent tests ---
 
 func TestExtractEventContent_SessionStart(t *testing.T) {

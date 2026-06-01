@@ -85,6 +85,44 @@ func extractRaw(toolName string, toolInput json.RawMessage) string {
 				return "子任务: " + in.Prompt
 			}
 		}
+	case "TaskCreate":
+		var in TaskCreateInput
+		if unmarshal(&in) && in.Subject != "" {
+			return in.Subject
+		}
+	case "TaskUpdate":
+		var in TaskUpdateInput
+		if unmarshal(&in) {
+			parts := []string{}
+			if in.Subject != "" {
+				parts = append(parts, in.Subject)
+			}
+			if in.Status != "" {
+				parts = append(parts, "→"+in.Status)
+			}
+			if len(parts) > 0 {
+				return strings.Join(parts, " ")
+			}
+		}
+	case "TaskGet", "TaskList":
+		return toolName
+	case "TaskStop":
+		return toolName
+	case "NotebookEdit":
+		var in struct {
+			NotebookPath string `json:"notebook_path"`
+		}
+		if unmarshal(&in) && in.NotebookPath != "" {
+			return in.NotebookPath
+		}
+	case "LSP":
+		var in struct {
+			Operation string `json:"operation"`
+			FilePath  string `json:"filePath"`
+		}
+		if unmarshal(&in) && in.Operation != "" {
+			return "LSP " + in.Operation + ": " + in.FilePath
+		}
 	}
 
 	// MCP tools: mcp__github__create_pr etc.
