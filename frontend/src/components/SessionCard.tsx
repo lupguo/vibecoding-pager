@@ -90,6 +90,7 @@ function formatTimestamp(iso: string): string {
 export default function SessionCard({ session, highlighted }: Props) {
   const [jumping, setJumping] = useState(false)
   const [expanded, setExpanded] = useState(false)
+  const [showMore, setShowMore] = useState(false)
 
   const status: SessionStatus = (session.Status as SessionStatus) || 'working'
   const tag = STATUS_TAG[status]
@@ -166,7 +167,36 @@ export default function SessionCard({ session, highlighted }: Props) {
                 {session.LastEvent.content_raw}
               </pre>
             )}
-            {/* "更多" toggle is added in Task 19 */}
+            {showMore && (
+              <div className="bg-[rgba(255,255,255,0.025)] border border-[rgba(255,255,255,0.04)] rounded-[6px] py-[4px] mb-[6px]">
+                <MetaRow
+                  Icon={Wrench}
+                  label="TOOL ID"
+                  value={session.LastEvent?.tool_use_id ?? ''}
+                  copyable
+                />
+                <MetaRow
+                  Icon={Terminal}
+                  label="TTY"
+                  value={
+                    session.TTY
+                      ? `${session.TTY}${session.TermProgram ? ' · ' + session.TermProgram : ''}`
+                      : ''
+                  }
+                />
+                <MetaRow
+                  Icon={ShieldCheck}
+                  label="PERM"
+                  value={session.LastEvent?.permission_mode ?? ''}
+                />
+              </div>
+            )}
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowMore(!showMore) }}
+              className="w-full flex items-center justify-center gap-[4px] py-[4px] px-[8px] mt-[4px] text-[10px] text-[--pager-text-muted] bg-transparent border border-dashed border-[rgba(255,255,255,0.08)] rounded-[5px] hover:text-[--pager-text-secondary] hover:border-[rgba(255,255,255,0.16)]">
+              {showMore ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+              {showMore ? '收起' : '更多'}
+            </button>
           </div>
         )}
       </div>
