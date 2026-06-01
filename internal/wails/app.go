@@ -10,6 +10,7 @@ import (
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
+	"github.com/wailsapp/wails/v3/pkg/services/notifications"
 
 	"pager/internal/adapter/httpapi"
 	"pager/internal/adapter/notify"
@@ -53,6 +54,30 @@ func NewPagerApp(assets embed.FS) *application.App {
 	}
 	p.store = eventStore
 
+	// ── Window handles (declared early so notification callbacks can capture them) ──
+	var popupWindow *application.WebviewWindow
+	var settingsWindow *application.WebviewWindow
+
+	// ── NotificationService (Wails-native, replaces osascript) ─────────────
+	notifSvc := notifications.New()
+	notifSvc.OnNotificationResponse(func(result notifications.NotificationResult) {
+		if result.Error != nil {
+			slog.Warn("notification response error", "module", "notify", "err", result.Error)
+			return
+		}
+		sessionID, _ := result.Response.UserInfo["session_id"].(string)
+		if sessionID == "" {
+			return
+		}
+		if popupWindow != nil {
+			popupWindow.Show()
+			popupWindow.Focus()
+		}
+		if app := application.Get(); app != nil {
+			app.Event.Emit("highlight-session", map[string]any{"session_id": sessionID})
+		}
+	})
+
 	// ── SessionTracker ──────────────────────────────────────────────────────
 	p.tracker = session.NewTracker(func(sessions []*session.Session) {
 		wailsApp := application.Get()
@@ -65,7 +90,7 @@ func NewPagerApp(assets embed.FS) *application.App {
 			cfg, _ := config.LoadFrom(config.DefaultPath())
 			e := sessions[0].LastEvent
 			if notify.ShouldNotifyByConfig(e, cfg.NotificationEvents) {
-				notify.ShowEvent(e, cfg.Language)
+				notify.ShowEvent(notifSvc, e, cfg.Language)
 			}
 		}
 
@@ -99,9 +124,6 @@ func NewPagerApp(assets embed.FS) *application.App {
 	// ── Services ────────────────────────────────────────────────────────────
 	sessionBinding := &SessionBinding{tracker: p.tracker, store: eventStore}
 
-	var popupWindow *application.WebviewWindow
-	var settingsWindow *application.WebviewWindow
-
 	var lastHotkey = initialCfg.HotkeyToggle
 	settingsBinding := NewSettingsBinding(func(cfg config.Settings) {
 		if cfg.HotkeyToggle == lastHotkey {
@@ -123,6 +145,7 @@ func NewPagerApp(assets embed.FS) *application.App {
 			application.NewService(sessionBinding),
 			application.NewService(settingsBinding),
 			application.NewService(windowBinding),
+			application.NewService(notifSvc),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.BundledAssetFileServer(assets),

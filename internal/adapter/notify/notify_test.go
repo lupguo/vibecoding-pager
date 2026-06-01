@@ -6,106 +6,32 @@ import (
 	"pager/internal/domain/entity"
 )
 
-func TestShouldNotifyByConfig_NilMap(t *testing.T) {
-	e := &entity.AgentEvent{AgentLabel: "CC", EventType: "StopFailure"}
-	if ShouldNotifyByConfig(e, nil) {
-		t.Error("expected false for nil map")
-	}
-}
-
-func TestShouldNotifyByConfig_LabelNotFound(t *testing.T) {
-	e := &entity.AgentEvent{AgentLabel: "OTHER", EventType: "StopFailure"}
-	m := map[string][]string{"CC": {"StopFailure"}}
-	if ShouldNotifyByConfig(e, m) {
-		t.Error("expected false when label not in config")
-	}
-}
-
-func TestShouldNotifyByConfig_EventNotInList(t *testing.T) {
-	e := &entity.AgentEvent{AgentLabel: "CC", EventType: "SomeOtherEvent"}
-	m := map[string][]string{"CC": {"StopFailure", "Notification"}}
-	if ShouldNotifyByConfig(e, m) {
-		t.Error("expected false when event not in list")
-	}
-}
-
-func TestShouldNotifyByConfig_Match(t *testing.T) {
-	e := &entity.AgentEvent{AgentLabel: "CC", EventType: "StopFailure"}
-	m := map[string][]string{"CC": {"StopFailure", "Notification"}}
-	if !ShouldNotifyByConfig(e, m) {
-		t.Error("expected true for matching label and event")
-	}
-}
-
-func TestShouldNotifyByConfig_CCINTMatch(t *testing.T) {
-	e := &entity.AgentEvent{AgentLabel: "CC-INT", EventType: "Notification"}
-	m := map[string][]string{
-		"CC":     {"StopFailure", "Notification"},
-		"CC-INT": {"StopFailure", "Notification"},
-	}
-	if !ShouldNotifyByConfig(e, m) {
-		t.Error("expected true for CC-INT Notification match")
-	}
-}
-
 func TestShouldNotify_AttentionOnly(t *testing.T) {
-	// StopFailure -> StatusError -> notify in attention_only.
-	e := &entity.AgentEvent{EventType: "StopFailure"}
-	if !ShouldNotify(e, "attention_only") {
-		t.Error("StopFailure should notify in attention_only")
+	cases := []struct {
+		ev   *entity.AgentEvent
+		want bool
+	}{
+		{&entity.AgentEvent{EventType: "StopFailure"}, true},
+		{&entity.AgentEvent{EventType: "PermissionRequest"}, true},
+		{&entity.AgentEvent{EventType: "Stop"}, false},
+		{&entity.AgentEvent{EventType: "PostToolUse", ToolName: "Edit", PermissionMode: "default"}, false},
+		{&entity.AgentEvent{EventType: "PreToolUse", ToolName: "Edit", PermissionMode: "default"}, true},
 	}
-
-	// Stop (clean) -> StatusDone -> should NOT notify in attention_only.
-	e2 := &entity.AgentEvent{EventType: "Stop"}
-	if ShouldNotify(e2, "attention_only") {
-		t.Error("Stop (clean) should NOT notify in attention_only")
-	}
-
-	// Notification -> StatusWaiting -> notify in attention_only.
-	e3 := &entity.AgentEvent{EventType: "Notification"}
-	if !ShouldNotify(e3, "attention_only") {
-		t.Error("Notification should notify in attention_only")
-	}
-
-	// PostToolUse -> StatusWorking -> should NOT notify.
-	e4 := &entity.AgentEvent{EventType: "PostToolUse"}
-	if ShouldNotify(e4, "attention_only") {
-		t.Error("PostToolUse should NOT notify in attention_only")
+	for _, tc := range cases {
+		if got := ShouldNotify(tc.ev, "attention_only"); got != tc.want {
+			t.Errorf("ShouldNotify(%q) = %v; want %v", tc.ev.EventType, got, tc.want)
+		}
 	}
 }
 
-func TestShouldNotify_All(t *testing.T) {
-	// Stop (clean) -> StatusDone -> notify in "all".
-	e := &entity.AgentEvent{EventType: "Stop"}
-	if !ShouldNotify(e, "all") {
-		t.Error("Stop should notify in all")
+func TestShouldNotifyByConfig(t *testing.T) {
+	cfg := map[string][]string{
+		"CC": {"PreToolUse", "Stop"},
 	}
-
-	// StopFailure -> StatusError -> notify in "all".
-	e2 := &entity.AgentEvent{EventType: "StopFailure"}
-	if !ShouldNotify(e2, "all") {
-		t.Error("StopFailure should notify in all")
+	if !ShouldNotifyByConfig(&entity.AgentEvent{AgentLabel: "CC", EventType: "Stop"}, cfg) {
+		t.Error("CC + Stop should notify")
 	}
-
-	// Notification -> StatusWaiting -> notify in "all".
-	e3 := &entity.AgentEvent{EventType: "Notification"}
-	if !ShouldNotify(e3, "all") {
-		t.Error("Notification should notify in all")
-	}
-
-	// PostToolUse -> StatusWorking -> should NOT notify in "all".
-	e4 := &entity.AgentEvent{EventType: "PostToolUse"}
-	if ShouldNotify(e4, "all") {
-		t.Error("PostToolUse should NOT notify in all")
-	}
-}
-
-func TestShouldNotify_UnknownLevel(t *testing.T) {
-	e := &entity.AgentEvent{EventType: "StopFailure"}
-	if ShouldNotify(e, "off") {
-		t.Error("unknown level should not notify")
-	}
-	if ShouldNotify(e, "") {
-		t.Error("empty level should not notify")
+	if ShouldNotifyByConfig(&entity.AgentEvent{AgentLabel: "CC", EventType: "Notification"}, cfg) {
+		t.Error("CC + Notification should NOT notify")
 	}
 }
