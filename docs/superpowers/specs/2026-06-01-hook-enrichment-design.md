@@ -469,6 +469,9 @@ const navItems = [
 ]
 ```
 
+- 删除 sidebar 顶部的 "通用" / "GENERAL" section label（`<div>` at line 55-57）
+- 导航项直接从顶部开始，无分组标题
+
 ## 9. 安装脚本更新
 
 `install-hooks.sh` 需更新为注册全部 22 个 Hook：
