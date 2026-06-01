@@ -1,3 +1,4 @@
+import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSettingsStore } from '../../store/settings'
 
@@ -76,7 +77,7 @@ export default function NotificationSettings() {
   const updateSettings = useSettingsStore((s) => s.updateSettings)
 
   // For now, active agent is always CC. Multi-agent tab switching is v2.
-  const activeAgent = 'CC'
+  const [activeAgent, setActiveAgent] = React.useState('CC')
   const notifEvents = settings.notification_events || {}
   const agentEvents = notifEvents[activeAgent] || []
 
@@ -121,37 +122,33 @@ export default function NotificationSettings() {
         {t('notifications.title')}
       </h3>
 
-      {/* Agent Tabs */}
-      <div className="flex gap-1 p-[3px] bg-[rgba(0,0,0,0.04)] dark:bg-[rgba(255,255,255,0.04)] rounded-[9px] mb-3">
-        {allAgents.map((agentId) => {
-          const connected = connectedAgents.includes(agentId)
-          const color = KNOWN_AGENT_COLORS[agentId] || DEFAULT_AGENT_COLOR
-          return (
-            <button
-              key={agentId}
-              className={`flex-1 flex items-center justify-center gap-[4px] py-[5px] px-[6px] rounded-[7px] text-[11px] font-medium transition-all
-                ${activeAgent === agentId
-                  ? 'bg-white dark:bg-[rgba(255,255,255,0.08)] shadow-sm font-semibold text-[--pager-text-primary]'
-                  : connected
-                    ? 'text-[--pager-text-muted]'
-                    : 'text-[--pager-text-muted] opacity-40'
-                }`}
-            >
-              <span
-                className="w-[6px] h-[6px] rounded-full"
-                style={{ background: color }}
-              />
-              {agentId}
-              <span className={`text-[8px] px-[3px] py-[1px] rounded-[3px] font-semibold ${
-                connected
-                  ? 'bg-[rgba(48,209,88,0.12)] text-[#30d158]'
-                  : 'bg-[rgba(0,0,0,0.04)] dark:bg-[rgba(255,255,255,0.04)] text-[--pager-text-muted]'
-              }`}>
-                {connected ? t('notifications.connected') : t('notifications.notConnected')}
-              </span>
-            </button>
-          )
-        })}
+      {/* Agent Select */}
+      <div className="flex items-center gap-2 mb-3">
+        <span
+          className="w-[7px] h-[7px] rounded-full flex-shrink-0"
+          style={{ background: KNOWN_AGENT_COLORS[activeAgent] || DEFAULT_AGENT_COLOR }}
+        />
+        <select
+          value={activeAgent}
+          onChange={(e) => setActiveAgent(e.target.value)}
+          className="flex-1 text-[13px] px-2 py-1.5 rounded-md border border-[rgba(0,0,0,0.1)] dark:border-[rgba(255,255,255,0.1)] bg-white dark:bg-[rgba(255,255,255,0.05)] text-[--pager-text-primary]"
+        >
+          {allAgents.map((agentId) => {
+            const connected = connectedAgents.includes(agentId)
+            return (
+              <option key={agentId} value={agentId}>
+                {agentId} {connected ? `✓` : ''}
+              </option>
+            )
+          })}
+        </select>
+        <span className={`text-[10px] px-[5px] py-[2px] rounded-[4px] font-semibold ${
+          connectedAgents.includes(activeAgent)
+            ? 'bg-[rgba(48,209,88,0.12)] text-[#30d158]'
+            : 'bg-[rgba(0,0,0,0.04)] dark:bg-[rgba(255,255,255,0.04)] text-[--pager-text-muted]'
+        }`}>
+          {connectedAgents.includes(activeAgent) ? t('notifications.connected') : t('notifications.notConnected')}
+        </span>
       </div>
 
       {/* Description */}

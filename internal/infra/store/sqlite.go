@@ -60,6 +60,9 @@ func NewSQLiteStore(dbPath string) (*sqliteStore, error) {
 		return nil, fmt.Errorf("exec schema: %w", err)
 	}
 
+	// Migrations for existing databases
+	migrate(db)
+
 	ctx, cancel := context.WithCancel(context.Background())
 	s := &sqliteStore{
 		db:     db,
@@ -391,15 +394,15 @@ func (s *sqliteStore) writeBatch(events []*entity.AgentEvent) {
 // statusFromEvent derives the session status from an event type.
 func statusFromEvent(e *entity.AgentEvent) string {
 	switch e.EventType {
-	case entity.EventPreToolUse:
+	case entity.EventPreToolUse, "PreToolUse":
 		return entity.StatusWaiting
-	case entity.EventPostToolUse:
+	case entity.EventPostToolUse, "PostToolUse":
 		return entity.StatusActive
-	case entity.EventStop:
+	case entity.EventStop, "Stop":
 		return entity.StatusFinished
-	case entity.EventError:
+	case entity.EventError, "StopFailure":
 		return entity.StatusError
-	case entity.EventSessionStart:
+	case entity.EventSessionStart, "SessionStart":
 		return entity.StatusActive
 	default:
 		return entity.StatusActive
@@ -415,4 +418,11 @@ func projectFromCWD(cwd string) string {
 		}
 	}
 	return cwd
+}
+
+// migrate applies schema migrations for existing databases.
+// Uses ALTER TABLE ADD COLUMN which is idempotent-safe (errors ignored if column exists).
+func migrate(db *sqlx.DB) {
+	// v1.1: add agent_label to t_events
+	_, _ = db.Exec(`ALTER TABLE t_events ADD COLUMN agent_label TEXT NOT NULL DEFAULT ''`)
 }
