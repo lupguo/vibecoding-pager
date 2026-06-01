@@ -9,7 +9,7 @@ FRONTEND    := frontend
 VITE_PORT   := 9245
 HTTP_PORT   := 7421
 
-.PHONY: dev build run clean test bridge install-hooks frontend-deps frontend-build bindings icon lint stop
+.PHONY: dev build run clean test bridge install-hooks install-hooks-codebuddy frontend-deps frontend-build bindings icon lint stop
 
 # ─── Development ─────────────────────────────────────────────────────────────
 
@@ -39,6 +39,10 @@ bridge:
 ## Install CC hooks into ~/.claude/settings.json
 install-hooks: bridge
 	./scripts/install-hooks.sh CC $(BRIDGE_BIN)
+
+## Install CodeBuddy hooks into ~/.codebuddy/settings.json
+install-hooks-codebuddy: bridge
+	./scripts/install-hooks.sh --agent CodeBuddy --settings_file ~/.codebuddy/settings.json --bridge $(BRIDGE_BIN)
 
 # ─── Run ─────────────────────────────────────────────────────────────────────
 
@@ -105,6 +109,7 @@ help:
 	@echo "  make build-go       Build Go binary only"
 	@echo "  make bridge         Build pager-cc-bridge"
 	@echo "  make install-hooks  Install CC hooks into ~/.claude/settings.json"
+	@echo "  make install-hooks-codebuddy  Install CodeBuddy hooks into ~/.codebuddy/settings.json"
 	@echo "  make run            Build and run"
 	@echo "  make frontend-deps  Install frontend npm deps"
 	@echo "  make bindings       Regenerate Wails bindings"

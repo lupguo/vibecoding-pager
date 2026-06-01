@@ -40,6 +40,13 @@ func Defaults() Settings {
 				"StopFailure",
 				"Notification",
 			},
+			"CodeBuddy": {
+				"StopFailure",
+				"Notification",
+				"PermissionRequest",
+				"PostToolUseFailure",
+				"Elicitation",
+			},
 		},
 	}
 }

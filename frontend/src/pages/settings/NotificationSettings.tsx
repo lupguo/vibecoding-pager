@@ -59,12 +59,15 @@ const PRESETS: Record<string, string[]> = {
   none: [],
 }
 
-const AGENTS = [
-  { id: 'CC', color: '#007aff' },
-  { id: 'CC-INT', color: '#bf5af2' },
-  { id: 'Codex', color: '#ff9f0a' },
-  { id: 'Gemini', color: '#30d158' },
-]
+const KNOWN_AGENT_COLORS: Record<string, string> = {
+  CC: '#007aff',
+  'CC-INT': '#bf5af2',
+  CodeBuddy: '#ff9f0a',
+  Codex: '#ff9f0a',
+  Gemini: '#30d158',
+}
+
+const DEFAULT_AGENT_COLOR = '#86868b'
 
 export default function NotificationSettings() {
   const { t, i18n } = useTranslation()
@@ -101,7 +104,16 @@ export default function NotificationSettings() {
     })
   }
 
+  // Derive agents from notification_events config keys
   const connectedAgents = Object.keys(notifEvents)
+  const allAgents = [...new Set([...connectedAgents, ...Object.keys(KNOWN_AGENT_COLORS)])]
+    .sort((a, b) => {
+      // Connected agents first, then alphabetical
+      const aConnected = connectedAgents.includes(a) ? 0 : 1
+      const bConnected = connectedAgents.includes(b) ? 0 : 1
+      if (aConnected !== bConnected) return aConnected - bConnected
+      return a.localeCompare(b)
+    })
 
   return (
     <div>
@@ -111,13 +123,14 @@ export default function NotificationSettings() {
 
       {/* Agent Tabs */}
       <div className="flex gap-1 p-[3px] bg-[rgba(0,0,0,0.04)] dark:bg-[rgba(255,255,255,0.04)] rounded-[9px] mb-3">
-        {AGENTS.map((agent) => {
-          const connected = connectedAgents.includes(agent.id)
+        {allAgents.map((agentId) => {
+          const connected = connectedAgents.includes(agentId)
+          const color = KNOWN_AGENT_COLORS[agentId] || DEFAULT_AGENT_COLOR
           return (
             <button
-              key={agent.id}
+              key={agentId}
               className={`flex-1 flex items-center justify-center gap-[4px] py-[5px] px-[6px] rounded-[7px] text-[11px] font-medium transition-all
-                ${activeAgent === agent.id
+                ${activeAgent === agentId
                   ? 'bg-white dark:bg-[rgba(255,255,255,0.08)] shadow-sm font-semibold text-[--pager-text-primary]'
                   : connected
                     ? 'text-[--pager-text-muted]'
@@ -126,9 +139,9 @@ export default function NotificationSettings() {
             >
               <span
                 className="w-[6px] h-[6px] rounded-full"
-                style={{ background: agent.color }}
+                style={{ background: color }}
               />
-              {agent.id}
+              {agentId}
               <span className={`text-[8px] px-[3px] py-[1px] rounded-[3px] font-semibold ${
                 connected
                   ? 'bg-[rgba(48,209,88,0.12)] text-[#30d158]'

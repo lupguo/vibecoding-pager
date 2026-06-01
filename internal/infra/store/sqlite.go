@@ -93,11 +93,11 @@ func (s *sqliteStore) LoadRecentSessions(hours int) ([]*entity.AgentEvent, error
 	cutoff := time.Now().Add(-time.Duration(hours) * time.Hour).Format("2006-01-02 15:04:05")
 
 	query := `
-		SELECT e.session_key, e.event_type, e.tool_name, e.tool_use_id,
+		SELECT e.session_key, e.agent_label, e.event_type, e.tool_name, e.tool_use_id,
 		       e.content, e.content_raw, e.attention_level, e.permission_mode,
 		       e.raw_payload, e.timestamp,
 		       s.session_id, s.agent, s.host, s.cwd, s.tty,
-		       s.term_program, s.iterm_session_id, s.agent_label
+		       s.term_program, s.iterm_session_id
 		FROM t_events e
 		JOIN t_sessions s ON e.session_key = s.session_key
 		WHERE s.deleted_at IS NULL
@@ -114,20 +114,20 @@ func (s *sqliteStore) LoadRecentSessions(hours int) ([]*entity.AgentEvent, error
 	var events []*entity.AgentEvent
 	for rows.Next() {
 		var (
-			sessionKey, eventType, toolName, toolUseID    string
-			content, contentRaw, attentionLevel, permMode string
-			rawPayload                                    []byte
-			tsStr                                         string
-			sessionID, agent, host, cwd, tty              string
-			termProgram, itermSessionID, agentLabel       string
+			sessionKey, agentLabel, eventType, toolName, toolUseID string
+			content, contentRaw, attentionLevel, permMode          string
+			rawPayload                                              []byte
+			tsStr                                                   string
+			sessionID, agent, host, cwd, tty                       string
+			termProgram, itermSessionID                            string
 		)
 
 		if err := rows.Scan(
-			&sessionKey, &eventType, &toolName, &toolUseID,
+			&sessionKey, &agentLabel, &eventType, &toolName, &toolUseID,
 			&content, &contentRaw, &attentionLevel, &permMode,
 			&rawPayload, &tsStr,
 			&sessionID, &agent, &host, &cwd, &tty,
-			&termProgram, &itermSessionID, &agentLabel,
+			&termProgram, &itermSessionID,
 		); err != nil {
 			return nil, fmt.Errorf("scan event row: %w", err)
 		}
@@ -161,7 +161,7 @@ func (s *sqliteStore) LoadRecentSessions(hours int) ([]*entity.AgentEvent, error
 // SessionEvents returns all events for a session, ordered by timestamp.
 func (s *sqliteStore) SessionEvents(sessionKey string) ([]*entity.AgentEvent, error) {
 	query := `
-		SELECT event_type, tool_name, tool_use_id, content, content_raw,
+		SELECT agent_label, event_type, tool_name, tool_use_id, content, content_raw,
 		       attention_level, permission_mode, raw_payload, timestamp
 		FROM t_events
 		WHERE session_key = ?
@@ -177,14 +177,14 @@ func (s *sqliteStore) SessionEvents(sessionKey string) ([]*entity.AgentEvent, er
 	var events []*entity.AgentEvent
 	for rows.Next() {
 		var (
-			eventType, toolName, toolUseID                string
+			agentLabel, eventType, toolName, toolUseID            string
 			content, contentRaw, attentionLevel, permMode string
 			rawPayload                                    []byte
 			tsStr                                         string
 		)
 
 		if err := rows.Scan(
-			&eventType, &toolName, &toolUseID, &content, &contentRaw,
+			&agentLabel, &eventType, &toolName, &toolUseID, &content, &contentRaw,
 			&attentionLevel, &permMode, &rawPayload, &tsStr,
 		); err != nil {
 			return nil, fmt.Errorf("scan: %w", err)
@@ -194,6 +194,7 @@ func (s *sqliteStore) SessionEvents(sessionKey string) ([]*entity.AgentEvent, er
 
 		events = append(events, &entity.AgentEvent{
 			SessionID:      sessionKey,
+			AgentLabel:     agentLabel,
 			EventType:      eventType,
 			ToolName:       toolName,
 			ToolUseID:      toolUseID,
@@ -370,10 +371,10 @@ func (s *sqliteStore) writeBatch(events []*entity.AgentEvent) {
 
 		// INSERT event
 		_, err = tx.Exec(`
-			INSERT INTO t_events (session_key, event_type, tool_name, tool_use_id, content, content_raw, attention_level, permission_mode, raw_payload, timestamp)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			INSERT INTO t_events (session_key, agent_label, event_type, tool_name, tool_use_id, content, content_raw, attention_level, permission_mode, raw_payload, timestamp)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		`,
-			sessionKey, e.EventType, e.ToolName, e.ToolUseID,
+			sessionKey, e.AgentLabel, e.EventType, e.ToolName, e.ToolUseID,
 			e.Content, e.ContentRaw, e.AttentionLevel, e.PermissionMode,
 			[]byte(e.RawPayload), ts,
 		)

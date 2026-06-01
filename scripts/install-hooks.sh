@@ -1,16 +1,45 @@
 #!/bin/bash
-# Install Pager hook configuration into Claude Code settings.
-# Usage: ./scripts/install-hooks.sh [AGENT_LABEL] [BRIDGE_PATH]
-#
-# AGENT_LABEL defaults to "CC"
-# BRIDGE_PATH defaults to the bin/pager-cc-bridge relative to this script
+# Install Pager hook configuration into an agent's settings file.
+# Usage:
+#   ./scripts/install-hooks.sh --agent CC --settings_file ~/.claude/settings.json
+#   ./scripts/install-hooks.sh --agent CodeBuddy --settings_file ~/.codebuddy/settings.json
+#   ./scripts/install-hooks.sh [AGENT_LABEL] [BRIDGE_PATH]  (backward compatible)
 
 set -euo pipefail
 
-AGENT="${1:-CC}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-BRIDGE_PATH="${2:-$SCRIPT_DIR/../bin/pager-cc-bridge}"
-SETTINGS_FILE="$HOME/.claude/settings.json"
+
+# Defaults
+AGENT=""
+BRIDGE_PATH=""
+SETTINGS_FILE=""
+
+# Parse flags
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --agent)
+      AGENT="$2"; shift 2 ;;
+    --settings_file|--settings-file)
+      SETTINGS_FILE="$2"; shift 2 ;;
+    --bridge)
+      BRIDGE_PATH="$2"; shift 2 ;;
+    --*)
+      echo "Unknown flag: $1"; exit 1 ;;
+    *)
+      # Backward compatible positional args
+      if [ -z "$AGENT" ]; then
+        AGENT="$1"
+      elif [ -z "$BRIDGE_PATH" ]; then
+        BRIDGE_PATH="$1"
+      fi
+      shift ;;
+  esac
+done
+
+# Apply defaults
+AGENT="${AGENT:-CC}"
+BRIDGE_PATH="${BRIDGE_PATH:-$SCRIPT_DIR/../bin/pager-cc-bridge}"
+SETTINGS_FILE="${SETTINGS_FILE:-$HOME/.claude/settings.json}"
 
 if [ ! -f "$BRIDGE_PATH" ]; then
   echo "Error: bridge binary not found at $BRIDGE_PATH"

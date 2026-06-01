@@ -27,6 +27,7 @@ CREATE INDEX IF NOT EXISTS idx_sessions_deleted ON t_sessions(deleted_at);
 CREATE TABLE IF NOT EXISTS t_events (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,  -- 自增主键
     session_key     TEXT    NOT NULL,                   -- 所属会话标识 (FK → t_sessions.session_key)
+    agent_label     TEXT    NOT NULL DEFAULT '',        -- 代理标签 (CC / CodeBuddy / …)
     event_type      TEXT    NOT NULL,                   -- 事件类型: pre_tool_use/post_tool_use/stop/error/notification/session_start/user_prompt_submit/subagent_stop/pre_compact
     tool_name       TEXT    NOT NULL DEFAULT '',        -- 工具名称: Bash/Edit/Read/Write/...
     tool_use_id     TEXT    NOT NULL DEFAULT '',        -- 工具调用唯一ID
