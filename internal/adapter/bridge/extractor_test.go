@@ -221,51 +221,104 @@ func TestExtractContent_NotebookEdit(t *testing.T) {
 
 // --- ExtractEventContent tests ---
 
-func TestExtractEventContent_SessionStart(t *testing.T) {
-	in := &CCHookInput{Source: "startup"}
-	raw, content := ExtractEventContent("session_start", in)
-	if raw != "会话启动: startup" {
-		t.Errorf("raw = %q, want %q", raw, "会话启动: startup")
+func TestExtractEventContent_Stop_WithMessage(t *testing.T) {
+	in := &CCHookInput{
+		LastAssistantMessage: "I've completed the refactoring. All tests pass.",
+		StopReason:           "end_turn",
 	}
-	if content != "会话启动: startup" {
-		t.Errorf("content = %q, want %q", content, "会话启动: startup")
+	raw, content := ExtractEventContent("Stop", in)
+	if raw != "I've completed the refactoring. All tests pass." {
+		t.Errorf("raw: got %q", raw)
 	}
-}
-
-func TestExtractEventContent_UserPromptSubmit(t *testing.T) {
-	in := &CCHookInput{Prompt: "帮我修复这个 bug，详细错误信息是 panic: nil pointer dereference at main.go:42"}
-	raw, content := ExtractEventContent("user_prompt_submit", in)
-	if raw != in.Prompt {
-		t.Errorf("raw = %q, want full prompt", raw)
-	}
-	if len([]rune(content)) > 61 { // 60 + "…"
-		t.Errorf("content not truncated: len=%d", len([]rune(content)))
+	if len([]rune(content)) > 61 {
+		t.Errorf("content too long: %d runes", len([]rune(content)))
 	}
 }
 
-func TestExtractEventContent_SubagentStop(t *testing.T) {
+func TestExtractEventContent_Stop_NoMessage(t *testing.T) {
+	in := &CCHookInput{StopReason: "end_turn"}
+	raw, _ := ExtractEventContent("Stop", in)
+	if raw != "end_turn" {
+		t.Errorf("raw: got %q", raw)
+	}
+}
+
+func TestExtractEventContent_Stop_Empty(t *testing.T) {
 	in := &CCHookInput{}
-	raw, content := ExtractEventContent("subagent_stop", in)
-	if raw != "子Agent完成" {
-		t.Errorf("raw = %q", raw)
-	}
-	if content != "子Agent完成" {
-		t.Errorf("content = %q", content)
+	raw, _ := ExtractEventContent("Stop", in)
+	if raw != "" {
+		t.Errorf("raw: got %q, want empty", raw)
 	}
 }
 
-func TestExtractEventContent_PreCompact(t *testing.T) {
-	in := &CCHookInput{Trigger: "auto"}
-	raw, _ := ExtractEventContent("pre_compact", in)
-	if raw != "对话压缩: auto" {
-		t.Errorf("raw = %q", raw)
+func TestExtractEventContent_StopFailure(t *testing.T) {
+	in := &CCHookInput{ErrorType: "rate_limit", ErrorMessage: "Too many requests"}
+	raw, _ := ExtractEventContent("StopFailure", in)
+	if raw != "rate_limit: Too many requests" {
+		t.Errorf("raw: got %q", raw)
 	}
 }
 
 func TestExtractEventContent_Notification(t *testing.T) {
-	in := &CCHookInput{Message: "Permission required for Bash tool"}
-	raw, _ := ExtractEventContent("notification", in)
-	if raw != "Permission required for Bash tool" {
-		t.Errorf("raw = %q", raw)
+	in := &CCHookInput{NotificationType: "permission_prompt", Message: "Approve file edit?"}
+	raw, _ := ExtractEventContent("Notification", in)
+	if raw != "Approve file edit?" {
+		t.Errorf("raw: got %q", raw)
+	}
+}
+
+func TestExtractEventContent_Notification_NoMessage(t *testing.T) {
+	in := &CCHookInput{NotificationType: "idle_prompt", Message: ""}
+	raw, _ := ExtractEventContent("Notification", in)
+	if raw != "idle_prompt" {
+		t.Errorf("raw: got %q", raw)
+	}
+}
+
+func TestExtractEventContent_TaskCreated(t *testing.T) {
+	in := &CCHookInput{TaskTitle: "Implement auth flow", TaskDescription: "Add JWT tokens"}
+	raw, _ := ExtractEventContent("TaskCreated", in)
+	if raw != "Implement auth flow" {
+		t.Errorf("raw: got %q", raw)
+	}
+}
+
+func TestExtractEventContent_SubagentStart(t *testing.T) {
+	in := &CCHookInput{AgentType: "general-purpose"}
+	raw, _ := ExtractEventContent("SubagentStart", in)
+	if raw != "general-purpose" {
+		t.Errorf("raw: got %q", raw)
+	}
+}
+
+func TestExtractEventContent_UserPromptExpansion(t *testing.T) {
+	in := &CCHookInput{CommandName: "brainstorming", CommandArgs: "design auth"}
+	raw, _ := ExtractEventContent("UserPromptExpansion", in)
+	if raw != "/brainstorming design auth" {
+		t.Errorf("raw: got %q", raw)
+	}
+}
+
+func TestExtractEventContent_Elicitation(t *testing.T) {
+	in := &CCHookInput{ServerName: "github_mcp", Message: "Enter token"}
+	raw, _ := ExtractEventContent("Elicitation", in)
+	if raw != "github_mcp: Enter token" {
+		t.Errorf("raw: got %q", raw)
+	}
+}
+
+func TestExtractEventContent_InstructionsLoaded(t *testing.T) {
+	in := &CCHookInput{FilePath: "/project/CLAUDE.md", LoadReason: "session_start"}
+	raw, _ := ExtractEventContent("InstructionsLoaded", in)
+	if raw != "/project/CLAUDE.md" {
+		t.Errorf("raw: got %q", raw)
+	}
+}
+
+func TestExtractEventContent_SessionStart(t *testing.T) {
+	in := &CCHookInput{Source: "startup"}
+	raw, _ := ExtractEventContent("SessionStart", in)
+	if raw != "startup" {
+		t.Errorf("raw: got %q", raw)
 	}
 }

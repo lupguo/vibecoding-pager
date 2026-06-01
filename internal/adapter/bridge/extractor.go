@@ -142,32 +142,82 @@ func truncateRunes(s string, n int) string {
 	return string(r[:n]) + "…"
 }
 
-// ExtractEventContent extracts content from event-level hooks (not tool-based).
-// Returns (contentRaw, content).
+// ExtractEventContent extracts content from all non-tool event types.
+// Returns (contentRaw, content) — raw data only, no i18n prefixes.
+// UI is responsible for combining event type labels with content for display.
+// Event types use CC-native CamelCase names (e.g., "Stop", "SessionStart").
 func ExtractEventContent(eventType string, in *CCHookInput) (contentRaw, content string) {
 	switch eventType {
-	case "session_start":
-		raw := "会话启动: " + in.Source
-		return raw, truncateRunes(raw, contentMaxRunes)
-	case "user_prompt_submit":
-		raw := in.Prompt
-		if raw == "" {
-			raw = "用户输入"
+	// Session layer
+	case "SessionStart":
+		return in.Source, in.Source
+	case "SessionEnd":
+		return "", ""
+
+	// Turn layer
+	case "UserPromptSubmit":
+		return in.Prompt, truncateRunes(in.Prompt, contentMaxRunes)
+	case "UserPromptExpansion":
+		raw := "/" + in.CommandName
+		if in.CommandArgs != "" {
+			raw += " " + in.CommandArgs
 		}
 		return raw, truncateRunes(raw, contentMaxRunes)
-	case "subagent_stop":
-		raw := "子Agent完成"
-		return raw, raw
-	case "pre_compact":
-		raw := "对话压缩: " + in.Trigger
+	case "Stop":
+		if in.LastAssistantMessage != "" {
+			return in.LastAssistantMessage, truncateRunes(in.LastAssistantMessage, contentMaxRunes)
+		}
+		return in.StopReason, in.StopReason
+	case "StopFailure":
+		raw := in.ErrorType + ": " + in.ErrorMessage
 		return raw, truncateRunes(raw, contentMaxRunes)
-	case "notification":
+
+	// Agent & Task layer
+	case "SubagentStart":
+		return in.AgentType, in.AgentType
+	case "SubagentStop":
+		return in.AgentType, in.AgentType
+	case "TaskCreated":
+		return in.TaskTitle, truncateRunes(in.TaskTitle, contentMaxRunes)
+	case "TaskCompleted":
+		return in.TaskTitle, truncateRunes(in.TaskTitle, contentMaxRunes)
+
+	// Tool layer (non-standard events that still have tool info)
+	case "PostToolUseFailure":
+		raw := in.ToolName + ": " + in.ToolError
+		return raw, truncateRunes(raw, contentMaxRunes)
+	case "PermissionRequest":
+		return ExtractContent(in.ToolName, in.ToolInput)
+	case "PermissionDenied":
+		raw := in.ToolName + ": " + in.DenialReason
+		return raw, truncateRunes(raw, contentMaxRunes)
+	case "PostToolBatch":
+		return "", ""
+
+	// Context layer
+	case "PreCompact":
+		return in.Trigger, in.Trigger
+	case "PostCompact":
+		return "", ""
+	case "InstructionsLoaded":
+		return in.FilePath, truncateRunes(in.FilePath, contentMaxRunes)
+
+	// MCP & UI layer
+	case "Notification":
 		raw := in.Message
 		if raw == "" {
-			raw = "通知"
+			raw = in.NotificationType
 		}
 		return raw, truncateRunes(raw, contentMaxRunes)
+	case "Elicitation":
+		raw := in.ServerName + ": " + in.Message
+		return raw, truncateRunes(raw, contentMaxRunes)
+	case "ElicitationResult":
+		return in.ServerName, in.ServerName
+	case "MessageDisplay":
+		return in.MessageText, truncateRunes(in.MessageText, contentMaxRunes)
+
 	default:
-		return eventType, eventType
+		return "", ""
 	}
 }
