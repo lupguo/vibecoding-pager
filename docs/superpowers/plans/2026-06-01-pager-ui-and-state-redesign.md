@@ -2323,6 +2323,328 @@ git status
 
 ---
 
+### Task 25: End-to-end regression test (deliverable)
+
+This task produces the durable regression artifact that future contributors run before
+shipping any change to status / hotkey / notification surfaces.
+
+**Files:**
+- Create: `internal/e2e_test.go` (Go integration test for the headless data path)
+- Create: `docs/regression/2026-06-01-ui-state-regression.md` (manual UI verification checklist)
+
+- [ ] **Step 1: Write the headless integration test** at `internal/e2e_test.go`
+
+```go
+//go:build integration
+
+package internal_test
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"path/filepath"
+	"testing"
+	"time"
+
+	"pager/internal/adapter/httpapi"
+	"pager/internal/domain/entity"
+	"pager/internal/domain/session"
+	"pager/internal/infra/store"
+)
+
+// TestE2E_StatusModelDataPath drives the full bridge → HTTP → tracker → SQLite path
+// for every status-relevant event combination and asserts the resulting Session.Status.
+// It does NOT cover UI, hotkey, or notification surfaces — see the manual checklist
+// at docs/regression/2026-06-01-ui-state-regression.md for those.
+func TestE2E_StatusModelDataPath(t *testing.T) {
+	dir := t.TempDir()
+	st, err := store.NewSQLiteStore(filepath.Join(dir, "e2e.db"))
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	defer st.Close()
+
+	tr := session.NewTracker(nil)
+	srv := httpapi.New(tr, httpapi.WithStore(st))
+	srv.Start()
+	defer srv.Stop()
+
+	// Wait briefly for listener
+	time.Sleep(150 * time.Millisecond)
+
+	type expect struct {
+		name      string
+		event     entity.AgentEvent
+		preceding []entity.AgentEvent // events to send before the assertion event
+		want      entity.SessionStatus
+	}
+	cases := []expect{
+		{
+			name:  "PreToolUse AskUserQuestion → waiting",
+			event: entity.AgentEvent{
+				SessionID: "s-ask", CWD: "/p/a", EventType: "PreToolUse",
+				ToolName: "AskUserQuestion", Timestamp: time.Now(),
+			},
+			want: entity.StatusWaiting,
+		},
+		{
+			name:  "PreToolUse Edit + bypass → working",
+			event: entity.AgentEvent{
+				SessionID: "s-bypass", CWD: "/p/b", EventType: "PreToolUse",
+				ToolName: "Edit", PermissionMode: "bypassPermissions", Timestamp: time.Now(),
+			},
+			want: entity.StatusWorking,
+		},
+		{
+			name:  "PreToolUse Edit + default → waiting",
+			event: entity.AgentEvent{
+				SessionID: "s-edit", CWD: "/p/c", EventType: "PreToolUse",
+				ToolName: "Edit", PermissionMode: "default", Timestamp: time.Now(),
+			},
+			want: entity.StatusWaiting,
+		},
+		{
+			name:  "PostToolUse → working",
+			event: entity.AgentEvent{
+				SessionID: "s-post", CWD: "/p/d", EventType: "PostToolUse",
+				ToolName: "Bash", Timestamp: time.Now(),
+			},
+			want: entity.StatusWorking,
+		},
+		{
+			name:  "Stop (no pending) → done",
+			event: entity.AgentEvent{
+				SessionID: "s-stop", CWD: "/p/e", EventType: "Stop", Timestamp: time.Now(),
+			},
+			want: entity.StatusDone,
+		},
+		{
+			name: "Stop (AskUser pending) → waiting",
+			preceding: []entity.AgentEvent{
+				{SessionID: "s-pending-ask", CWD: "/p/f", EventType: "PreToolUse",
+					ToolName: "AskUserQuestion", ToolUseID: "tu-1", Timestamp: time.Now()},
+			},
+			event: entity.AgentEvent{
+				SessionID: "s-pending-ask", CWD: "/p/f", EventType: "Stop",
+				Timestamp: time.Now().Add(time.Second),
+			},
+			want: entity.StatusWaiting,
+		},
+		{
+			name:  "StopFailure → error",
+			event: entity.AgentEvent{
+				SessionID: "s-fail", CWD: "/p/g", EventType: "StopFailure", Timestamp: time.Now(),
+			},
+			want: entity.StatusError,
+		},
+		{
+			name:  "PermissionRequest → waiting",
+			event: entity.AgentEvent{
+				SessionID: "s-perm", CWD: "/p/h", EventType: "PermissionRequest",
+				Timestamp: time.Now(),
+			},
+			want: entity.StatusWaiting,
+		},
+		{
+			name:  "Notification → waiting",
+			event: entity.AgentEvent{
+				SessionID: "s-notif", CWD: "/p/i", EventType: "Notification",
+				Timestamp: time.Now(),
+			},
+			want: entity.StatusWaiting,
+		},
+	}
+
+	postEvent := func(t *testing.T, e entity.AgentEvent) {
+		t.Helper()
+		body, _ := json.Marshal(e)
+		resp, err := http.Post(
+			fmt.Sprintf("http://127.0.0.1%s/event", httpapi.ListenAddr),
+			"application/json",
+			bytes.NewReader(body),
+		)
+		if err != nil {
+			t.Fatalf("POST: %v", err)
+		}
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("POST status: %d", resp.StatusCode)
+		}
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			for _, pre := range tc.preceding {
+				postEvent(t, pre)
+			}
+			postEvent(t, tc.event)
+
+			// Allow tracker write to settle
+			time.Sleep(50 * time.Millisecond)
+
+			s, ok := tr.Session(tc.event.SessionID)
+			if !ok {
+				t.Fatalf("session %q not found", tc.event.SessionID)
+			}
+			if s.Status != tc.want {
+				t.Errorf("session.Status = %q; want %q", s.Status, tc.want)
+			}
+		})
+	}
+}
+
+// TestE2E_DismissByProjectFlow asserts the per-project bulk clear chain
+// (binding → tracker → store soft-delete).
+func TestE2E_DismissByProjectFlow(t *testing.T) {
+	dir := t.TempDir()
+	st, err := store.NewSQLiteStore(filepath.Join(dir, "e2e2.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+
+	tr := session.NewTracker(nil)
+	make := func(key, cwd string) *entity.AgentEvent {
+		return &entity.AgentEvent{
+			SessionID: key, CWD: cwd, EventType: "PreToolUse", ToolName: "Edit",
+			PermissionMode: "bypassPermissions", Timestamp: time.Now(),
+		}
+	}
+	tr.TrackEvent(make("s1", "/x/projA"))
+	tr.TrackEvent(make("s2", "/x/projA"))
+	tr.TrackEvent(make("s3", "/x/projB"))
+
+	keys := tr.DismissByProject("projA")
+	if len(keys) != 2 {
+		t.Errorf("dismissed = %d; want 2", len(keys))
+	}
+	left := tr.ListByRecent()
+	if len(left) != 1 || left[0].SessionID != "s3" {
+		t.Errorf("remaining = %+v; want only s3", left)
+	}
+}
+```
+
+- [ ] **Step 2: Run the integration test**
+
+```bash
+go test -tags=integration ./internal/... -run 'TestE2E_' -v
+```
+
+Expected: PASS for all 9 sub-tests in `TestE2E_StatusModelDataPath` plus
+`TestE2E_DismissByProjectFlow`.
+
+- [ ] **Step 3: Write the manual verification checklist** at `docs/regression/2026-06-01-ui-state-regression.md`
+
+```markdown
+# UI / Window / Notification Regression Checklist
+
+> Run before shipping any change that touches `internal/wails`, `internal/adapter/notify`,
+> `internal/domain/session`, or any file under `frontend/src/`.
+
+**Build:** `make build`
+**Launch:** `open build/bin/Pager.app`
+
+Each row = one click-through. Check ✅ when verified, ❌ if regressed.
+
+## A. Status Visual (4-state)
+
+Send each event via `pager-cc-bridge` (or test bridge harness) and verify card render:
+
+| Step | Event | Expected card |
+|---|---|---|
+| 1 | `--event PreToolUse --agent CC` with stdin `{"tool_name":"AskUserQuestion","cwd":"/p/x","session_id":"r1"}` | WAITING tag (red), HandHelping pulsing icon |
+| 2 | `--event PreToolUse` with `{"tool_name":"Edit","permission_mode":"bypassPermissions",...}` | WORKING tag (green), Loader2 spinning |
+| 3 | `--event Stop` (same session) | DONE tag (light blue), CheckCircle2 |
+| 4 | `--event StopFailure` (new session) | ERROR tag (orange), AlertTriangle |
+
+## B. Project Grouping
+
+| Step | Action | Expected |
+|---|---|---|
+| 1 | Click project header | Group collapses / chevron rotates from down to right |
+| 2 | Click again | Group expands |
+| 3 | Quit + relaunch | Previously collapsed projects still collapsed |
+| 4 | Hover project header | Trash2 button fades in on the right |
+| 5 | Click Trash2 | All cards in that project vanish; SQLite `t_sessions.deleted_at` populated |
+
+## C. Expanded Card
+
+| Step | Action | Expected |
+|---|---|---|
+| 1 | Click any card | PATH / SESSION / TIME rows render with FolderOpen / Hash / Clock icons |
+| 2 | Click Copy on PATH | Icon swaps to Check for ~800ms; clipboard contains the CWD |
+| 3 | Click "更多" | TOOL ID / TTY / PERM rows render with Wrench / Terminal / ShieldCheck |
+| 4 | Click "收起" | Folded section hides; button text reverts to "更多" |
+
+## D. Multi-Space Window
+
+| Step | Action | Expected |
+|---|---|---|
+| 1 | Show popup, switch to a different macOS Space | Popup vanishes from current Space |
+| 2 | Press Alt+E on the new Space | Popup appears on this Space (does NOT snap back) |
+| 3 | Press Alt+E again | Popup hides |
+
+## E. Hotkey Resilience
+
+| Step | Action | Expected |
+|---|---|---|
+| 1 | Open Settings, change Theme | tail of stderr/log shows NO "hotkey unregistered" or "hotkey registered" lines |
+| 2 | Open Settings, change Hotkey to `Ctrl+E` | log shows exactly one "hotkey unregistered" + one "hotkey registered" |
+| 3 | Press the new hotkey | popup toggles |
+| 4 | Switch to other apps for 30 minutes (or `caffeinate -d` test) and return | Alt+E still toggles popup; if log shows "hotkey unhealthy on app activate, re-registering", that's the recovery path firing as designed |
+
+## F. Notifications (signed build only)
+
+| Step | Action | Expected |
+|---|---|---|
+| 1 | Trigger a `PermissionRequest` event with `notification_events` configured | macOS notification banner appears |
+| 2 | Click the banner | Pager popup appears on active Space; project group expands; target card pulse-highlights for 1.5s; card scrolls into view |
+| 3 | Click banner for a session that has been Cleared | Popup appears, no card highlights, no error |
+
+## G. Settings Panel Icons
+
+| Step | Action | Expected |
+|---|---|---|
+| 1 | Open Settings | 4 nav items (通用 / 通知 / 数据 / 关于) each show a lucide icon (Settings/Bell/Database/Info), no emojis |
+| 2 | Click 关于 | Logo is BellRing (lucide), list arrows are ChevronRight / ExternalLink |
+| 3 | Click X to close | Settings hides (does not destroy) |
+
+## H. Tray Icon
+
+| Step | Action | Expected |
+|---|---|---|
+| 1 | All sessions in DONE/ERROR | Tray label is empty |
+| 2 | Any session in WORKING (no WAITING) | Tray label empty |
+| 3 | Any session in WAITING | Tray label is `●` (red dot) |
+
+---
+
+If any row fails, file an issue and reference this checklist. Do NOT ship until all
+rows pass on a fresh `make build && open` from the target branch.
+```
+
+- [ ] **Step 4: Final verification — run the integration test from the regression doc**
+
+```bash
+go test -tags=integration ./internal/... -run 'TestE2E_' -v
+make test
+make lint
+```
+
+Expected: all PASS. If `make lint` flags anything (TypeScript or `go vet`), fix it before commit.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add internal/e2e_test.go docs/regression/2026-06-01-ui-state-regression.md
+git commit -m "test(e2e): add regression test suite + manual UI checklist"
+```
+
+---
+
 ## Self-Review Notes (writer-side checklist applied)
 
 ✅ **Spec coverage:**
@@ -2333,6 +2655,7 @@ git status
 - §E → Tasks 9, 10, 11
 - §F → Task 8
 - §G → Tasks 22, 23
+- E2E regression artifact → Task 25 (integration test + manual checklist)
 
 ✅ **Type consistency:** `SessionStatus` is consistently a string union in TS (`'working'|'waiting'|'done'|'error'`) and a `type SessionStatus string` in Go with constants `StatusWorking/StatusWaiting/StatusDone/StatusError`. `DismissByProject` (tracker) ↔ `DismissSessionsByProject` (binding) — different names by design (tracker domain method vs Wails binding); both consistently used.
 
