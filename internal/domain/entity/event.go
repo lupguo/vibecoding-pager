@@ -24,19 +24,15 @@ const (
 	AgentCodex      = "codex"
 )
 
-// SessionStatus constants
-const (
-	StatusWaiting  = "waiting"
-	StatusActive   = "active"
-	StatusFinished = "finished"
-	StatusError    = "error"
-)
+// SessionStatus is the single source of truth for session UX state.
+// Values are mutually exclusive; UI renders one tag per card.
+type SessionStatus string
 
-// AttentionLevel constants
 const (
-	AttentionAttention = "attention"
-	AttentionRunning   = "running"
-	AttentionDone      = "done"
+	StatusWorking SessionStatus = "working" // active, no user action needed
+	StatusWaiting SessionStatus = "waiting" // user action required (any reason)
+	StatusDone    SessionStatus = "done"    // ended cleanly
+	StatusError   SessionStatus = "error"   // ended with failure
 )
 
 // AgentEvent is the single cross-layer data structure.
@@ -54,7 +50,6 @@ type AgentEvent struct {
 	ToolUseID      string `json:"tool_use_id"`
 	Content        string `json:"content"`
 	ContentRaw     string `json:"content_raw"`
-	AttentionLevel string `json:"attention_level"`
 	AgentLabel     string `json:"agent_label"`
 	PermissionMode string `json:"permission_mode,omitempty"`
 	RawPayload     json.RawMessage `json:"raw_payload,omitempty"`
