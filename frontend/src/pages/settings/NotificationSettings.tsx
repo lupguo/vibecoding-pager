@@ -131,13 +131,13 @@ export default function NotificationSettings() {
         <select
           value={activeAgent}
           onChange={(e) => setActiveAgent(e.target.value)}
-          className="flex-1 text-[13px] px-2 py-1.5 rounded-md border border-[rgba(0,0,0,0.1)] dark:border-[rgba(255,255,255,0.1)] bg-white dark:bg-[rgba(255,255,255,0.05)] text-[--pager-text-primary]"
+          className="settings-dropdown"
         >
           {allAgents.map((agentId) => {
             const connected = connectedAgents.includes(agentId)
             return (
               <option key={agentId} value={agentId}>
-                {agentId} {connected ? `✓` : ''}
+                {agentId}{connected ? ' ✓' : ''}
               </option>
             )
           })}
