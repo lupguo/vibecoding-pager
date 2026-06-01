@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"pager/internal/domain/entity"
+	"pager/internal/domain/session"
 )
 
 // ShouldNotifyByConfig checks if an event should trigger a system notification
@@ -30,21 +31,13 @@ func ShouldNotifyByConfig(e *entity.AgentEvent, notifEvents map[string][]string)
 // ShouldNotify determines whether an event should trigger a system notification
 // based on the configured notification level.
 func ShouldNotify(e *entity.AgentEvent, level string) bool {
+	status := session.DeriveStatus(e.EventType, e.ToolName, e.PermissionMode, false)
 	switch level {
 	case "all":
-		switch e.EventType {
-		case entity.EventPreToolUse, entity.EventStop, entity.EventError:
-			return true
-		}
-		return false
+		// Notify on any state transition the user cares about.
+		return status == entity.StatusWaiting || status == entity.StatusDone || status == entity.StatusError
 	case "attention_only":
-		if e.EventType == entity.EventStop || e.EventType == entity.EventError {
-			return true
-		}
-		if e.EventType == entity.EventPreToolUse && e.AttentionLevel == entity.AttentionAttention {
-			return true
-		}
-		return false
+		return status == entity.StatusWaiting || status == entity.StatusError
 	default:
 		return false
 	}
