@@ -102,7 +102,12 @@ func NewPagerApp(assets embed.FS) *application.App {
 	var popupWindow *application.WebviewWindow
 	var settingsWindow *application.WebviewWindow
 
+	var lastHotkey = initialCfg.HotkeyToggle
 	settingsBinding := NewSettingsBinding(func(cfg config.Settings) {
+		if cfg.HotkeyToggle == lastHotkey {
+			return
+		}
+		lastHotkey = cfg.HotkeyToggle
 		RegisterHotkey(popupWindow, cfg.HotkeyToggle)
 	}, eventStore)
 
