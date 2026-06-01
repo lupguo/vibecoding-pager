@@ -82,7 +82,6 @@ export default function SessionList() {
                       if (el) cardRefs.current.set(session.Key, el)
                       else cardRefs.current.delete(session.Key)
                     }}>
-                    {/* @ts-expect-error - SessionCard rewrite in Task 17 adds `highlighted` prop */}
                     <SessionCard session={session} highlighted={highlightedKey === session.Key} />
                   </div>
                 ))}

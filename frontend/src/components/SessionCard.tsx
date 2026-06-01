@@ -1,23 +1,51 @@
 import { useState } from 'react'
-import { ArrowRight } from 'lucide-react'
-import type { Session } from '../store/sessions'
+import {
+  ArrowRight, AlertTriangle, CheckCircle2, HandHelping, Loader2,
+} from 'lucide-react'
+import type { Session, SessionStatus } from '../store/sessions'
 import { JumpToTerminal } from '../../bindings/pager/internal/wails/sessionbinding.js'
 
 interface Props {
   session: Session
+  highlighted?: boolean
 }
 
-export default function SessionCard({ session }: Props) {
+const STATUS_TAG: Record<SessionStatus, { text: string; bgClass: string; textClass: string }> = {
+  working: { text: 'WORKING', bgClass: 'bg-[--pill-working]', textClass: 'text-[--c-working]' },
+  waiting: { text: 'WAITING', bgClass: 'bg-[--pill-waiting]', textClass: 'text-[--c-waiting]' },
+  done:    { text: 'DONE',    bgClass: 'bg-[--pill-done]',    textClass: 'text-[--c-done]' },
+  error:   { text: 'ERROR',   bgClass: 'bg-[--pill-error]',   textClass: 'text-[--c-error]' },
+}
+
+const CARD_BG: Record<SessionStatus, string> = {
+  working: 'bg-[--bg-working] border-[--bd-working]',
+  waiting: 'bg-[--bg-waiting] border-[--bd-waiting] shadow-sm',
+  done:    'bg-[--bg-done] border-[--bd-done] opacity-90',
+  error:   'bg-[--bg-error] border-[--bd-error]',
+}
+
+function StatusIcon({ status }: { status: SessionStatus }) {
+  const cls = `text-[--c-${status}]`
+  switch (status) {
+    case 'waiting': return <HandHelping size={14} strokeWidth={2} className={`${cls} anim-pulse-attn`} />
+    case 'working': return <Loader2 size={14} strokeWidth={2.5} className={`${cls} anim-spin-loader`} />
+    case 'done':    return <CheckCircle2 size={14} strokeWidth={2.5} className={cls} />
+    case 'error':   return <AlertTriangle size={14} strokeWidth={2.5} className={cls} />
+  }
+}
+
+export default function SessionCard({ session, highlighted }: Props) {
   const [jumping, setJumping] = useState(false)
   const [expanded, setExpanded] = useState(false)
 
-  const content = session.LastEvent?.content ?? session.Status
-  const contentRaw = session.LastEvent?.content_raw ?? ''
+  const status: SessionStatus = (session.Status as SessionStatus) || 'working'
+  const tag = STATUS_TAG[status]
+  const bg = CARD_BG[status]
+
+  const content = session.LastEvent?.content ?? ''
   const toolName = session.LastEvent?.tool_name ?? ''
   const sessionPrefix = (session.SessionID || session.Key || '').slice(0, 8)
   const agentLabel = session.AgentLabel || 'CC'
-  const isAttention = session.AttentionLevel === 'attention'
-  const isRunning = session.AttentionLevel === 'running'
 
   const handleJump = async (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -33,48 +61,24 @@ export default function SessionCard({ session }: Props) {
 
   const relativeTime = formatRelativeTime(session.UpdatedAt)
 
-  const cardStyles = isAttention
-    ? 'bg-[--pager-card-attention-bg] border-[--pager-card-attention-border] shadow-sm'
-    : isRunning
-    ? 'bg-[--pager-card-running-bg] border-[--pager-card-running-border]'
-    : 'bg-[--pager-card-done-bg] border-[--pager-card-done-border] opacity-65'
-
-  const statusDot = isAttention
-    ? 'bg-[--pager-red] animate-pulse-status'
-    : isRunning
-    ? 'bg-[--pager-green]'
-    : 'bg-[--pager-gray-dot]'
-
-  const statusTag = isAttention
-    ? { text: 'WAITING', cls: 'bg-[rgba(255,69,58,0.15)] text-[--pager-red]' }
-    : isRunning
-    ? { text: 'WORKING', cls: 'bg-[rgba(48,209,88,0.12)] text-[--pager-green]' }
-    : { text: 'IDLE', cls: 'bg-[rgba(255,255,255,0.06)] text-[--pager-text-muted]' }
-
   return (
     <div
-      className={`rounded-lg border cursor-pointer transition-all duration-300 hover:shadow-sm ${cardStyles}`}
-      onClick={() => setExpanded(!expanded)}
-    >
+      className={`rounded-lg border cursor-pointer transition-all duration-300 hover:shadow-sm ${bg} ${highlighted ? 'pulse-highlight' : ''}`}
+      onClick={() => setExpanded(!expanded)}>
       <div className="px-[10px] py-[8px]">
-        {/* Row 1: dot → status tag → agent badge ... session_id → time */}
         <div className="flex items-center gap-[6px] mb-[4px]">
-          <div className="flex items-center gap-[6px]">
-            <span className={`w-[6px] h-[6px] rounded-full shrink-0 ${statusDot}`} />
-            <span className={`text-[9px] font-semibold px-[5px] py-[1px] rounded-[3px] ${statusTag.cls} tracking-wide`}>
-              {statusTag.text}
-            </span>
-            <span className="text-[9px] font-semibold px-[5px] py-[1px] rounded-[3px] bg-[--pager-badge-bg] text-[--pager-badge-text] tracking-wide uppercase">
-              {agentLabel}
-            </span>
-          </div>
+          <StatusIcon status={status} />
+          <span className={`text-[9px] font-semibold px-[5px] py-[1px] rounded-[3px] tracking-wide ${tag.bgClass} ${tag.textClass}`}>
+            {tag.text}
+          </span>
+          <span className="text-[9px] font-semibold px-[5px] py-[1px] rounded-[3px] bg-[--pager-badge-bg] text-[--pager-badge-text] tracking-wide uppercase">
+            {agentLabel}
+          </span>
           <span className="flex-1" />
           <span className="text-[9px] text-[--pager-text-faint] font-mono">{sessionPrefix}</span>
           <span className="text-[9px] text-[--pager-text-faint]">{relativeTime}</span>
         </div>
-
-        {/* Row 2: tool tag + content + jump button */}
-        <div className="flex items-center justify-between pl-[12px]">
+        <div className="flex items-center justify-between pl-[22px]">
           <div className="flex items-center gap-[6px] flex-1 min-w-0">
             {toolName && (
               <span className="text-[9px] font-mono font-medium px-[4px] py-[1px] bg-[--pager-tool-bg] rounded-[3px] text-[--pager-tool-text] shrink-0">
@@ -89,26 +93,15 @@ export default function SessionCard({ session }: Props) {
             onClick={handleJump}
             disabled={jumping}
             title="Jump to terminal"
-            className="ml-[6px] p-[3px] rounded text-[--pager-text-faint] hover:text-[--pager-blue] hover:bg-[--pager-filter-bg] disabled:opacity-30 shrink-0 transition-colors"
-          >
+            className="ml-[6px] p-[3px] rounded text-[--pager-text-faint] hover:text-[--pager-blue] hover:bg-[--pager-filter-bg] disabled:opacity-30 shrink-0 transition-colors">
             {jumping ? (
-              <svg className="w-[13px] h-[13px] animate-spin" viewBox="0 0 16 16" fill="none">
-                <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="2" strokeDasharray="28" strokeDashoffset="8" />
-              </svg>
+              <Loader2 size={13} className="animate-spin" />
             ) : (
               <ArrowRight size={13} />
             )}
           </button>
         </div>
-
-        {/* Expanded content */}
-        {expanded && contentRaw && (
-          <div className="mt-[6px] pl-[12px]">
-            <pre className="p-[6px] bg-[--pager-detail-bg] rounded-md text-[10px] leading-relaxed text-[--pager-detail-text] font-mono whitespace-pre-wrap break-all max-h-32 overflow-y-auto border border-[--pager-detail-border]">
-              {contentRaw}
-            </pre>
-          </div>
-        )}
+        {/* Expanded section is added in Task 18 */}
       </div>
     </div>
   )
