@@ -2,6 +2,7 @@ package wails
 
 import (
 	"strings"
+	"sync"
 	"sync/atomic"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -14,6 +15,11 @@ var (
 	currentHotkey  *hotkey.Hotkey
 	goroutineAlive atomic.Bool
 	hotkeyLogger   = log.Module("hotkey")
+	// hotkeyMu serializes RegisterHotkey across the boot timer, settings save
+	// callback, and the ApplicationDidBecomeActive recovery hook so that two
+	// concurrent callers cannot both Unregister + Register the listener,
+	// which would leak the second goroutine.
+	hotkeyMu sync.Mutex
 )
 
 var keyMap = map[string]hotkey.Key{
@@ -45,10 +51,14 @@ func IsHotkeyHealthy() bool {
 
 // RegisterHotkey registers a global hotkey that toggles the popup window.
 // Safe to call repeatedly; the previous registration is unwound first.
+// Concurrent callers are serialized via hotkeyMu.
 func RegisterHotkey(window *application.WebviewWindow, hotkeyStr string) {
+	hotkeyMu.Lock()
+	defer hotkeyMu.Unlock()
+
 	if currentHotkey != nil {
 		currentHotkey.Unregister()
-		hotkeyLogger.Info("hotkey unregistered", "key", hotkeyStr)
+		hotkeyLogger.Info("hotkey unregistered")
 		currentHotkey = nil
 		goroutineAlive.Store(false)
 	}

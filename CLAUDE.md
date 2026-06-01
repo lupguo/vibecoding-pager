@@ -61,12 +61,24 @@ These are final. Do not suggest alternatives:
 
 ## Session State Machine
 
-```
-pre_tool_use  -> Status=waiting (add to PendingTools[tool_use_id])
-post_tool_use -> Remove from PendingTools; if empty -> Status=active
-stop          -> Status=finished
-error         -> Status=error
-```
+`Session.Status` is one of four mutually-exclusive `entity.SessionStatus` values:
+`StatusWorking`, `StatusWaiting`, `StatusDone`, `StatusError`. The mapping from
+incoming `(EventType, ToolName, PermissionMode, hasPendingAskUser)` to a status
+lives in **one place only**: `session.DeriveStatus` in
+`internal/domain/session/status.go`. Do not duplicate this logic anywhere else
+— the tracker, SQLite replay, notify predicate, and tray icon all delegate to
+the same function.
+
+Summary of the canonical mapping (see `DeriveStatus` for the full table):
+
+| Event                                              | Status                       |
+|----------------------------------------------------|------------------------------|
+| `PreToolUse` (AskUserQuestion or non-bypass perms) | `waiting`                    |
+| `PreToolUse` (other tool + `bypassPermissions`)    | `working`                    |
+| `PostToolUse`, `SessionStart`, default             | `working`                    |
+| `Stop`/`SessionEnd`/`SubagentStop`                 | `done` (or `waiting` if AskUser still pending) |
+| `PermissionRequest`/`PermissionDenied`/`Notification`/`Elicitation`/`PostToolUseFailure` | `waiting` |
+| `StopFailure`/`Error`                              | `error`                      |
 
 Session key: CC `session_id` (preferred) or `host:cwd:tty` triple (fallback).
 

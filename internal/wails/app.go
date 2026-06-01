@@ -262,6 +262,11 @@ func (p *PagerApp) ServiceStartup(_ context.Context, _ application.ServiceOption
 
 // ServiceShutdown implements application.ServiceShutdown.
 func (p *PagerApp) ServiceShutdown() error {
+	if p.srv != nil {
+		if err := p.srv.Stop(); err != nil {
+			slog.Warn("httpapi.Stop returned error", "module", "wails", "err", err)
+		}
+	}
 	if p.store != nil {
 		slog.Info("closing event store", "module", "wails")
 		return p.store.Close()
