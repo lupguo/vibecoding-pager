@@ -122,6 +122,26 @@ func Show(e *entity.AgentEvent) {
 	showOsascript(title, body)
 }
 
+// ShowEvent triggers a macOS system notification for any event type.
+// Works with CamelCase event types. Called after ShouldNotifyByConfig passes.
+func ShowEvent(e *entity.AgentEvent, lang string) {
+	label := e.AgentLabel
+	if label == "" {
+		label = agentLabel(e.Agent)
+	}
+	title := fmt.Sprintf("%s · %s", label, lastPath(e.CWD))
+
+	body := e.Content
+	if body == "" {
+		body = e.EventType
+		if e.ToolName != "" {
+			body = e.ToolName
+		}
+	}
+
+	showOsascript(title, body)
+}
+
 func showOsascript(title, body string) {
 	title = sanitize(title)
 	body = sanitize(body)

@@ -65,7 +65,7 @@ func NewPagerApp(assets embed.FS) *application.App {
 			cfg, _ := config.LoadFrom(config.DefaultPath())
 			e := sessions[0].LastEvent
 			if notify.ShouldNotifyByConfig(e, cfg.NotificationEvents) {
-				notify.ShowFull(e, "all", cfg.Language)
+				notify.ShowEvent(e, cfg.Language)
 			}
 		}
 
