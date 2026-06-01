@@ -96,11 +96,8 @@ export function useProjectGroups(): ProjectGroup[] {
     sessions,
   }))
 
-  groups.sort((a, b) => {
-    const aTime = new Date(a.sessions[0]?.UpdatedAt || 0).getTime()
-    const bTime = new Date(b.sessions[0]?.UpdatedAt || 0).getTime()
-    return bTime - aTime
-  })
+  // Sort projects alphabetically by name
+  groups.sort((a, b) => a.project.localeCompare(b.project))
 
   return groups
 }
