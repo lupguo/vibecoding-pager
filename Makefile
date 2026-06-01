@@ -6,6 +6,9 @@ BIN_DIR     := bin
 BRIDGE_BIN  := $(BIN_DIR)/pager-cc-bridge
 APP_BIN     := $(BIN_DIR)/$(APP_NAME)
 FRONTEND    := frontend
+
+# Suppress macOS linker version mismatch warnings (Xcode 26 vs Go default min 11.0)
+GO_LDFLAGS  := -ldflags="-extldflags '-Wl,-w'"
 VITE_PORT   := 9245
 HTTP_PORT   := 7421
 
@@ -30,7 +33,7 @@ build: frontend-build
 
 ## Build Go binary only (no frontend rebuild)
 build-go:
-	go build -o $(APP_BIN) .
+	go build $(GO_LDFLAGS) -o $(APP_BIN) .
 
 ## Build pager-cc-bridge binary
 bridge:
