@@ -12,6 +12,7 @@ import (
 	"pager/internal/domain/entity"
 )
 
+
 func main() {
 	defer os.Exit(0)
 
@@ -62,14 +63,20 @@ func main() {
 	bridge.PostEvent(e)
 }
 
-// parseArgs extracts event type and --agent flag from command-line args.
-// Usage: pager-cc-bridge <event_type> [--agent <label>]
+// parseArgs extracts event type and agent label from command-line args.
+// Supports both formats:
+//
+//	New: pager-cc-bridge --event <type> --agent <label>
+//	Old: pager-cc-bridge <type> [--agent <label>]
 func parseArgs(args []string) (eventType, agentLabel string) {
 	eventType = "unknown"
 	agentLabel = "CC" // default
 
 	for i := 0; i < len(args); i++ {
 		switch {
+		case args[i] == "--event" && i+1 < len(args):
+			eventType = args[i+1]
+			i++ // skip next
 		case args[i] == "--agent" && i+1 < len(args):
 			agentLabel = args[i+1]
 			i++ // skip next
@@ -80,9 +87,13 @@ func parseArgs(args []string) (eventType, agentLabel string) {
 	return
 }
 
-// isToolEvent returns true if the event type involves tool use.
+// isToolEvent returns true if the event type involves tool use with tool_input.
 func isToolEvent(eventType string) bool {
-	return eventType == entity.EventPreToolUse || eventType == entity.EventPostToolUse
+	switch eventType {
+	case "PreToolUse", "PostToolUse", "PermissionRequest", "PermissionDenied":
+		return true
+	}
+	return false
 }
 
 func detectTTY() string {
