@@ -1,11 +1,14 @@
 package httpapi
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"time"
 
 	"pager/internal/domain/entity"
 	"pager/internal/domain/session"
@@ -18,6 +21,7 @@ const ListenAddr = "127.0.0.1:7421"
 type Server struct {
 	tracker *session.Tracker
 	store   store.EventStore
+	httpSrv *http.Server
 }
 
 // New creates a Server with the given tracker and optional event store.
@@ -43,12 +47,24 @@ func (s *Server) Start() {
 	mux.HandleFunc("/event", s.HandleEvent)
 	mux.HandleFunc("/sessions", s.HandleSessions)
 	mux.HandleFunc("/debug-log", s.HandleDebugLog)
+	s.httpSrv = &http.Server{Addr: ListenAddr, Handler: mux}
 	go func() {
 		log.Printf("[pager-server] listening on %s", ListenAddr)
-		if err := http.ListenAndServe(ListenAddr, mux); err != nil {
+		if err := s.httpSrv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Printf("[pager-server] error: %v", err)
 		}
 	}()
+}
+
+// Stop gracefully shuts down the HTTP server with a 2-second deadline.
+// Safe to call multiple times; no-op if Start was never called.
+func (s *Server) Stop() error {
+	if s.httpSrv == nil {
+		return nil
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	return s.httpSrv.Shutdown(ctx)
 }
 
 // HandleEvent processes incoming AgentEvent POST requests.
