@@ -1,9 +1,13 @@
 import { useState } from 'react'
 import {
-  ArrowRight, AlertTriangle, CheckCircle2, HandHelping, Loader2,
+  ArrowRight, AlertTriangle, CheckCircle2, ChevronDown, ChevronUp,
+  Clock, Copy, Check, FolderOpen, HandHelping, Hash, Loader2,
+  ShieldCheck, Terminal, Wrench,
 } from 'lucide-react'
 import type { Session, SessionStatus } from '../store/sessions'
 import { JumpToTerminal } from '../../bindings/pager/internal/wails/sessionbinding.js'
+
+const COPY_FEEDBACK_MS = 800
 
 interface Props {
   session: Session
@@ -32,6 +36,55 @@ function StatusIcon({ status }: { status: SessionStatus }) {
     case 'done':    return <CheckCircle2 size={14} strokeWidth={2.5} className={cls} />
     case 'error':   return <AlertTriangle size={14} strokeWidth={2.5} className={cls} />
   }
+}
+
+function MetaRow({
+  Icon, label, value, copyable,
+}: {
+  Icon: typeof FolderOpen
+  label: string
+  value: string
+  copyable?: boolean
+}) {
+  const [copied, setCopied] = useState(false)
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!value) return
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopied(true)
+      setTimeout(() => setCopied(false), COPY_FEEDBACK_MS)
+    } catch (err) {
+      console.error('[pager] copy failed:', err)
+    }
+  }
+  return (
+    <div className="flex items-center gap-[6px] px-[8px] py-[3px] text-[10px] leading-[1.6] text-[--pager-text-secondary]">
+      <Icon size={11} className="opacity-65 shrink-0 text-[--pager-text-muted]" strokeWidth={2} />
+      <span className="text-[9px] uppercase tracking-[0.3px] text-[--pager-text-muted] w-[60px] shrink-0">
+        {label}
+      </span>
+      <span className="font-mono text-[--pager-text-primary] truncate flex-1" title={value}>
+        {value || '—'}
+      </span>
+      <button
+        onClick={handleCopy}
+        className={`w-[18px] h-[18px] flex items-center justify-center rounded-[3px] text-[--pager-text-faint] hover:bg-[rgba(255,255,255,0.06)] hover:text-[--pager-text-secondary] shrink-0 transition-colors ${
+          !copyable || !value ? 'invisible' : ''
+        }`}
+        title="复制">
+        {copied ? <Check size={11} strokeWidth={2.5} /> : <Copy size={11} strokeWidth={2} />}
+      </button>
+    </div>
+  )
+}
+
+function formatTimestamp(iso: string): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return ''
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
 }
 
 export default function SessionCard({ session, highlighted }: Props) {
@@ -101,7 +154,21 @@ export default function SessionCard({ session, highlighted }: Props) {
             )}
           </button>
         </div>
-        {/* Expanded section is added in Task 18 */}
+        {expanded && (
+          <div className="mt-[6px] pl-[22px]">
+            <div className="bg-[rgba(255,255,255,0.025)] border border-[rgba(255,255,255,0.04)] rounded-[6px] py-[4px] mb-[6px]">
+              <MetaRow Icon={FolderOpen} label="PATH" value={session.CWD || ''} copyable />
+              <MetaRow Icon={Hash} label="SESSION" value={session.SessionID || session.Key || ''} copyable />
+              <MetaRow Icon={Clock} label="TIME" value={formatTimestamp(session.LastEvent?.timestamp ?? session.UpdatedAt)} />
+            </div>
+            {session.LastEvent?.content_raw && (
+              <pre className="p-[6px] bg-[--pager-detail-bg] border border-[--pager-detail-border] rounded-[6px] text-[10px] leading-relaxed text-[--pager-detail-text] font-mono whitespace-pre-wrap break-all max-h-32 overflow-y-auto">
+                {session.LastEvent.content_raw}
+              </pre>
+            )}
+            {/* "更多" toggle is added in Task 19 */}
+          </div>
+        )}
       </div>
     </div>
   )
