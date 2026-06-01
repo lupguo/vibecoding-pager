@@ -10,3 +10,7 @@ export {
     SettingsBinding,
     WindowBinding
 };
+
+export {
+    DataStats
+} from "./models.js";

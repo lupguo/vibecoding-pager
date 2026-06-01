@@ -15,14 +15,38 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 // @ts-ignore: Unused imports
 import * as config$0 from "../infra/config/models.js";
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as $models from "./models.js";
+
+/**
+ * GetDataStats returns current database size and event count.
+ * @returns {$CancellablePromise<$models.DataStats>}
+ */
+export function GetDataStats() {
+    return $Call.ByID(2714361662).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType0($result);
+    }));
+}
+
 /**
  * GetSettings returns the current settings.
  * @returns {$CancellablePromise<config$0.Settings>}
  */
 export function GetSettings() {
     return $Call.ByID(3093673318).then(/** @type {($result: any) => any} */(($result) => {
-        return $$createType0($result);
+        return $$createType1($result);
     }));
+}
+
+/**
+ * PurgeData physically deletes events and sessions older than N days.
+ * Pass 0 to delete all data.
+ * @param {number} days
+ * @returns {$CancellablePromise<number>}
+ */
+export function PurgeData(days) {
+    return $Call.ByID(4155687040, days);
 }
 
 /**
@@ -35,4 +59,5 @@ export function UpdateSettings(cfg) {
 }
 
 // Private type creation functions
-const $$createType0 = config$0.Settings.createFrom;
+const $$createType0 = $models.DataStats.createFrom;
+const $$createType1 = config$0.Settings.createFrom;

@@ -61,6 +61,13 @@ export class Settings {
              */
             this["popup_pinned"] = false;
         }
+        if (!("session_load_hours" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["session_load_hours"] = 0;
+        }
 
         Object.assign(this, $$source);
     }

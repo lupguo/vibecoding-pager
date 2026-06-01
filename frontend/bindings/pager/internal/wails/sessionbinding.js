@@ -16,7 +16,7 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 import * as session$0 from "../domain/session/models.js";
 
 /**
- * DismissSession removes a session from the registry.
+ * DismissSession removes a session from the tracker and soft-deletes in store.
  * @param {string} sessionKey
  * @returns {$CancellablePromise<void>}
  */
