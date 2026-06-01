@@ -28,6 +28,15 @@ export function OpenSettings() {
 }
 
 /**
+ * SetCollapsedProjects persists the list of project names whose group is collapsed.
+ * @param {string[]} list
+ * @returns {$CancellablePromise<void>}
+ */
+export function SetCollapsedProjects(list) {
+    return $Call.ByID(1359621635, list);
+}
+
+/**
  * SetPinned toggles always-on-top and persists state.
  * @param {boolean} pinned
  * @returns {$CancellablePromise<void>}

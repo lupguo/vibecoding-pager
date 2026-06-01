@@ -75,6 +75,13 @@ export class Settings {
              */
             this["notification_events"] = {};
         }
+        if (!("collapsed_projects" in $$source)) {
+            /**
+             * @member
+             * @type {string[]}
+             */
+            this["collapsed_projects"] = [];
+        }
 
         Object.assign(this, $$source);
     }
@@ -86,9 +93,13 @@ export class Settings {
      */
     static createFrom($$source = {}) {
         const $$createField8_0 = $$createType1;
+        const $$createField9_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("notification_events" in $$parsedSource) {
             $$parsedSource["notification_events"] = $$createField8_0($$parsedSource["notification_events"]);
+        }
+        if ("collapsed_projects" in $$parsedSource) {
+            $$parsedSource["collapsed_projects"] = $$createField9_0($$parsedSource["collapsed_projects"]);
         }
         return new Settings(/** @type {Partial<Settings>} */($$parsedSource));
     }

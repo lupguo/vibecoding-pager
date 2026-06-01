@@ -16,6 +16,7 @@ type Settings struct {
 	PopupPinned        bool                `json:"popup_pinned"`
 	SessionLoadHours   int                 `json:"session_load_hours"`
 	NotificationEvents map[string][]string `json:"notification_events"`
+	CollapsedProjects  []string            `json:"collapsed_projects"`
 }
 
 func Defaults() Settings {
@@ -48,6 +49,7 @@ func Defaults() Settings {
 				"Elicitation",
 			},
 		},
+		CollapsedProjects: []string{},
 	}
 }
 
