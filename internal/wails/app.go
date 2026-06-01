@@ -214,6 +214,18 @@ func NewPagerApp(assets embed.FS) *application.App {
 		RegisterHotkey(popupWindow, initialCfg.HotkeyToggle)
 	}()
 
+	// ── Hotkey health check on app activate ─────────────────────────────────
+	// If the user re-focuses Pager (after long idle, sleep/wake, or permission
+	// churn) and the hotkey goroutine has died silently, re-register it.
+	wailsApp.Event.OnApplicationEvent(events.Mac.ApplicationDidBecomeActive, func(_ *application.ApplicationEvent) {
+		if IsHotkeyHealthy() {
+			return
+		}
+		cfg, _ := config.LoadFrom(config.DefaultPath())
+		logger.Warn("hotkey unhealthy on app activate, re-registering", "key", cfg.HotkeyToggle)
+		RegisterHotkey(popupWindow, cfg.HotkeyToggle)
+	})
+
 	logger.Info("app assembled")
 	return wailsApp
 }
