@@ -150,7 +150,8 @@ func NewPagerApp(assets embed.FS) *application.App {
 		HideOnFocusLost:  false, // Managed manually via WindowLostFocus hook
 		BackgroundColour: application.NewRGBA(0, 0, 0, 0),
 		Mac: application.MacWindow{
-			Backdrop: application.MacBackdropTransparent,
+			Backdrop:           application.MacBackdropTransparent,
+			CollectionBehavior: application.MacWindowCollectionBehaviorMoveToActiveSpace,
 		},
 	})
 
