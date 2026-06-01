@@ -18,7 +18,7 @@ var attentionTools = map[string]bool{
 //   - pre_tool_use + anything else → attention (needs user approve)
 func DetermineAttentionLevel(eventType, permissionMode, toolName string) string {
 	switch eventType {
-	case entity.EventStop, entity.EventError:
+	case entity.EventStop, entity.EventError, entity.EventSubagentStop:
 		return entity.AttentionDone
 	case entity.EventPostToolUse:
 		return entity.AttentionRunning

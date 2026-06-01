@@ -153,3 +153,54 @@ func TestExtractContent_AgentFallbackToPrompt(t *testing.T) {
 		t.Errorf("raw = %q, want to contain prompt text", raw)
 	}
 }
+
+// --- ExtractEventContent tests ---
+
+func TestExtractEventContent_SessionStart(t *testing.T) {
+	in := &CCHookInput{Source: "startup"}
+	raw, content := ExtractEventContent("session_start", in)
+	if raw != "会话启动: startup" {
+		t.Errorf("raw = %q, want %q", raw, "会话启动: startup")
+	}
+	if content != "会话启动: startup" {
+		t.Errorf("content = %q, want %q", content, "会话启动: startup")
+	}
+}
+
+func TestExtractEventContent_UserPromptSubmit(t *testing.T) {
+	in := &CCHookInput{Prompt: "帮我修复这个 bug，详细错误信息是 panic: nil pointer dereference at main.go:42"}
+	raw, content := ExtractEventContent("user_prompt_submit", in)
+	if raw != in.Prompt {
+		t.Errorf("raw = %q, want full prompt", raw)
+	}
+	if len([]rune(content)) > 61 { // 60 + "…"
+		t.Errorf("content not truncated: len=%d", len([]rune(content)))
+	}
+}
+
+func TestExtractEventContent_SubagentStop(t *testing.T) {
+	in := &CCHookInput{}
+	raw, content := ExtractEventContent("subagent_stop", in)
+	if raw != "子Agent完成" {
+		t.Errorf("raw = %q", raw)
+	}
+	if content != "子Agent完成" {
+		t.Errorf("content = %q", content)
+	}
+}
+
+func TestExtractEventContent_PreCompact(t *testing.T) {
+	in := &CCHookInput{Trigger: "auto"}
+	raw, _ := ExtractEventContent("pre_compact", in)
+	if raw != "对话压缩: auto" {
+		t.Errorf("raw = %q", raw)
+	}
+}
+
+func TestExtractEventContent_Notification(t *testing.T) {
+	in := &CCHookInput{Message: "Permission required for Bash tool"}
+	raw, _ := ExtractEventContent("notification", in)
+	if raw != "Permission required for Bash tool" {
+		t.Errorf("raw = %q", raw)
+	}
+}

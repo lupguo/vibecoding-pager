@@ -103,3 +103,33 @@ func truncateRunes(s string, n int) string {
 	}
 	return string(r[:n]) + "…"
 }
+
+// ExtractEventContent extracts content from event-level hooks (not tool-based).
+// Returns (contentRaw, content).
+func ExtractEventContent(eventType string, in *CCHookInput) (contentRaw, content string) {
+	switch eventType {
+	case "session_start":
+		raw := "会话启动: " + in.Source
+		return raw, truncateRunes(raw, contentMaxRunes)
+	case "user_prompt_submit":
+		raw := in.Prompt
+		if raw == "" {
+			raw = "用户输入"
+		}
+		return raw, truncateRunes(raw, contentMaxRunes)
+	case "subagent_stop":
+		raw := "子Agent完成"
+		return raw, raw
+	case "pre_compact":
+		raw := "对话压缩: " + in.Trigger
+		return raw, truncateRunes(raw, contentMaxRunes)
+	case "notification":
+		raw := in.Message
+		if raw == "" {
+			raw = "通知"
+		}
+		return raw, truncateRunes(raw, contentMaxRunes)
+	default:
+		return eventType, eventType
+	}
+}

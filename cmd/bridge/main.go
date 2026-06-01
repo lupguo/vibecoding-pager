@@ -29,7 +29,14 @@ func main() {
 	var in bridge.CCHookInput
 	_ = json.Unmarshal(raw, &in)
 
-	contentRaw, content := bridge.ExtractContent(in.ToolName, in.ToolInput)
+	// Extract content based on event type
+	var contentRaw, content string
+	if isToolEvent(eventType) {
+		contentRaw, content = bridge.ExtractContent(in.ToolName, in.ToolInput)
+	} else {
+		contentRaw, content = bridge.ExtractEventContent(eventType, &in)
+	}
+
 	attentionLevel := bridge.DetermineAttentionLevel(eventType, in.PermissionMode, in.ToolName)
 
 	e := entity.AgentEvent{
@@ -71,6 +78,11 @@ func parseArgs(args []string) (eventType, agentLabel string) {
 		}
 	}
 	return
+}
+
+// isToolEvent returns true if the event type involves tool use.
+func isToolEvent(eventType string) bool {
+	return eventType == entity.EventPreToolUse || eventType == entity.EventPostToolUse
 }
 
 func detectTTY() string {
