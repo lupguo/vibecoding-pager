@@ -73,7 +73,7 @@ function filterExpiredDone(sessions: Session[]): Session[] {
 }
 
 /** Extract project name from CWD (last path segment) */
-function projectFromCWD(cwd: string): string {
+export function projectFromCWD(cwd: string): string {
   const segments = cwd.split('/').filter(Boolean)
   return segments[segments.length - 1] || cwd
 }
