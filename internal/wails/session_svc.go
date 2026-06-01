@@ -9,24 +9,24 @@ import (
 
 // SessionBinding exposes session state and actions to the React frontend via Wails bindings.
 type SessionBinding struct {
-	reg *session.Registry
+	tracker *session.Tracker
 }
 
 // ListSessions returns all sessions sorted by UpdatedAt descending.
 func (s *SessionBinding) ListSessions() []*session.Session {
-	if s.reg == nil {
+	if s.tracker == nil {
 		return nil
 	}
-	return s.reg.ListSorted()
+	return s.tracker.ListByRecent()
 }
 
 // JumpToTerminal brings the terminal window/tab to the foreground.
 func (s *SessionBinding) JumpToTerminal(sessionKey string) error {
-	if s.reg == nil {
-		return fmt.Errorf("registry not initialised")
+	if s.tracker == nil {
+		return fmt.Errorf("tracker not initialised")
 	}
 
-	sess, ok := s.reg.GetByKey(sessionKey)
+	sess, ok := s.tracker.Session(sessionKey)
 	if !ok {
 		return fmt.Errorf("session not found: %s", sessionKey)
 	}
@@ -40,10 +40,10 @@ func (s *SessionBinding) JumpToTerminal(sessionKey string) error {
 	return terminal.Jump(req)
 }
 
-// DismissSession removes a session from the registry.
+// DismissSession removes a session from the tracker.
 func (s *SessionBinding) DismissSession(sessionKey string) {
-	if s.reg == nil {
+	if s.tracker == nil {
 		return
 	}
-	s.reg.Remove(sessionKey)
+	s.tracker.Dismiss(sessionKey)
 }

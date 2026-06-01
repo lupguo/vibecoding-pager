@@ -12,12 +12,12 @@ import (
 	"pager/internal/adapter/httpapi"
 )
 
-// Standalone test server — runs HTTP server + registry without Wails GUI.
-// Used for integration testing the bridge → server → registry pipeline.
+// Standalone test server — runs HTTP server + tracker without Wails GUI.
+// Used for integration testing the bridge → server → tracker pipeline.
 func main() {
 	log.SetFlags(log.Ltime | log.Lmicroseconds)
 
-	reg := session.New(func(sessions []*session.Session) {
+	tracker := session.NewTracker(func(sessions []*session.Session) {
 		// Log state changes
 		for _, s := range sessions {
 			log.Printf("[onChange] session=%s status=%s tool=%s content=%q",
@@ -28,7 +28,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "\n--- Current Sessions ---\n%s\n---\n\n", string(data))
 	})
 
-	srv := httpapi.New(reg)
+	srv := httpapi.New(tracker)
 	srv.Start()
 
 	log.Println("[test-server] Ready. Listening on 127.0.0.1:7421")

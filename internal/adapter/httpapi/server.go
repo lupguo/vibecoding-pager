@@ -15,12 +15,12 @@ const ListenAddr = "127.0.0.1:7421"
 
 // Server handles HTTP requests from bridge processes.
 type Server struct {
-	reg *session.Registry
+	tracker *session.Tracker
 }
 
-// New creates a Server with the given session.
-func New(reg *session.Registry) *Server {
-	return &Server{reg: reg}
+// New creates a Server with the given tracker.
+func New(tracker *session.Tracker) *Server {
+	return &Server{tracker: tracker}
 }
 
 // Start launches the HTTP server in a background goroutine.
@@ -49,7 +49,7 @@ func (s *Server) HandleEvent(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	s.reg.Apply(&e)
+	s.tracker.TrackEvent(&e)
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintln(w, "ok")
@@ -58,7 +58,7 @@ func (s *Server) HandleEvent(w http.ResponseWriter, req *http.Request) {
 // HandleSessions returns all sessions as JSON (debug endpoint).
 func (s *Server) HandleSessions(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(s.reg.ListSorted())
+	json.NewEncoder(w).Encode(s.tracker.ListByRecent())
 }
 
 // HandleDebugLog receives debug messages from the frontend and logs them.

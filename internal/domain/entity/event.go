@@ -7,11 +7,15 @@ import (
 
 // EventType constants
 const (
-	EventPreToolUse  = "pre_tool_use"
-	EventPostToolUse = "post_tool_use"
-	EventStop        = "stop"
-	EventError       = "error"
-	EventNotification = "notification"
+	EventPreToolUse       = "pre_tool_use"
+	EventPostToolUse      = "post_tool_use"
+	EventStop             = "stop"
+	EventError            = "error"
+	EventNotification     = "notification"
+	EventSessionStart     = "session_start"
+	EventUserPromptSubmit = "user_prompt_submit"
+	EventSubagentStop     = "subagent_stop"
+	EventPreCompact       = "pre_compact"
 )
 
 // Agent constants

@@ -26,28 +26,28 @@ type Session struct {
 	UpdatedAt      time.Time                    `json:"UpdatedAt"`
 }
 
-// Registry is a thread-safe session registry.
-type Registry struct {
+// Tracker maintains real-time session state from an event stream.
+type Tracker struct {
 	mu       sync.RWMutex
 	sessions map[string]*Session
-	onChange func(sessions []*Session)
+	onUpdate func(sessions []*Session)
 }
 
-// New creates a Registry with an onChange callback.
-func New(onChange func([]*Session)) *Registry {
-	return &Registry{
+// NewTracker creates a Tracker with an onUpdate callback.
+func NewTracker(onUpdate func([]*Session)) *Tracker {
+	return &Tracker{
 		sessions: make(map[string]*Session),
-		onChange: onChange,
+		onUpdate: onUpdate,
 	}
 }
 
-// Apply processes an AgentEvent and updates the Registry state.
-func (r *Registry) Apply(e *entity.AgentEvent) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+// TrackEvent processes an AgentEvent and updates session state.
+func (t *Tracker) TrackEvent(e *entity.AgentEvent) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
 
 	key := e.SessionKey()
-	s, exists := r.sessions[key]
+	s, exists := t.sessions[key]
 	if !exists {
 		s = &Session{
 			Key:          key,
@@ -58,7 +58,7 @@ func (r *Registry) Apply(e *entity.AgentEvent) {
 			SessionID:    e.SessionID,
 			PendingTools: make(map[string]*entity.AgentEvent),
 		}
-		r.sessions[key] = s
+		t.sessions[key] = s
 	}
 
 	// Update terminal info if provided
@@ -98,33 +98,41 @@ func (r *Registry) Apply(e *entity.AgentEvent) {
 		}
 	case entity.EventStop:
 		// If AskUserQuestion is pending (awaiting user response), keep attention state.
-		// For all other pending tools, stop means the session is done.
 		if hasAskUserPending(s.PendingTools) {
 			s.Status = entity.StatusWaiting
-			// Don't clear PendingTools — AskUserQuestion is still awaiting response
 		} else {
 			s.Status = entity.StatusFinished
 			s.PendingTools = make(map[string]*entity.AgentEvent)
 		}
 	case entity.EventError:
 		s.Status = entity.StatusError
+	case entity.EventSessionStart:
+		s.Status = entity.StatusActive
 	}
 
-	if r.onChange != nil {
-		r.onChange(r.listSortedLocked())
+	if t.onUpdate != nil {
+		t.onUpdate(t.snapshotLocked())
 	}
 }
 
-// ListSorted returns sessions ordered by UpdatedAt descending (newest first).
-func (r *Registry) ListSorted() []*Session {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	return r.listSortedLocked()
+// Replay rebuilds tracker state from a slice of historical events.
+// Used on app startup to restore state from SQLite.
+func (t *Tracker) Replay(events []*entity.AgentEvent) {
+	for _, e := range events {
+		t.TrackEvent(e)
+	}
 }
 
-func (r *Registry) listSortedLocked() []*Session {
-	result := make([]*Session, 0, len(r.sessions))
-	for _, s := range r.sessions {
+// ListByRecent returns sessions ordered by UpdatedAt descending (newest first).
+func (t *Tracker) ListByRecent() []*Session {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	return t.snapshotLocked()
+}
+
+func (t *Tracker) snapshotLocked() []*Session {
+	result := make([]*Session, 0, len(t.sessions))
+	for _, s := range t.sessions {
 		result = append(result, s)
 	}
 	sort.Slice(result, func(i, j int) bool {
@@ -133,11 +141,19 @@ func (r *Registry) listSortedLocked() []*Session {
 	return result
 }
 
-// GetByTTY finds a session by TTY.
-func (r *Registry) GetByTTY(tty string) (*Session, bool) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	for _, s := range r.sessions {
+// Session finds a session by its key.
+func (t *Tracker) Session(key string) (*Session, bool) {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	s, ok := t.sessions[key]
+	return s, ok
+}
+
+// SessionByTTY finds a session by TTY.
+func (t *Tracker) SessionByTTY(tty string) (*Session, bool) {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	for _, s := range t.sessions {
 		if s.TTY == tty {
 			return s, true
 		}
@@ -145,21 +161,13 @@ func (r *Registry) GetByTTY(tty string) (*Session, bool) {
 	return nil, false
 }
 
-// GetByKey finds a session by its key.
-func (r *Registry) GetByKey(key string) (*Session, bool) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	s, ok := r.sessions[key]
-	return s, ok
-}
-
-// Remove deletes a session by key.
-func (r *Registry) Remove(key string) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	delete(r.sessions, key)
-	if r.onChange != nil {
-		r.onChange(r.listSortedLocked())
+// Dismiss removes a session from the tracker.
+func (t *Tracker) Dismiss(key string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	delete(t.sessions, key)
+	if t.onUpdate != nil {
+		t.onUpdate(t.snapshotLocked())
 	}
 }
 

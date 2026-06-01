@@ -21,9 +21,9 @@ var trayIconData []byte
 
 // PagerApp orchestrates the full Wails application lifecycle.
 type PagerApp struct {
-	reg  *session.Registry
-	srv  *httpapi.Server
-	tray *application.SystemTray
+	tracker *session.Tracker
+	srv     *httpapi.Server
+	tray    *application.SystemTray
 }
 
 // NewPagerApp assembles and returns a runnable Wails application.
@@ -32,8 +32,8 @@ func NewPagerApp(assets embed.FS) *application.App {
 
 	p := &PagerApp{}
 
-	// ── Registry + HTTP server ──────────────────────────────────────────────
-	p.reg = session.New(func(sessions []*session.Session) {
+	// ── SessionTracker + HTTP server ────────────────────────────────────────
+	p.tracker = session.NewTracker(func(sessions []*session.Session) {
 		wailsApp := application.Get()
 		if wailsApp == nil {
 			return
@@ -50,10 +50,10 @@ func NewPagerApp(assets embed.FS) *application.App {
 		}
 	})
 
-	p.srv = httpapi.New(p.reg)
+	p.srv = httpapi.New(p.tracker)
 
 	// ── Services ────────────────────────────────────────────────────────────
-	sessionBinding := &SessionBinding{reg: p.reg}
+	sessionBinding := &SessionBinding{tracker: p.tracker}
 
 	var popupWindow *application.WebviewWindow
 	var settingsWindow *application.WebviewWindow

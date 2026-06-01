@@ -13,8 +13,8 @@ import (
 )
 
 func TestHandleEvent_ValidPost(t *testing.T) {
-	reg := session.New(func([]*session.Session) {})
-	srv := New(reg)
+	tracker := session.NewTracker(func([]*session.Session) {})
+	srv := New(tracker)
 
 	e := entity.AgentEvent{
 		Agent:     entity.AgentClaudeCode,
@@ -39,15 +39,15 @@ func TestHandleEvent_ValidPost(t *testing.T) {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusOK)
 	}
 
-	sessions := reg.ListSorted()
+	sessions := tracker.ListByRecent()
 	if len(sessions) != 1 {
 		t.Fatalf("expected 1 session, got %d", len(sessions))
 	}
 }
 
 func TestHandleEvent_RejectsGet(t *testing.T) {
-	reg := session.New(func([]*session.Session) {})
-	srv := New(reg)
+	tracker := session.NewTracker(func([]*session.Session) {})
+	srv := New(tracker)
 
 	req := httptest.NewRequest(http.MethodGet, "/event", nil)
 	w := httptest.NewRecorder()
@@ -60,8 +60,8 @@ func TestHandleEvent_RejectsGet(t *testing.T) {
 }
 
 func TestHandleEvent_BadJSON(t *testing.T) {
-	reg := session.New(func([]*session.Session) {})
-	srv := New(reg)
+	tracker := session.NewTracker(func([]*session.Session) {})
+	srv := New(tracker)
 
 	req := httptest.NewRequest(http.MethodPost, "/event", bytes.NewReader([]byte("not json")))
 	w := httptest.NewRecorder()
@@ -74,8 +74,8 @@ func TestHandleEvent_BadJSON(t *testing.T) {
 }
 
 func TestHandleSessions(t *testing.T) {
-	reg := session.New(func([]*session.Session) {})
-	srv := New(reg)
+	tracker := session.NewTracker(func([]*session.Session) {})
+	srv := New(tracker)
 
 	req := httptest.NewRequest(http.MethodGet, "/sessions", nil)
 	w := httptest.NewRecorder()
