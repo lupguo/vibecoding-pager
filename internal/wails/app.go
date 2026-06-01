@@ -230,21 +230,21 @@ func (p *PagerApp) ServiceShutdown() error {
 
 func (p *PagerApp) updateTrayIcon(sessions []*session.Session) {
 	hasWaiting := false
-	hasActive := false
+	hasWorking := false
 
 	for _, s := range sessions {
 		switch s.Status {
 		case entity.StatusWaiting:
 			hasWaiting = true
-		case entity.StatusActive:
-			hasActive = true
+		case entity.StatusWorking:
+			hasWorking = true
 		}
 	}
 
 	switch {
 	case hasWaiting:
 		p.tray.SetLabel("●")
-	case hasActive:
+	case hasWorking:
 		p.tray.SetLabel("")
 	default:
 		p.tray.SetLabel("")
