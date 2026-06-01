@@ -1,5 +1,14 @@
 //go:build integration
 
+// Package internal_test contains end-to-end regression tests guarded by the
+// `integration` build tag. Run with:
+//
+//	go test -tags=integration ./internal/... -run 'TestE2E_' -v
+//
+// These tests are intentionally invisible to gopls/LSP without the build tag
+// configured. The "no packages found" diagnostic in IDEs is expected — see
+// docs/regression/2026-06-01-ui-state-regression.md for the full regression
+// matrix that includes this suite plus the manual UI checklist.
 package internal_test
 
 import (
