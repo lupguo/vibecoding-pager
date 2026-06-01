@@ -240,3 +240,30 @@ func TestReplay(t *testing.T) {
 		t.Errorf("status = %q, want %q", sessions[0].Status, entity.StatusWorking)
 	}
 }
+
+func TestDismissByProject(t *testing.T) {
+	tr := NewTracker(nil)
+	now := time.Now()
+	makeEvt := func(key, cwd string) *entity.AgentEvent {
+		return &entity.AgentEvent{
+			SessionID: key,
+			CWD:       cwd,
+			EventType: "PreToolUse",
+			ToolName:  "Edit",
+			Timestamp: now,
+		}
+	}
+	tr.TrackEvent(makeEvt("s1", "/path/to/projA"))
+	tr.TrackEvent(makeEvt("s2", "/path/to/projA"))
+	tr.TrackEvent(makeEvt("s3", "/path/to/projB"))
+
+	dismissed := tr.DismissByProject("projA")
+	if len(dismissed) != 2 {
+		t.Errorf("dismissed count = %d; want 2", len(dismissed))
+	}
+
+	remaining := tr.ListByRecent()
+	if len(remaining) != 1 || remaining[0].SessionID != "s3" {
+		t.Errorf("remaining sessions = %+v; want only s3", remaining)
+	}
+}

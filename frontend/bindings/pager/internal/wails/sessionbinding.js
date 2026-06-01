@@ -25,6 +25,16 @@ export function DismissSession(sessionKey) {
 }
 
 /**
+ * DismissSessionsByProject removes all sessions in the given project from the tracker
+ * and soft-deletes them in the store.
+ * @param {string} project
+ * @returns {$CancellablePromise<void>}
+ */
+export function DismissSessionsByProject(project) {
+    return $Call.ByID(3263343891, project);
+}
+
+/**
  * JumpToTerminal brings the terminal window/tab to the foreground.
  * @param {string} sessionKey
  * @returns {$CancellablePromise<void>}

@@ -8,7 +8,6 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
@@ -347,7 +346,7 @@ func (s *sqliteStore) writeBatch(events []*entity.AgentEvent) {
 
 	for _, e := range events {
 		sessionKey := e.SessionKey()
-		projectName := projectFromCWD(e.CWD)
+		projectName := session.ProjectFromCWD(e.CWD)
 		ts := e.Timestamp.Format("2006-01-02 15:04:05")
 
 		// UPSERT session
@@ -394,17 +393,6 @@ func (s *sqliteStore) writeBatch(events []*entity.AgentEvent) {
 // re-derives correctly after Replay.
 func statusFromEvent(e *entity.AgentEvent) entity.SessionStatus {
 	return session.DeriveStatus(e.EventType, e.ToolName, e.PermissionMode, false)
-}
-
-// projectFromCWD extracts the last path segment as project name.
-func projectFromCWD(cwd string) string {
-	segments := strings.Split(cwd, "/")
-	for i := len(segments) - 1; i >= 0; i-- {
-		if segments[i] != "" {
-			return segments[i]
-		}
-	}
-	return cwd
 }
 
 // migrate applies schema migrations for existing databases.

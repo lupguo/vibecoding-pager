@@ -160,6 +160,38 @@ func (t *Tracker) Dismiss(key string) {
 	}
 }
 
+// DismissByProject removes all sessions whose CWD's last segment equals project.
+// Returns the dismissed session keys for caller-side store sync.
+func (t *Tracker) DismissByProject(project string) []string {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	var keys []string
+	for k, s := range t.sessions {
+		if ProjectFromCWD(s.CWD) == project {
+			keys = append(keys, k)
+			delete(t.sessions, k)
+		}
+	}
+	if len(keys) > 0 && t.onUpdate != nil {
+		t.onUpdate(t.snapshotLocked())
+	}
+	return keys
+}
+
+// ProjectFromCWD returns the last non-empty path segment of cwd.
+// Mirrors the frontend's projectFromCWD logic to keep grouping consistent.
+func ProjectFromCWD(cwd string) string {
+	for i := len(cwd) - 1; i >= 0; i-- {
+		if cwd[i] == '/' {
+			if i == len(cwd)-1 {
+				continue
+			}
+			return cwd[i+1:]
+		}
+	}
+	return cwd
+}
+
 // hasAskUserPending checks if any pending tool is AskUserQuestion.
 func hasAskUserPending(pending map[string]*entity.AgentEvent) bool {
 	for _, e := range pending {

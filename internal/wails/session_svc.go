@@ -53,3 +53,18 @@ func (s *SessionBinding) DismissSession(sessionKey string) {
 		_ = s.store.DismissSession(sessionKey)
 	}
 }
+
+// DismissSessionsByProject removes all sessions in the given project from the tracker
+// and soft-deletes them in the store.
+func (s *SessionBinding) DismissSessionsByProject(project string) error {
+	if s.tracker == nil {
+		return fmt.Errorf("tracker not initialised")
+	}
+	keys := s.tracker.DismissByProject(project)
+	if s.store != nil {
+		for _, k := range keys {
+			_ = s.store.DismissSession(k)
+		}
+	}
+	return nil
+}
