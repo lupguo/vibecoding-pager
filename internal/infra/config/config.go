@@ -7,14 +7,15 @@ import (
 )
 
 type Settings struct {
-	Language          string `json:"language"`
-	Theme             string `json:"theme"`
-	Opacity           int    `json:"opacity"`
-	HotkeyToggle      string `json:"hotkey_toggle"`
-	NotificationLevel string `json:"notification_level"`
-	PopupWidth        int    `json:"popup_width"`
-	PopupPinned       bool   `json:"popup_pinned"`
-	SessionLoadHours  int    `json:"session_load_hours"`
+	Language           string              `json:"language"`
+	Theme              string              `json:"theme"`
+	Opacity            int                 `json:"opacity"`
+	HotkeyToggle       string              `json:"hotkey_toggle"`
+	NotificationLevel  string              `json:"notification_level"`
+	PopupWidth         int                 `json:"popup_width"`
+	PopupPinned        bool                `json:"popup_pinned"`
+	SessionLoadHours   int                 `json:"session_load_hours"`
+	NotificationEvents map[string][]string `json:"notification_events"`
 }
 
 func Defaults() Settings {
@@ -27,6 +28,19 @@ func Defaults() Settings {
 		PopupWidth:        380,
 		PopupPinned:       false,
 		SessionLoadHours:  24,
+		NotificationEvents: map[string][]string{
+			"CC": {
+				"StopFailure",
+				"Notification",
+				"PermissionRequest",
+				"PostToolUseFailure",
+				"Elicitation",
+			},
+			"CC-INT": {
+				"StopFailure",
+				"Notification",
+			},
+		},
 	}
 }
 

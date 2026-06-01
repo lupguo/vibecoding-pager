@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 )
 
@@ -69,7 +70,7 @@ func TestSaveAndLoad(t *testing.T) {
 		t.Fatalf("LoadFrom failed: %v", err)
 	}
 
-	if loaded != cfg {
+	if !reflect.DeepEqual(loaded, cfg) {
 		t.Errorf("round-trip mismatch:\n  got:  %+v\n  want: %+v", loaded, cfg)
 	}
 }
@@ -84,7 +85,43 @@ func TestLoadFromCorruptedFileReturnsDefaults(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for corrupted JSON")
 	}
-	if cfg != Defaults() {
+	if !reflect.DeepEqual(cfg, Defaults()) {
 		t.Errorf("expected defaults on corruption, got %+v", cfg)
+	}
+}
+
+func TestDefaults_NotificationEvents(t *testing.T) {
+	cfg := Defaults()
+	if cfg.NotificationEvents == nil {
+		t.Fatal("NotificationEvents should not be nil")
+	}
+	ccEvents, ok := cfg.NotificationEvents["CC"]
+	if !ok {
+		t.Fatal("expected CC key in NotificationEvents")
+	}
+	found := false
+	for _, e := range ccEvents {
+		if e == "StopFailure" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("CC events should include StopFailure, got: %v", ccEvents)
+	}
+}
+
+func TestLoadFrom_WithNotificationEvents(t *testing.T) {
+	tmp := t.TempDir() + "/settings.json"
+	data := []byte(`{"notification_events":{"CC":["Stop","Notification"]}}`)
+	if err := os.WriteFile(tmp, data, 0644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := LoadFrom(tmp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cfg.NotificationEvents["CC"]) != 2 {
+		t.Errorf("expected 2 events, got %d", len(cfg.NotificationEvents["CC"]))
 	}
 }

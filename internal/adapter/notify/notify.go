@@ -8,6 +8,25 @@ import (
 	"pager/internal/domain/entity"
 )
 
+// ShouldNotifyByConfig checks if an event should trigger a system notification
+// based on the per-agent notification_events config.
+// Returns true if the event's AgentLabel+EventType is in the configured list.
+func ShouldNotifyByConfig(e *entity.AgentEvent, notifEvents map[string][]string) bool {
+	if notifEvents == nil {
+		return false
+	}
+	events, ok := notifEvents[e.AgentLabel]
+	if !ok {
+		return false
+	}
+	for _, ev := range events {
+		if ev == e.EventType {
+			return true
+		}
+	}
+	return false
+}
+
 // ShouldNotify determines whether an event should trigger a system notification
 // based on the configured notification level.
 func ShouldNotify(e *entity.AgentEvent, level string) bool {
