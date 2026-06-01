@@ -68,6 +68,13 @@ export class Settings {
              */
             this["session_load_hours"] = 0;
         }
+        if (!("notification_events" in $$source)) {
+            /**
+             * @member
+             * @type {{ [_ in string]?: string[] }}
+             */
+            this["notification_events"] = {};
+        }
 
         Object.assign(this, $$source);
     }
@@ -78,7 +85,15 @@ export class Settings {
      * @returns {Settings}
      */
     static createFrom($$source = {}) {
+        const $$createField8_0 = $$createType1;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("notification_events" in $$parsedSource) {
+            $$parsedSource["notification_events"] = $$createField8_0($$parsedSource["notification_events"]);
+        }
         return new Settings(/** @type {Partial<Settings>} */($$parsedSource));
     }
 }
+
+// Private type creation functions
+const $$createType0 = $Create.Array($Create.Any);
+const $$createType1 = $Create.Map($Create.Any, $$createType0);

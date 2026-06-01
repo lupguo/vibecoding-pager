@@ -1,6 +1,7 @@
 {
   "nav": {
     "general": "General",
+    "notifications": "Notifications",
     "about": "About"
   },
   "general": {
@@ -21,6 +22,17 @@
     "notificationLevelDesc": "Choose when to send system notifications",
     "notifyAll": "All messages",
     "notifyAttentionOnly": "Only when confirmation needed"
+  },
+  "notifications": {
+    "title": "Event Notifications",
+    "description": "Enabled events will trigger macOS system notifications. All events are shown in the session panel.",
+    "presetRecommend": "Recommended",
+    "presetCritical": "Critical Only",
+    "presetAll": "All",
+    "presetNone": "None",
+    "connected": "Connected",
+    "notConnected": "Not connected",
+    "footer": "{{count}} notifications enabled · {{total}} total events"
   },
   "about": {
     "title": "About",

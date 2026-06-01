@@ -1,6 +1,7 @@
 {
   "nav": {
     "general": "基本设置",
+    "notifications": "通知",
     "about": "关于"
   },
   "general": {
@@ -21,6 +22,17 @@
     "notificationLevelDesc": "选择何时发送系统通知",
     "notifyAll": "所有消息",
     "notifyAttentionOnly": "仅需确认时"
+  },
+  "notifications": {
+    "title": "事件通知",
+    "description": "开启的事件将触发 macOS 系统通知。所有事件均在会话面板中展示。",
+    "presetRecommend": "推荐",
+    "presetCritical": "仅关键",
+    "presetAll": "全通知",
+    "presetNone": "全关闭",
+    "connected": "已接入",
+    "notConnected": "未接入",
+    "footer": "当前已开启 {{count}} 项通知 · 共 {{total}} 项事件"
   },
   "about": {
     "title": "关于",

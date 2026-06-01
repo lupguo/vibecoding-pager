@@ -3,19 +3,22 @@ import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 import { useSettingsStore } from '../store/settings'
 import GeneralSettings from './settings/GeneralSettings'
+import NotificationSettings from './settings/NotificationSettings'
 import DataSettings from './settings/DataSettings'
 import AboutSettings from './settings/AboutSettings'
 
-type Page = 'general' | 'data' | 'about'
+type Page = 'general' | 'notifications' | 'data' | 'about'
 
 export default function SettingsPanel() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [page, setPage] = useState<Page>('general')
   const settings = useSettingsStore((s) => s.settings)
+  const isZh = i18n.language === 'zh'
 
   const navItems: { id: Page; icon: string; label: string }[] = [
     { id: 'general', icon: '⚙️', label: t('nav.general') },
-    { id: 'data', icon: '💾', label: settings.language === 'zh' ? '数据' : 'Data' },
+    { id: 'notifications', icon: '🔔', label: t('nav.notifications') },
+    { id: 'data', icon: '💾', label: isZh ? '数据' : 'Data' },
     { id: 'about', icon: 'ℹ️', label: t('nav.about') },
   ]
 
@@ -37,7 +40,7 @@ export default function SettingsPanel() {
         style={{ '--wails-draggable': 'drag' } as React.CSSProperties}
       >
         <span className="text-[12px] font-semibold text-[--pager-text-primary] tracking-tight">
-          {settings.language === 'zh' ? '设置' : 'Settings'}
+          {isZh ? '设置' : 'Settings'}
         </span>
         <button
           onClick={handleClose}
@@ -52,9 +55,6 @@ export default function SettingsPanel() {
       {/* Content area */}
       <div className="flex flex-1 overflow-hidden">
         <div className="w-[180px] min-w-[180px] bg-[rgba(246,246,248,0.98)] dark:bg-[rgba(30,30,32,0.98)] border-r border-[rgba(0,0,0,0.08)] dark:border-[rgba(255,255,255,0.06)] p-3 pt-2">
-          <div className="text-[11px] font-semibold text-[rgba(0,0,0,0.4)] dark:text-[rgba(255,255,255,0.35)] tracking-wide mb-1 px-3">
-            {settings.language === 'zh' ? '通用' : 'GENERAL'}
-          </div>
           {navItems.map((item) => (
             <button
               key={item.id}
@@ -73,6 +73,7 @@ export default function SettingsPanel() {
 
         <div className="flex-1 p-5 overflow-y-auto bg-[#f5f5f7] dark:bg-[#2a2a2c]">
           {page === 'general' && <GeneralSettings />}
+          {page === 'notifications' && <NotificationSettings />}
           {page === 'data' && <DataSettings />}
           {page === 'about' && <AboutSettings />}
         </div>

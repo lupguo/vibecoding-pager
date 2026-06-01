@@ -11,6 +11,7 @@ export interface Settings {
   popup_width: number
   popup_pinned: boolean
   session_load_hours: number
+  notification_events: Record<string, string[]>
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -22,6 +23,10 @@ const DEFAULT_SETTINGS: Settings = {
   popup_width: 380,
   popup_pinned: false,
   session_load_hours: 24,
+  notification_events: {
+    CC: ['StopFailure', 'Notification', 'PermissionRequest', 'PostToolUseFailure', 'Elicitation'],
+    'CC-INT': ['StopFailure', 'Notification'],
+  },
 }
 
 interface SettingsStore {
@@ -39,7 +44,16 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     try {
       const { GetSettings } = await import('../../bindings/pager/internal/wails/settingsbinding.js')
       const cfg = await GetSettings()
-      set({ settings: cfg, loaded: true })
+      // Normalize notification_events: binding type marks values as optional, ensure they're string[]
+      const normalized: Settings = {
+        ...DEFAULT_SETTINGS,
+        ...cfg,
+        notification_events: Object.fromEntries(
+          Object.entries(cfg.notification_events ?? {})
+            .filter((e): e is [string, string[]] => e[1] != null)
+        ),
+      }
+      set({ settings: normalized, loaded: true })
       i18n.changeLanguage(cfg.language)
       applyTheme(cfg.theme)
       applyOpacity(cfg.opacity)

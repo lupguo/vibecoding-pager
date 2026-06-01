@@ -59,18 +59,7 @@ export default function GeneralSettings() {
         </Row>
       </Section>
 
-      <Section label={t('general.notifications')}>
-        <Row label={t('general.notificationLevel')} desc={t('general.notificationLevelDesc')} last>
-          <select
-            value={settings.notification_level}
-            onChange={(e) => updateSettings({ notification_level: e.target.value })}
-            className="settings-dropdown"
-          >
-            <option value="all">{t('general.notifyAll')}</option>
-            <option value="attention_only">{t('general.notifyAttentionOnly')}</option>
-          </select>
-        </Row>
-      </Section>
+
     </div>
   )
 }
