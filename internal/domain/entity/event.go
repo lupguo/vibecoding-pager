@@ -5,17 +5,25 @@ import (
 	"time"
 )
 
-// EventType constants
+// EventType constants. Values are CamelCase to match the CC-native event names
+// produced by pager-cc-bridge. They MUST stay in sync with the switch cases in
+// session.DeriveStatus.
 const (
-	EventPreToolUse       = "pre_tool_use"
-	EventPostToolUse      = "post_tool_use"
-	EventStop             = "stop"
-	EventError            = "error"
-	EventNotification     = "notification"
-	EventSessionStart     = "session_start"
-	EventUserPromptSubmit = "user_prompt_submit"
-	EventSubagentStop     = "subagent_stop"
-	EventPreCompact       = "pre_compact"
+	EventPreToolUse       = "PreToolUse"
+	EventPostToolUse      = "PostToolUse"
+	EventStop             = "Stop"
+	EventStopFailure      = "StopFailure"
+	EventError            = "Error"
+	EventNotification     = "Notification"
+	EventSessionStart     = "SessionStart"
+	EventSessionEnd       = "SessionEnd"
+	EventUserPromptSubmit = "UserPromptSubmit"
+	EventSubagentStop     = "SubagentStop"
+	EventPreCompact       = "PreCompact"
+	EventPermissionRequest = "PermissionRequest"
+	EventPermissionDenied  = "PermissionDenied"
+	EventElicitation       = "Elicitation"
+	EventPostToolUseFailure = "PostToolUseFailure"
 )
 
 // Agent constants

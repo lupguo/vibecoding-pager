@@ -14,24 +14,24 @@ const (
 func DeriveStatus(eventType, toolName, permissionMode string, hasPendingAskUser bool) entity.SessionStatus {
 	switch eventType {
 	// terminal failures
-	case "StopFailure", "Error":
+	case entity.EventStopFailure, entity.EventError:
 		return entity.StatusError
 
 	// user-attention events
-	case "PermissionRequest", "PermissionDenied", "Notification",
-		"Elicitation", "PostToolUseFailure":
+	case entity.EventPermissionRequest, entity.EventPermissionDenied, entity.EventNotification,
+		entity.EventElicitation, entity.EventPostToolUseFailure:
 		return entity.StatusWaiting
 
 	// clean termination — but if AskUserQuestion is still pending, the agent is
 	// waiting on the user, not finished.
-	case "Stop", "SessionEnd", "SubagentStop":
+	case entity.EventStop, entity.EventSessionEnd, entity.EventSubagentStop:
 		if hasPendingAskUser {
 			return entity.StatusWaiting
 		}
 		return entity.StatusDone
 
 	// tool-use
-	case "PreToolUse":
+	case entity.EventPreToolUse:
 		if toolName == toolAskUserQuestion || permissionMode != permModeBypassPermissions {
 			return entity.StatusWaiting
 		}
