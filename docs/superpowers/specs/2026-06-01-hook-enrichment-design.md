@@ -436,11 +436,38 @@ type Settings struct {
 
 ### Settings UI
 
-- 位置：Settings 面板新增 "事件通知" Tab
+**位置变更**：从 General 面板中移除现有的 "通知级别" 配置块，独立为左侧 sidebar 的新 Tab。
+
+**Sidebar 导航**（新增 🔔）：
+```
+⚙️ 通用 (General)
+🔔 通知 (Notifications)  ← 新增
+💾 数据 (Data)
+ℹ️ 关于 (About)
+```
+
+**GeneralSettings.tsx 变更**：删除 `<Section label="通知">` 及其中的 `notification_level` 下拉框。
+
+**新增 NotificationSettings.tsx**：
 - 顶部：Agent Tabs（CC / CC-INT / Codex / Gemini），已接入的显示绿色标签
-- 内容：按 6 层分组的 checkbox 列表，勾选 = 触发系统通知
-- 预设按钮：推荐 / 仅关键 / 全通知 / 全静默
-- 未接入 Agent 置灰，提示安装命令
+- 说明文字：开启的事件将触发 macOS 系统通知。所有事件均在会话面板中展示。
+- 预设按钮：推荐 / 仅关键 / 全通知 / 全关闭
+- 内容：按 5 个 domain 分组（SESSION / TURN / TOOL / AGENT & TASK / SYSTEM & MCP）
+- 每行：事件中文名 + hook_event_name + iOS 风格 Toggle 开关
+- 底部统计：当前已开启 N 项通知 · 共 22 项事件
+- 未接入 Agent Tab 置灰，提示安装命令
+
+**SettingsPanel.tsx 变更**：
+```typescript
+type Page = 'general' | 'notifications' | 'data' | 'about'
+
+const navItems = [
+  { id: 'general', icon: '⚙️', label: t('nav.general') },
+  { id: 'notifications', icon: '🔔', label: isZh ? '通知' : 'Notifications' },
+  { id: 'data', icon: '💾', label: isZh ? '数据' : 'Data' },
+  { id: 'about', icon: 'ℹ️', label: t('nav.about') },
+]
+```
 
 ## 9. 安装脚本更新
 
