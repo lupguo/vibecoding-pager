@@ -8,6 +8,23 @@
 
 **Tech Stack:** Go 1.25, Wails v3, React 18, TypeScript, Tailwind CSS, zustand, i18next
 
+**Key Design Decisions:**
+
+1. **Content 策略 — 存原始数据，UI 侧组合显示**
+   - `contentRaw` = 原始关键参数（command, file_path, subject, message 等），不含中文/英文描述前缀
+   - `content` = truncateRunes(contentRaw, 60)
+   - UI 组合展示：`tool_name`（蓝色标签）+ `content`（正文），事件类型中文名由前端 i18n 负责
+
+2. **Attention 三态视觉**
+   - 🔴 WAITING / ERROR（红色脉冲圆点 + 红底 tag + 红色卡片边框）→ 需要用户关注
+   - 🟢 WORKING（绿色圆点 + 绿底 tag + 绿色卡片边框）→ Agent 在跑，无需关注
+   - ⚫ DONE（灰色圆点 + 灰底 tag + 灰色卡片边框）→ 会话结束/空闲
+
+3. **Session Card 布局**
+   - Row 1: `[状态圆点] [状态Tag] [Agent Badge] .............. [session_id] [time]`
+   - Row 2: `[tool_name蓝色] [content正文] .......................... [→跳转]`
+   - session_id 靠右对齐，紧贴时间字段左侧
+
 ---
 
 ### Task 1: CCHookInput Struct Expansion
@@ -324,10 +341,10 @@ Add to `internal/adapter/bridge/extractor_test.go`:
 func TestExtractContent_TaskCreate(t *testing.T) {
 	input := json.RawMessage(`{"subject":"Fix login bug","description":"Form crashes on submit","activeForm":"Fixing login"}`)
 	raw, content := ExtractContent("TaskCreate", input)
-	if raw != "任务: Fix login bug" {
+	if raw != "Fix login bug" {
 		t.Errorf("raw: got %q", raw)
 	}
-	if content != "任务: Fix login bug" {
+	if content != "Fix login bug" {
 		t.Errorf("content: got %q", content)
 	}
 }
@@ -335,10 +352,10 @@ func TestExtractContent_TaskCreate(t *testing.T) {
 func TestExtractContent_TaskUpdate(t *testing.T) {
 	input := json.RawMessage(`{"taskId":"1","status":"completed","subject":"Fix login bug"}`)
 	raw, content := ExtractContent("TaskUpdate", input)
-	if raw != "任务: Fix login bug →completed" {
+	if raw != "Fix login bug →completed" {
 		t.Errorf("raw: got %q", raw)
 	}
-	if content != "任务: Fix login bug →completed" {
+	if content != "Fix login bug →completed" {
 		t.Errorf("content: got %q", content)
 	}
 }
@@ -346,10 +363,10 @@ func TestExtractContent_TaskUpdate(t *testing.T) {
 func TestExtractContent_TaskUpdate_StatusOnly(t *testing.T) {
 	input := json.RawMessage(`{"taskId":"1","status":"in_progress"}`)
 	raw, content := ExtractContent("TaskUpdate", input)
-	if raw != "任务: →in_progress" {
+	if raw != "→in_progress" {
 		t.Errorf("raw: got %q", raw)
 	}
-	if content != "任务: →in_progress" {
+	if content != "→in_progress" {
 		t.Errorf("content: got %q", content)
 	}
 }
@@ -357,7 +374,7 @@ func TestExtractContent_TaskUpdate_StatusOnly(t *testing.T) {
 func TestExtractContent_TaskGet(t *testing.T) {
 	input := json.RawMessage(`{"taskId":"1"}`)
 	raw, _ := ExtractContent("TaskGet", input)
-	if raw != "查看任务" {
+	if raw != "TaskGet" {
 		t.Errorf("raw: got %q", raw)
 	}
 }
@@ -365,7 +382,7 @@ func TestExtractContent_TaskGet(t *testing.T) {
 func TestExtractContent_TaskList(t *testing.T) {
 	input := json.RawMessage(`{}`)
 	raw, _ := ExtractContent("TaskList", input)
-	if raw != "查看任务" {
+	if raw != "TaskList" {
 		t.Errorf("raw: got %q", raw)
 	}
 }
@@ -381,7 +398,7 @@ func TestExtractContent_LSP(t *testing.T) {
 func TestExtractContent_NotebookEdit(t *testing.T) {
 	input := json.RawMessage(`{"notebook_path":"/tmp/test.ipynb","new_source":"print('hi')"}`)
 	raw, _ := ExtractContent("NotebookEdit", input)
-	if raw != "编辑 /tmp/test.ipynb" {
+	if raw != "/tmp/test.ipynb" {
 		t.Errorf("raw: got %q", raw)
 	}
 }
@@ -400,7 +417,7 @@ In `internal/adapter/bridge/extractor.go`, add these cases inside the `extractRa
 	case "TaskCreate":
 		var in TaskCreateInput
 		if unmarshal(&in) && in.Subject != "" {
-			return "任务: " + in.Subject
+			return in.Subject
 		}
 	case "TaskUpdate":
 		var in TaskUpdateInput
@@ -413,19 +430,19 @@ In `internal/adapter/bridge/extractor.go`, add these cases inside the `extractRa
 				parts = append(parts, "→"+in.Status)
 			}
 			if len(parts) > 0 {
-				return "任务: " + strings.Join(parts, " ")
+				return strings.Join(parts, " ")
 			}
 		}
 	case "TaskGet", "TaskList":
-		return "查看任务"
+		return toolName
 	case "TaskStop":
-		return "停止任务"
+		return toolName
 	case "NotebookEdit":
 		var in struct {
 			NotebookPath string `json:"notebook_path"`
 		}
 		if unmarshal(&in) && in.NotebookPath != "" {
-			return "编辑 " + in.NotebookPath
+			return in.NotebookPath
 		}
 	case "LSP":
 		var in struct {
@@ -480,7 +497,7 @@ func TestExtractEventContent_Stop_WithMessage(t *testing.T) {
 func TestExtractEventContent_Stop_NoMessage(t *testing.T) {
 	in := &CCHookInput{StopReason: "end_turn"}
 	raw, _ := ExtractEventContent("stop", in)
-	if raw != "回复完成: end_turn" {
+	if raw != "end_turn" {
 		t.Errorf("raw: got %q", raw)
 	}
 }
@@ -488,8 +505,8 @@ func TestExtractEventContent_Stop_NoMessage(t *testing.T) {
 func TestExtractEventContent_Stop_Empty(t *testing.T) {
 	in := &CCHookInput{}
 	raw, _ := ExtractEventContent("stop", in)
-	if raw != "回复完成" {
-		t.Errorf("raw: got %q", raw)
+	if raw != "" {
+		t.Errorf("raw: got %q, want empty", raw)
 	}
 }
 
@@ -520,7 +537,7 @@ func TestExtractEventContent_Notification_NoMessage(t *testing.T) {
 func TestExtractEventContent_TaskCreated(t *testing.T) {
 	in := &CCHookInput{TaskTitle: "Implement auth flow", TaskDescription: "Add JWT tokens"}
 	raw, _ := ExtractEventContent("task_created", in)
-	if raw != "任务: Implement auth flow" {
+	if raw != "Implement auth flow" {
 		t.Errorf("raw: got %q", raw)
 	}
 }
@@ -528,7 +545,7 @@ func TestExtractEventContent_TaskCreated(t *testing.T) {
 func TestExtractEventContent_SubagentStart(t *testing.T) {
 	in := &CCHookInput{AgentType: "general-purpose"}
 	raw, _ := ExtractEventContent("subagent_start", in)
-	if raw != "子Agent启动: general-purpose" {
+	if raw != "general-purpose" {
 		t.Errorf("raw: got %q", raw)
 	}
 }
@@ -544,7 +561,7 @@ func TestExtractEventContent_UserPromptExpansion(t *testing.T) {
 func TestExtractEventContent_Elicitation(t *testing.T) {
 	in := &CCHookInput{ServerName: "github_mcp", Message: "Enter token"}
 	raw, _ := ExtractEventContent("elicitation", in)
-	if raw != "MCP表单: github_mcp - Enter token" {
+	if raw != "github_mcp: Enter token" {
 		t.Errorf("raw: got %q", raw)
 	}
 }
@@ -552,7 +569,7 @@ func TestExtractEventContent_Elicitation(t *testing.T) {
 func TestExtractEventContent_InstructionsLoaded(t *testing.T) {
 	in := &CCHookInput{FilePath: "/project/CLAUDE.md", LoadReason: "session_start"}
 	raw, _ := ExtractEventContent("instructions_loaded", in)
-	if raw != "加载: /project/CLAUDE.md" {
+	if raw != "/project/CLAUDE.md" {
 		t.Errorf("raw: got %q", raw)
 	}
 }
@@ -569,23 +586,19 @@ Replace the `ExtractEventContent` function in `internal/adapter/bridge/extractor
 
 ```go
 // ExtractEventContent extracts content from all non-tool event types.
-// Returns (contentRaw, content).
+// Returns (contentRaw, content) — raw data only, no i18n prefixes.
+// UI is responsible for combining event type labels with content for display.
 func ExtractEventContent(eventType string, in *CCHookInput) (contentRaw, content string) {
 	switch eventType {
 	// Session layer
 	case "session_start":
-		raw := "会话启动: " + in.Source
-		return raw, truncateRunes(raw, contentMaxRunes)
+		return in.Source, in.Source
 	case "session_end":
-		return "会话结束", "会话结束"
+		return "", ""
 
 	// Turn layer
 	case "user_prompt_submit":
-		raw := in.Prompt
-		if raw == "" {
-			raw = "用户输入"
-		}
-		return raw, truncateRunes(raw, contentMaxRunes)
+		return in.Prompt, truncateRunes(in.Prompt, contentMaxRunes)
 	case "user_prompt_expansion":
 		raw := "/" + in.CommandName
 		if in.CommandArgs != "" {
@@ -596,50 +609,40 @@ func ExtractEventContent(eventType string, in *CCHookInput) (contentRaw, content
 		if in.LastAssistantMessage != "" {
 			return in.LastAssistantMessage, truncateRunes(in.LastAssistantMessage, contentMaxRunes)
 		}
-		if in.StopReason != "" {
-			raw := "回复完成: " + in.StopReason
-			return raw, raw
-		}
-		return "回复完成", "回复完成"
+		return in.StopReason, in.StopReason
 	case "stop_failure":
 		raw := in.ErrorType + ": " + in.ErrorMessage
 		return raw, truncateRunes(raw, contentMaxRunes)
 
 	// Agent & Task layer
 	case "subagent_start":
-		raw := "子Agent启动: " + in.AgentType
-		return raw, truncateRunes(raw, contentMaxRunes)
+		return in.AgentType, in.AgentType
 	case "subagent_stop":
-		raw := "子Agent完成: " + in.AgentType
-		return raw, truncateRunes(raw, contentMaxRunes)
+		return in.AgentType, in.AgentType
 	case "task_created":
-		raw := "任务: " + in.TaskTitle
-		return raw, truncateRunes(raw, contentMaxRunes)
+		return in.TaskTitle, truncateRunes(in.TaskTitle, contentMaxRunes)
 	case "task_completed":
-		raw := "任务完成: " + in.TaskTitle
-		return raw, truncateRunes(raw, contentMaxRunes)
+		return in.TaskTitle, truncateRunes(in.TaskTitle, contentMaxRunes)
 
 	// Tool layer (non-standard events that still have tool info)
 	case "post_tool_use_failure":
-		raw := in.ToolName + " 失败: " + in.ToolError
+		raw := in.ToolName + ": " + in.ToolError
 		return raw, truncateRunes(raw, contentMaxRunes)
 	case "permission_request":
 		return ExtractContent(in.ToolName, in.ToolInput)
 	case "permission_denied":
-		raw := in.ToolName + " 被拒: " + in.DenialReason
+		raw := in.ToolName + ": " + in.DenialReason
 		return raw, truncateRunes(raw, contentMaxRunes)
 	case "post_tool_batch":
-		return "批次完成", "批次完成"
+		return "", ""
 
 	// Context layer
 	case "pre_compact":
-		raw := "上下文压缩: " + in.Trigger
-		return raw, raw
+		return in.Trigger, in.Trigger
 	case "post_compact":
-		return "压缩完成", "压缩完成"
+		return "", ""
 	case "instructions_loaded":
-		raw := "加载: " + in.FilePath
-		return raw, truncateRunes(raw, contentMaxRunes)
+		return in.FilePath, truncateRunes(in.FilePath, contentMaxRunes)
 
 	// MCP & UI layer
 	case "notification":
@@ -649,20 +652,15 @@ func ExtractEventContent(eventType string, in *CCHookInput) (contentRaw, content
 		}
 		return raw, truncateRunes(raw, contentMaxRunes)
 	case "elicitation":
-		raw := "MCP表单: " + in.ServerName + " - " + in.Message
+		raw := in.ServerName + ": " + in.Message
 		return raw, truncateRunes(raw, contentMaxRunes)
 	case "elicitation_result":
-		raw := "MCP响应: " + in.ServerName
-		return raw, truncateRunes(raw, contentMaxRunes)
+		return in.ServerName, in.ServerName
 	case "message_display":
-		raw := in.MessageText
-		if raw == "" {
-			raw = "消息输出"
-		}
-		return raw, truncateRunes(raw, contentMaxRunes)
+		return in.MessageText, truncateRunes(in.MessageText, contentMaxRunes)
 
 	default:
-		return eventType, eventType
+		return "", ""
 	}
 }
 ```
