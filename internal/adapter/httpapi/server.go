@@ -9,6 +9,7 @@ import (
 
 	"pager/internal/domain/entity"
 	"pager/internal/domain/session"
+	"pager/internal/infra/store"
 )
 
 const ListenAddr = "127.0.0.1:7421"
@@ -16,11 +17,24 @@ const ListenAddr = "127.0.0.1:7421"
 // Server handles HTTP requests from bridge processes.
 type Server struct {
 	tracker *session.Tracker
+	store   store.EventStore
 }
 
-// New creates a Server with the given tracker.
-func New(tracker *session.Tracker) *Server {
-	return &Server{tracker: tracker}
+// New creates a Server with the given tracker and optional event store.
+func New(tracker *session.Tracker, opts ...ServerOption) *Server {
+	s := &Server{tracker: tracker}
+	for _, opt := range opts {
+		opt(s)
+	}
+	return s
+}
+
+// ServerOption configures the Server.
+type ServerOption func(*Server)
+
+// WithStore sets the EventStore for persistent event recording.
+func WithStore(es store.EventStore) ServerOption {
+	return func(s *Server) { s.store = es }
 }
 
 // Start launches the HTTP server in a background goroutine.
@@ -50,6 +64,10 @@ func (s *Server) HandleEvent(w http.ResponseWriter, req *http.Request) {
 	}
 
 	s.tracker.TrackEvent(&e)
+
+	if s.store != nil {
+		s.store.Record(&e)
+	}
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintln(w, "ok")

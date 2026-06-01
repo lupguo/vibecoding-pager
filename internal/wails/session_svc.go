@@ -5,11 +5,13 @@ import (
 
 	"pager/internal/adapter/terminal"
 	"pager/internal/domain/session"
+	"pager/internal/infra/store"
 )
 
 // SessionBinding exposes session state and actions to the React frontend via Wails bindings.
 type SessionBinding struct {
 	tracker *session.Tracker
+	store   store.EventStore
 }
 
 // ListSessions returns all sessions sorted by UpdatedAt descending.
@@ -40,10 +42,14 @@ func (s *SessionBinding) JumpToTerminal(sessionKey string) error {
 	return terminal.Jump(req)
 }
 
-// DismissSession removes a session from the tracker.
+// DismissSession removes a session from the tracker and soft-deletes in store.
 func (s *SessionBinding) DismissSession(sessionKey string) {
 	if s.tracker == nil {
 		return
 	}
 	s.tracker.Dismiss(sessionKey)
+
+	if s.store != nil {
+		_ = s.store.DismissSession(sessionKey)
+	}
 }

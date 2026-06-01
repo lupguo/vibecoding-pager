@@ -4,6 +4,8 @@ import (
 	"context"
 	"embed"
 	"log/slog"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -14,6 +16,7 @@ import (
 	"pager/internal/domain/entity"
 	"pager/internal/domain/session"
 	"pager/internal/infra/config"
+	"pager/internal/infra/store"
 )
 
 //go:embed assets/tray-icon@2x.png
@@ -23,7 +26,14 @@ var trayIconData []byte
 type PagerApp struct {
 	tracker *session.Tracker
 	srv     *httpapi.Server
+	store   store.EventStore
 	tray    *application.SystemTray
+}
+
+// defaultDBPath returns the SQLite database file path.
+func defaultDBPath() string {
+	home, _ := os.UserHomeDir()
+	return filepath.Join(home, ".config", "pager", "pager.db")
 }
 
 // NewPagerApp assembles and returns a runnable Wails application.
@@ -32,7 +42,18 @@ func NewPagerApp(assets embed.FS) *application.App {
 
 	p := &PagerApp{}
 
-	// ── SessionTracker + HTTP server ────────────────────────────────────────
+	// ── Load config ─────────────────────────────────────────────────────────
+	initialCfg, _ := config.LoadFrom(config.DefaultPath())
+
+	// ── SQLite EventStore ───────────────────────────────────────────────────
+	eventStore, err := store.NewSQLiteStore(defaultDBPath())
+	if err != nil {
+		slog.Error("failed to open event store", "error", err)
+		// Continue without persistence — graceful degradation
+	}
+	p.store = eventStore
+
+	// ── SessionTracker ──────────────────────────────────────────────────────
 	p.tracker = session.NewTracker(func(sessions []*session.Session) {
 		wailsApp := application.Get()
 		if wailsApp == nil {
@@ -50,20 +71,37 @@ func NewPagerApp(assets embed.FS) *application.App {
 		}
 	})
 
-	p.srv = httpapi.New(p.tracker)
+	// ── Replay from SQLite ──────────────────────────────────────────────────
+	if eventStore != nil {
+		loadHours := initialCfg.SessionLoadHours
+		if loadHours <= 0 {
+			loadHours = 24
+		}
+		replayEvents, err := eventStore.LoadRecentSessions(loadHours)
+		if err != nil {
+			slog.Error("failed to load recent sessions", "error", err)
+		} else if len(replayEvents) > 0 {
+			logger.Info("replaying events from SQLite", "count", len(replayEvents))
+			p.tracker.Replay(replayEvents)
+		}
+	}
+
+	// ── HTTP Server ─────────────────────────────────────────────────────────
+	var serverOpts []httpapi.ServerOption
+	if eventStore != nil {
+		serverOpts = append(serverOpts, httpapi.WithStore(eventStore))
+	}
+	p.srv = httpapi.New(p.tracker, serverOpts...)
 
 	// ── Services ────────────────────────────────────────────────────────────
-	sessionBinding := &SessionBinding{tracker: p.tracker}
+	sessionBinding := &SessionBinding{tracker: p.tracker, store: eventStore}
 
 	var popupWindow *application.WebviewWindow
 	var settingsWindow *application.WebviewWindow
 
 	settingsBinding := NewSettingsBinding(func(cfg config.Settings) {
 		RegisterHotkey(popupWindow, cfg.HotkeyToggle)
-	})
-
-	// Load initial config for window defaults
-	initialCfg, _ := config.LoadFrom(config.DefaultPath())
+	}, eventStore)
 
 	// WindowBinding will be connected to windows after creation
 	windowBinding := &WindowBinding{configPath: config.DefaultPath()}
@@ -134,7 +172,6 @@ func NewPagerApp(assets embed.FS) *application.App {
 	})
 
 	// B1 fix: Intercept window close → hide instead of destroy.
-	// Without this, closing the settings window destroys it and Show() becomes a no-op.
 	settingsWindow.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
 		e.Cancel()
 		settingsWindow.Hide()
@@ -181,6 +218,10 @@ func (p *PagerApp) ServiceStartup(_ context.Context, _ application.ServiceOption
 
 // ServiceShutdown implements application.ServiceShutdown.
 func (p *PagerApp) ServiceShutdown() error {
+	if p.store != nil {
+		slog.Info("closing event store", "module", "wails")
+		return p.store.Close()
+	}
 	return nil
 }
 

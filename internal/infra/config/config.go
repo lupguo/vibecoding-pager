@@ -14,6 +14,7 @@ type Settings struct {
 	NotificationLevel string `json:"notification_level"`
 	PopupWidth        int    `json:"popup_width"`
 	PopupPinned       bool   `json:"popup_pinned"`
+	SessionLoadHours  int    `json:"session_load_hours"`
 }
 
 func Defaults() Settings {
@@ -25,6 +26,7 @@ func Defaults() Settings {
 		NotificationLevel: "attention_only",
 		PopupWidth:        380,
 		PopupPinned:       false,
+		SessionLoadHours:  24,
 	}
 }
 
