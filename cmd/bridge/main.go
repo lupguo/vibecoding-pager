@@ -38,8 +38,6 @@ func main() {
 		contentRaw, content = bridge.ExtractEventContent(eventType, &in)
 	}
 
-	attentionLevel := bridge.DetermineAttentionLevel(eventType, in.PermissionMode, in.ToolName)
-
 	e := entity.AgentEvent{
 		Agent:          entity.AgentClaudeCode,
 		Host:           "local",
@@ -53,7 +51,6 @@ func main() {
 		ToolUseID:      in.ToolUseID,
 		Content:        content,
 		ContentRaw:     contentRaw,
-		AttentionLevel: attentionLevel,
 		AgentLabel:     agentLabel,
 		PermissionMode: in.PermissionMode,
 		RawPayload:     raw,
