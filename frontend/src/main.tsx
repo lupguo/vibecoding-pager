@@ -7,9 +7,11 @@ import SettingsPanel from './pages/SettingsPanel'
 import './index.css'
 import { initSessionSync } from './store/sessions'
 import { initSettings } from './store/settings'
+import { initUIState } from './store/uistate'
 
 initSessionSync()
 initSettings()
+initUIState()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
