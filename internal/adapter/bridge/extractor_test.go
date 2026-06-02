@@ -276,7 +276,7 @@ func TestExtractEventContent_Notification_NoMessage(t *testing.T) {
 }
 
 func TestExtractEventContent_TaskCreated(t *testing.T) {
-	in := &CCHookInput{TaskTitle: "Implement auth flow", TaskDescription: "Add JWT tokens"}
+	in := &CCHookInput{TaskSubject: "Implement auth flow", TaskDescription: "Add JWT tokens"}
 	raw, _ := ExtractEventContent("TaskCreated", in)
 	if raw != "Implement auth flow" {
 		t.Errorf("raw: got %q", raw)

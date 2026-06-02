@@ -44,7 +44,7 @@ type CCHookInput struct {
 	AgentID         string `json:"agent_id"`         // SubagentStart/Stop
 	AgentType       string `json:"agent_type"`       // SubagentStart/Stop
 	TaskID          string `json:"task_id"`          // TaskCreated/Completed
-	TaskTitle       string `json:"task_title"`       // TaskCreated/Completed
+	TaskSubject     string `json:"task_subject"`     // TaskCreated/Completed
 	TaskDescription string `json:"task_description"` // TaskCreated
 
 	// ═══ Context layer ═══
@@ -59,7 +59,7 @@ type CCHookInput struct {
 	ServerName       string          `json:"server_name"`       // Elicitation
 	Request          json.RawMessage `json:"request,omitempty"` // Elicitation
 	UserResponse     string          `json:"user_response"`     // ElicitationResult
-	MessageText      string          `json:"message_text"`      // MessageDisplay
+	Delta            string          `json:"delta"`             // MessageDisplay
 }
 
 // EffortLevel represents the effort level in CC's response.

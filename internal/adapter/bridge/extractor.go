@@ -178,9 +178,9 @@ func ExtractEventContent(eventType string, in *CCHookInput) (contentRaw, content
 	case "SubagentStop":
 		return in.AgentType, in.AgentType
 	case "TaskCreated":
-		return in.TaskTitle, truncateRunes(in.TaskTitle, contentMaxRunes)
+		return in.TaskSubject, truncateRunes(in.TaskSubject, contentMaxRunes)
 	case "TaskCompleted":
-		return in.TaskTitle, truncateRunes(in.TaskTitle, contentMaxRunes)
+		return in.TaskSubject, truncateRunes(in.TaskSubject, contentMaxRunes)
 
 	// Tool layer (non-standard events that still have tool info)
 	case "PostToolUseFailure":
@@ -215,7 +215,7 @@ func ExtractEventContent(eventType string, in *CCHookInput) (contentRaw, content
 	case "ElicitationResult":
 		return in.ServerName, in.ServerName
 	case "MessageDisplay":
-		return in.MessageText, truncateRunes(in.MessageText, contentMaxRunes)
+		return in.Delta, truncateRunes(in.Delta, contentMaxRunes)
 
 	default:
 		return "", ""

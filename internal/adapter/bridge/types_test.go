@@ -29,15 +29,15 @@ func TestCCHookInput_TaskCreatedFields(t *testing.T) {
 		"session_id": "abc",
 		"hook_event_name": "TaskCreated",
 		"task_id": "t1",
-		"task_title": "Fix login bug",
+		"task_subject": "Fix login bug",
 		"task_description": "The login form crashes on submit"
 	}`
 	var in CCHookInput
 	if err := json.Unmarshal([]byte(raw), &in); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
-	if in.TaskTitle != "Fix login bug" {
-		t.Errorf("TaskTitle: got %q", in.TaskTitle)
+	if in.TaskSubject != "Fix login bug" {
+		t.Errorf("TaskSubject: got %q", in.TaskSubject)
 	}
 	if in.TaskDescription != "The login form crashes on submit" {
 		t.Errorf("TaskDescription: got %q", in.TaskDescription)
