@@ -57,7 +57,7 @@ export default function SessionList() {
               </span>
               <span className="flex-1 h-px bg-[--pager-border] opacity-50" />
               <button
-                className="opacity-0 group-hover:opacity-100 w-[22px] h-[22px] flex items-center justify-center rounded-[4px] text-[--pager-text-faint] hover:bg-[rgba(255,69,58,0.15)] hover:text-[--c-waiting] transition-colors"
+                className="opacity-0 group-hover:opacity-100 w-[22px] h-[22px] flex items-center justify-center rounded-[4px] text-[--pager-text-faint] hover:bg-[--pill-error] hover:text-[--c-error] transition-colors"
                 title="清理该项目历史会话"
                 onClick={async (e) => {
                   e.stopPropagation()
