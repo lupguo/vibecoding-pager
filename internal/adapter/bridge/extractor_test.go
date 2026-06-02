@@ -387,3 +387,25 @@ func TestExtractEventContent_SubagentStop_FallsBackToAgentType(t *testing.T) {
 		t.Errorf("raw = %q, want %q", raw, "claude")
 	}
 }
+
+func TestExtractEventContent_TaskCompleted_UsesTaskSubject(t *testing.T) {
+	in := &CCHookInput{TaskSubject: "Task 3: Migrate schema"}
+	raw, content := ExtractEventContent("TaskCompleted", in)
+	if raw != "Task 3: Migrate schema" {
+		t.Errorf("raw = %q", raw)
+	}
+	if content != "Task 3: Migrate schema" {
+		t.Errorf("content = %q", content)
+	}
+}
+
+func TestExtractEventContent_MessageDisplay_UsesDelta(t *testing.T) {
+	in := &CCHookInput{Delta: "这一节没问题吗？"}
+	raw, content := ExtractEventContent("MessageDisplay", in)
+	if raw != "这一节没问题吗？" {
+		t.Errorf("raw = %q", raw)
+	}
+	if content != "这一节没问题吗？" {
+		t.Errorf("content = %q", content)
+	}
+}
