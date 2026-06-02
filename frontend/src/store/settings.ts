@@ -12,6 +12,7 @@ export interface Settings {
   popup_pinned: boolean
   session_load_hours: number
   notification_events: Record<string, string[]>
+  collapsed_projects: string[]
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -27,6 +28,7 @@ const DEFAULT_SETTINGS: Settings = {
     CC: ['StopFailure', 'Notification', 'PermissionRequest', 'PostToolUseFailure', 'Elicitation'],
     'CC-INT': ['StopFailure', 'Notification'],
   },
+  collapsed_projects: [],
 }
 
 interface SettingsStore {

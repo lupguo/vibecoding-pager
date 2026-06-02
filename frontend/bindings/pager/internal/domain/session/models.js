@@ -74,16 +74,9 @@ export class Session {
         if (!("Status" in $$source)) {
             /**
              * @member
-             * @type {string}
+             * @type {entity$0.SessionStatus}
              */
-            this["Status"] = "";
-        }
-        if (!("AttentionLevel" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["AttentionLevel"] = "";
+            this["Status"] = entity$0.SessionStatus.$zero;
         }
         if (!("AgentLabel" in $$source)) {
             /**
@@ -130,14 +123,14 @@ export class Session {
      * @returns {Session}
      */
     static createFrom($$source = {}) {
-        const $$createField11_0 = $$createType1;
-        const $$createField12_0 = $$createType2;
+        const $$createField10_0 = $$createType1;
+        const $$createField11_0 = $$createType2;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("LastEvent" in $$parsedSource) {
-            $$parsedSource["LastEvent"] = $$createField11_0($$parsedSource["LastEvent"]);
+            $$parsedSource["LastEvent"] = $$createField10_0($$parsedSource["LastEvent"]);
         }
         if ("PendingTools" in $$parsedSource) {
-            $$parsedSource["PendingTools"] = $$createField12_0($$parsedSource["PendingTools"]);
+            $$parsedSource["PendingTools"] = $$createField11_0($$parsedSource["PendingTools"]);
         }
         return new Session(/** @type {Partial<Session>} */($$parsedSource));
     }

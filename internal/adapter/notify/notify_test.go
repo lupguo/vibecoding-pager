@@ -6,44 +6,32 @@ import (
 	"pager/internal/domain/entity"
 )
 
-func TestShouldNotifyByConfig_NilMap(t *testing.T) {
-	e := &entity.AgentEvent{AgentLabel: "CC", EventType: "StopFailure"}
-	if ShouldNotifyByConfig(e, nil) {
-		t.Error("expected false for nil map")
+func TestShouldNotify_AttentionOnly(t *testing.T) {
+	cases := []struct {
+		ev   *entity.AgentEvent
+		want bool
+	}{
+		{&entity.AgentEvent{EventType: "StopFailure"}, true},
+		{&entity.AgentEvent{EventType: "PermissionRequest"}, true},
+		{&entity.AgentEvent{EventType: "Stop"}, false},
+		{&entity.AgentEvent{EventType: "PostToolUse", ToolName: "Edit", PermissionMode: "default"}, false},
+		{&entity.AgentEvent{EventType: "PreToolUse", ToolName: "Edit", PermissionMode: "default"}, true},
+	}
+	for _, tc := range cases {
+		if got := ShouldNotify(tc.ev, "attention_only"); got != tc.want {
+			t.Errorf("ShouldNotify(%q) = %v; want %v", tc.ev.EventType, got, tc.want)
+		}
 	}
 }
 
-func TestShouldNotifyByConfig_LabelNotFound(t *testing.T) {
-	e := &entity.AgentEvent{AgentLabel: "OTHER", EventType: "StopFailure"}
-	m := map[string][]string{"CC": {"StopFailure"}}
-	if ShouldNotifyByConfig(e, m) {
-		t.Error("expected false when label not in config")
+func TestShouldNotifyByConfig(t *testing.T) {
+	cfg := map[string][]string{
+		"CC": {"PreToolUse", "Stop"},
 	}
-}
-
-func TestShouldNotifyByConfig_EventNotInList(t *testing.T) {
-	e := &entity.AgentEvent{AgentLabel: "CC", EventType: "SomeOtherEvent"}
-	m := map[string][]string{"CC": {"StopFailure", "Notification"}}
-	if ShouldNotifyByConfig(e, m) {
-		t.Error("expected false when event not in list")
+	if !ShouldNotifyByConfig(&entity.AgentEvent{AgentLabel: "CC", EventType: "Stop"}, cfg) {
+		t.Error("CC + Stop should notify")
 	}
-}
-
-func TestShouldNotifyByConfig_Match(t *testing.T) {
-	e := &entity.AgentEvent{AgentLabel: "CC", EventType: "StopFailure"}
-	m := map[string][]string{"CC": {"StopFailure", "Notification"}}
-	if !ShouldNotifyByConfig(e, m) {
-		t.Error("expected true for matching label and event")
-	}
-}
-
-func TestShouldNotifyByConfig_CCINTMatch(t *testing.T) {
-	e := &entity.AgentEvent{AgentLabel: "CC-INT", EventType: "Notification"}
-	m := map[string][]string{
-		"CC":     {"StopFailure", "Notification"},
-		"CC-INT": {"StopFailure", "Notification"},
-	}
-	if !ShouldNotifyByConfig(e, m) {
-		t.Error("expected true for CC-INT Notification match")
+	if ShouldNotifyByConfig(&entity.AgentEvent{AgentLabel: "CC", EventType: "Notification"}, cfg) {
+		t.Error("CC + Notification should NOT notify")
 	}
 }

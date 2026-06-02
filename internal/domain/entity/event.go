@@ -5,17 +5,25 @@ import (
 	"time"
 )
 
-// EventType constants
+// EventType constants. Values are CamelCase to match the CC-native event names
+// produced by pager-cc-bridge. They MUST stay in sync with the switch cases in
+// session.DeriveStatus.
 const (
-	EventPreToolUse       = "pre_tool_use"
-	EventPostToolUse      = "post_tool_use"
-	EventStop             = "stop"
-	EventError            = "error"
-	EventNotification     = "notification"
-	EventSessionStart     = "session_start"
-	EventUserPromptSubmit = "user_prompt_submit"
-	EventSubagentStop     = "subagent_stop"
-	EventPreCompact       = "pre_compact"
+	EventPreToolUse       = "PreToolUse"
+	EventPostToolUse      = "PostToolUse"
+	EventStop             = "Stop"
+	EventStopFailure      = "StopFailure"
+	EventError            = "Error"
+	EventNotification     = "Notification"
+	EventSessionStart     = "SessionStart"
+	EventSessionEnd       = "SessionEnd"
+	EventUserPromptSubmit = "UserPromptSubmit"
+	EventSubagentStop     = "SubagentStop"
+	EventPreCompact       = "PreCompact"
+	EventPermissionRequest = "PermissionRequest"
+	EventPermissionDenied  = "PermissionDenied"
+	EventElicitation       = "Elicitation"
+	EventPostToolUseFailure = "PostToolUseFailure"
 )
 
 // Agent constants
@@ -24,19 +32,15 @@ const (
 	AgentCodex      = "codex"
 )
 
-// SessionStatus constants
-const (
-	StatusWaiting  = "waiting"
-	StatusActive   = "active"
-	StatusFinished = "finished"
-	StatusError    = "error"
-)
+// SessionStatus is the single source of truth for session UX state.
+// Values are mutually exclusive; UI renders one tag per card.
+type SessionStatus string
 
-// AttentionLevel constants
 const (
-	AttentionAttention = "attention"
-	AttentionRunning   = "running"
-	AttentionDone      = "done"
+	StatusWorking SessionStatus = "working" // active, no user action needed
+	StatusWaiting SessionStatus = "waiting" // user action required (any reason)
+	StatusDone    SessionStatus = "done"    // ended cleanly
+	StatusError   SessionStatus = "error"   // ended with failure
 )
 
 // AgentEvent is the single cross-layer data structure.
@@ -54,7 +58,6 @@ type AgentEvent struct {
 	ToolUseID      string `json:"tool_use_id"`
 	Content        string `json:"content"`
 	ContentRaw     string `json:"content_raw"`
-	AttentionLevel string `json:"attention_level"`
 	AgentLabel     string `json:"agent_label"`
 	PermissionMode string `json:"permission_mode,omitempty"`
 	RawPayload     json.RawMessage `json:"raw_payload,omitempty"`

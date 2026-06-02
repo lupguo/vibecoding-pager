@@ -8,7 +8,6 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
@@ -16,6 +15,7 @@ import (
 	_ "modernc.org/sqlite"
 
 	"pager/internal/domain/entity"
+	"pager/internal/domain/session"
 )
 
 //go:embed schema.sql
@@ -97,7 +97,7 @@ func (s *sqliteStore) LoadRecentSessions(hours int) ([]*entity.AgentEvent, error
 
 	query := `
 		SELECT e.session_key, e.agent_label, e.event_type, e.tool_name, e.tool_use_id,
-		       e.content, e.content_raw, e.attention_level, e.permission_mode,
+		       e.content, e.content_raw, e.permission_mode,
 		       e.raw_payload, e.timestamp,
 		       s.session_id, s.agent, s.host, s.cwd, s.tty,
 		       s.term_program, s.iterm_session_id
@@ -118,16 +118,16 @@ func (s *sqliteStore) LoadRecentSessions(hours int) ([]*entity.AgentEvent, error
 	for rows.Next() {
 		var (
 			sessionKey, agentLabel, eventType, toolName, toolUseID string
-			content, contentRaw, attentionLevel, permMode          string
-			rawPayload                                              []byte
-			tsStr                                                   string
+			content, contentRaw, permMode                          string
+			rawPayload                                             []byte
+			tsStr                                                  string
 			sessionID, agent, host, cwd, tty                       string
 			termProgram, itermSessionID                            string
 		)
 
 		if err := rows.Scan(
 			&sessionKey, &agentLabel, &eventType, &toolName, &toolUseID,
-			&content, &contentRaw, &attentionLevel, &permMode,
+			&content, &contentRaw, &permMode,
 			&rawPayload, &tsStr,
 			&sessionID, &agent, &host, &cwd, &tty,
 			&termProgram, &itermSessionID,
@@ -150,7 +150,6 @@ func (s *sqliteStore) LoadRecentSessions(hours int) ([]*entity.AgentEvent, error
 			ToolUseID:      toolUseID,
 			Content:        content,
 			ContentRaw:     contentRaw,
-			AttentionLevel: attentionLevel,
 			AgentLabel:     agentLabel,
 			PermissionMode: permMode,
 			RawPayload:     json.RawMessage(rawPayload),
@@ -165,7 +164,7 @@ func (s *sqliteStore) LoadRecentSessions(hours int) ([]*entity.AgentEvent, error
 func (s *sqliteStore) SessionEvents(sessionKey string) ([]*entity.AgentEvent, error) {
 	query := `
 		SELECT agent_label, event_type, tool_name, tool_use_id, content, content_raw,
-		       attention_level, permission_mode, raw_payload, timestamp
+		       permission_mode, raw_payload, timestamp
 		FROM t_events
 		WHERE session_key = ?
 		ORDER BY timestamp ASC
@@ -180,15 +179,15 @@ func (s *sqliteStore) SessionEvents(sessionKey string) ([]*entity.AgentEvent, er
 	var events []*entity.AgentEvent
 	for rows.Next() {
 		var (
-			agentLabel, eventType, toolName, toolUseID            string
-			content, contentRaw, attentionLevel, permMode string
-			rawPayload                                    []byte
-			tsStr                                         string
+			agentLabel, eventType, toolName, toolUseID string
+			content, contentRaw, permMode              string
+			rawPayload                                 []byte
+			tsStr                                      string
 		)
 
 		if err := rows.Scan(
 			&agentLabel, &eventType, &toolName, &toolUseID, &content, &contentRaw,
-			&attentionLevel, &permMode, &rawPayload, &tsStr,
+			&permMode, &rawPayload, &tsStr,
 		); err != nil {
 			return nil, fmt.Errorf("scan: %w", err)
 		}
@@ -203,7 +202,6 @@ func (s *sqliteStore) SessionEvents(sessionKey string) ([]*entity.AgentEvent, er
 			ToolUseID:      toolUseID,
 			Content:        content,
 			ContentRaw:     contentRaw,
-			AttentionLevel: attentionLevel,
 			PermissionMode: permMode,
 			RawPayload:     json.RawMessage(rawPayload),
 			Timestamp:      ts,
@@ -348,16 +346,15 @@ func (s *sqliteStore) writeBatch(events []*entity.AgentEvent) {
 
 	for _, e := range events {
 		sessionKey := e.SessionKey()
-		projectName := projectFromCWD(e.CWD)
+		projectName := session.ProjectFromCWD(e.CWD)
 		ts := e.Timestamp.Format("2006-01-02 15:04:05")
 
 		// UPSERT session
 		_, err := tx.Exec(`
-			INSERT INTO t_sessions (session_key, session_id, agent, host, cwd, project_name, tty, term_program, iterm_session_id, status, attention_level, agent_label, created_at, updated_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			INSERT INTO t_sessions (session_key, session_id, agent, host, cwd, project_name, tty, term_program, iterm_session_id, status, agent_label, created_at, updated_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 			ON CONFLICT(session_key) DO UPDATE SET
 				status = excluded.status,
-				attention_level = excluded.attention_level,
 				agent_label = CASE WHEN excluded.agent_label != '' THEN excluded.agent_label ELSE t_sessions.agent_label END,
 				term_program = CASE WHEN excluded.term_program != '' THEN excluded.term_program ELSE t_sessions.term_program END,
 				iterm_session_id = CASE WHEN excluded.iterm_session_id != '' THEN excluded.iterm_session_id ELSE t_sessions.iterm_session_id END,
@@ -365,7 +362,7 @@ func (s *sqliteStore) writeBatch(events []*entity.AgentEvent) {
 		`,
 			sessionKey, e.SessionID, e.Agent, e.Host, e.CWD, projectName,
 			e.TTY, e.TermProgram, e.ITermSessionID,
-			statusFromEvent(e), e.AttentionLevel, e.AgentLabel, ts, ts,
+			string(statusFromEvent(e)), e.AgentLabel, ts, ts,
 		)
 		if err != nil {
 			slog.Error("upsert session", "error", err, "session_key", sessionKey)
@@ -374,11 +371,11 @@ func (s *sqliteStore) writeBatch(events []*entity.AgentEvent) {
 
 		// INSERT event
 		_, err = tx.Exec(`
-			INSERT INTO t_events (session_key, agent_label, event_type, tool_name, tool_use_id, content, content_raw, attention_level, permission_mode, raw_payload, timestamp)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			INSERT INTO t_events (session_key, agent_label, event_type, tool_name, tool_use_id, content, content_raw, permission_mode, raw_payload, timestamp)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		`,
 			sessionKey, e.AgentLabel, e.EventType, e.ToolName, e.ToolUseID,
-			e.Content, e.ContentRaw, e.AttentionLevel, e.PermissionMode,
+			e.Content, e.ContentRaw, e.PermissionMode,
 			[]byte(e.RawPayload), ts,
 		)
 		if err != nil {
@@ -391,38 +388,24 @@ func (s *sqliteStore) writeBatch(events []*entity.AgentEvent) {
 	}
 }
 
-// statusFromEvent derives the session status from an event type.
-func statusFromEvent(e *entity.AgentEvent) string {
-	switch e.EventType {
-	case entity.EventPreToolUse, "PreToolUse":
-		return entity.StatusWaiting
-	case entity.EventPostToolUse, "PostToolUse":
-		return entity.StatusActive
-	case entity.EventStop, "Stop":
-		return entity.StatusFinished
-	case entity.EventError, "StopFailure":
-		return entity.StatusError
-	case entity.EventSessionStart, "SessionStart":
-		return entity.StatusActive
-	default:
-		return entity.StatusActive
-	}
-}
-
-// projectFromCWD extracts the last path segment as project name.
-func projectFromCWD(cwd string) string {
-	segments := strings.Split(cwd, "/")
-	for i := len(segments) - 1; i >= 0; i-- {
-		if segments[i] != "" {
-			return segments[i]
-		}
-	}
-	return cwd
+// statusFromEvent derives the session status for storage. Replay only sees one event
+// at a time, so hasPendingAskUser is conservatively false; the live tracker
+// re-derives correctly after Replay.
+func statusFromEvent(e *entity.AgentEvent) entity.SessionStatus {
+	return session.DeriveStatus(e.EventType, e.ToolName, e.PermissionMode, false)
 }
 
 // migrate applies schema migrations for existing databases.
-// Uses ALTER TABLE ADD COLUMN which is idempotent-safe (errors ignored if column exists).
+// Uses ALTER TABLE which is idempotent-safe (errors ignored if column exists / does not exist).
 func migrate(db *sqlx.DB) {
-	// v1.1: add agent_label to t_events
+	// v1.1: agent_label on t_events (existing)
 	_, _ = db.Exec(`ALTER TABLE t_events ADD COLUMN agent_label TEXT NOT NULL DEFAULT ''`)
+
+	// v2.0: rewrite legacy status values to new enum
+	_, _ = db.Exec(`UPDATE t_sessions SET status = 'working' WHERE status = 'active'`)
+	_, _ = db.Exec(`UPDATE t_sessions SET status = 'done'    WHERE status = 'finished'`)
+
+	// v2.0: drop obsolete attention_level columns (SQLite >= 3.35; modernc.org/sqlite v1.51 supports it)
+	_, _ = db.Exec(`ALTER TABLE t_sessions DROP COLUMN attention_level`)
+	_, _ = db.Exec(`ALTER TABLE t_events DROP COLUMN attention_level`)
 }

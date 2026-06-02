@@ -1,14 +1,26 @@
 package wails
 
 import (
-	"log/slog"
 	"strings"
+	"sync"
+	"sync/atomic"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"golang.design/x/hotkey"
+
+	"pager/internal/infra/log"
 )
 
-var currentHotkey *hotkey.Hotkey
+var (
+	currentHotkey  *hotkey.Hotkey
+	goroutineAlive atomic.Bool
+	hotkeyLogger   = log.Module("hotkey")
+	// hotkeyMu serializes RegisterHotkey across the boot timer, settings save
+	// callback, and the ApplicationDidBecomeActive recovery hook so that two
+	// concurrent callers cannot both Unregister + Register the listener,
+	// which would leak the second goroutine.
+	hotkeyMu sync.Mutex
+)
 
 var keyMap = map[string]hotkey.Key{
 	"A": hotkey.KeyA, "B": hotkey.KeyB, "C": hotkey.KeyC, "D": hotkey.KeyD,
@@ -31,38 +43,54 @@ var keyMap = map[string]hotkey.Key{
 	"F10": hotkey.KeyF10, "F11": hotkey.KeyF11, "F12": hotkey.KeyF12,
 }
 
-var logger = slog.Default().With("module", "hotkey")
+// IsHotkeyHealthy reports whether the global hotkey listener goroutine is alive.
+// Used by the app-active hook to detect silent failure modes.
+func IsHotkeyHealthy() bool {
+	return currentHotkey != nil && goroutineAlive.Load()
+}
 
-// RegisterHotkey registers a global hotkey to toggle the popup window.
+// RegisterHotkey registers a global hotkey that toggles the popup window.
+// Safe to call repeatedly; the previous registration is unwound first.
+// Concurrent callers are serialized via hotkeyMu.
 func RegisterHotkey(window *application.WebviewWindow, hotkeyStr string) {
+	hotkeyMu.Lock()
+	defer hotkeyMu.Unlock()
+
 	if currentHotkey != nil {
 		currentHotkey.Unregister()
+		hotkeyLogger.Info("hotkey unregistered")
 		currentHotkey = nil
+		goroutineAlive.Store(false)
 	}
 
 	mods, key, ok := ParseHotkey(hotkeyStr)
 	if !ok {
-		logger.Warn("invalid hotkey string", "key", hotkeyStr)
+		hotkeyLogger.Warn("invalid hotkey string", "key", hotkeyStr)
 		return
 	}
 
 	hk := hotkey.New(mods, key)
 	if err := hk.Register(); err != nil {
-		logger.Error("hotkey register failed", "err", err, "key", hotkeyStr)
+		hotkeyLogger.Error("hotkey register failed", "err", err, "key", hotkeyStr)
 		return
 	}
 	currentHotkey = hk
-	logger.Info("hotkey registered", "key", hotkeyStr)
+	hotkeyLogger.Info("hotkey registered", "key", hotkeyStr)
 
 	go func() {
+		goroutineAlive.Store(true)
+		defer goroutineAlive.Store(false)
 		for range hk.Keydown() {
-			if window.IsVisible() {
+			visible := window.IsVisible()
+			hotkeyLogger.Debug("hotkey fired", "visible", visible)
+			if visible {
 				window.Hide()
 			} else {
 				window.Show()
 				window.Focus()
 			}
 		}
+		hotkeyLogger.Warn("hotkey goroutine exited; channel closed", "key", hotkeyStr)
 	}()
 }
 

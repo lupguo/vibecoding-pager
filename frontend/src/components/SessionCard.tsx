@@ -1,23 +1,105 @@
 import { useState } from 'react'
-import { ArrowRight } from 'lucide-react'
-import type { Session } from '../store/sessions'
+import {
+  ArrowRight, AlertTriangle, CheckCircle2, ChevronDown, ChevronUp,
+  Clock, Copy, Check, FolderOpen, HandHelping, Hash, Loader2,
+  ShieldCheck, Terminal, Wrench,
+} from 'lucide-react'
+import type { Session, SessionStatus } from '../store/sessions'
 import { JumpToTerminal } from '../../bindings/pager/internal/wails/sessionbinding.js'
+
+const COPY_FEEDBACK_MS = 800
 
 interface Props {
   session: Session
+  highlighted?: boolean
 }
 
-export default function SessionCard({ session }: Props) {
+const STATUS_TAG: Record<SessionStatus, { text: string; bgClass: string; textClass: string }> = {
+  working: { text: 'WORKING', bgClass: 'bg-[--pill-working]', textClass: 'text-[--c-working]' },
+  waiting: { text: 'WAITING', bgClass: 'bg-[--pill-waiting]', textClass: 'text-[--c-waiting]' },
+  done:    { text: 'DONE',    bgClass: 'bg-[--pill-done]',    textClass: 'text-[--c-done]' },
+  error:   { text: 'ERROR',   bgClass: 'bg-[--pill-error]',   textClass: 'text-[--c-error]' },
+}
+
+const CARD_BG: Record<SessionStatus, string> = {
+  working: 'bg-[--bg-working] border-[--bd-working]',
+  waiting: 'bg-[--bg-waiting] border-[--bd-waiting] shadow-sm',
+  done:    'bg-[--bg-done] border-[--bd-done] opacity-90',
+  error:   'bg-[--bg-error] border-[--bd-error]',
+}
+
+function StatusIcon({ status }: { status: SessionStatus }) {
+  const cls = `text-[--c-${status}]`
+  switch (status) {
+    case 'waiting': return <HandHelping size={14} strokeWidth={2} className={`${cls} anim-pulse-attn`} />
+    case 'working': return <Loader2 size={14} strokeWidth={2.5} className={`${cls} anim-spin-loader`} />
+    case 'done':    return <CheckCircle2 size={14} strokeWidth={2.5} className={cls} />
+    case 'error':   return <AlertTriangle size={14} strokeWidth={2.5} className={cls} />
+  }
+}
+
+function MetaRow({
+  Icon, label, value, copyable,
+}: {
+  Icon: typeof FolderOpen
+  label: string
+  value: string
+  copyable?: boolean
+}) {
+  const [copied, setCopied] = useState(false)
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!value) return
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopied(true)
+      setTimeout(() => setCopied(false), COPY_FEEDBACK_MS)
+    } catch (err) {
+      console.error('[pager] copy failed:', err)
+    }
+  }
+  return (
+    <div className="flex items-center gap-[6px] px-[8px] py-[3px] text-[10px] leading-[1.6] text-[--pager-text-secondary]">
+      <Icon size={11} className="opacity-65 shrink-0 text-[--pager-text-muted]" strokeWidth={2} />
+      <span className="text-[9px] uppercase tracking-[0.3px] text-[--pager-text-muted] w-[60px] shrink-0">
+        {label}
+      </span>
+      <span className="font-mono text-[--pager-text-primary] truncate flex-1" title={value}>
+        {value || '—'}
+      </span>
+      <button
+        onClick={handleCopy}
+        className={`w-[18px] h-[18px] flex items-center justify-center rounded-[3px] text-[--pager-text-faint] hover:bg-[rgba(255,255,255,0.06)] hover:text-[--pager-text-secondary] shrink-0 transition-colors ${
+          !copyable || !value ? 'invisible' : ''
+        }`}
+        title="复制">
+        {copied ? <Check size={11} strokeWidth={2.5} /> : <Copy size={11} strokeWidth={2} />}
+      </button>
+    </div>
+  )
+}
+
+function formatTimestamp(iso: string): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return ''
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+}
+
+export default function SessionCard({ session, highlighted }: Props) {
   const [jumping, setJumping] = useState(false)
   const [expanded, setExpanded] = useState(false)
+  const [showMore, setShowMore] = useState(false)
 
-  const content = session.LastEvent?.content ?? session.Status
-  const contentRaw = session.LastEvent?.content_raw ?? ''
+  const status: SessionStatus = (session.Status as SessionStatus) || 'working'
+  const tag = STATUS_TAG[status]
+  const bg = CARD_BG[status]
+
+  const content = session.LastEvent?.content ?? ''
   const toolName = session.LastEvent?.tool_name ?? ''
   const sessionPrefix = (session.SessionID || session.Key || '').slice(0, 8)
   const agentLabel = session.AgentLabel || 'CC'
-  const isAttention = session.AttentionLevel === 'attention'
-  const isRunning = session.AttentionLevel === 'running'
 
   const handleJump = async (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -33,48 +115,24 @@ export default function SessionCard({ session }: Props) {
 
   const relativeTime = formatRelativeTime(session.UpdatedAt)
 
-  const cardStyles = isAttention
-    ? 'bg-[--pager-card-attention-bg] border-[--pager-card-attention-border] shadow-sm'
-    : isRunning
-    ? 'bg-[--pager-card-running-bg] border-[--pager-card-running-border]'
-    : 'bg-[--pager-card-done-bg] border-[--pager-card-done-border] opacity-65'
-
-  const statusDot = isAttention
-    ? 'bg-[--pager-red] animate-pulse-status'
-    : isRunning
-    ? 'bg-[--pager-green]'
-    : 'bg-[--pager-gray-dot]'
-
-  const statusTag = isAttention
-    ? { text: 'WAITING', cls: 'bg-[rgba(255,69,58,0.15)] text-[--pager-red]' }
-    : isRunning
-    ? { text: 'WORKING', cls: 'bg-[rgba(48,209,88,0.12)] text-[--pager-green]' }
-    : { text: 'IDLE', cls: 'bg-[rgba(255,255,255,0.06)] text-[--pager-text-muted]' }
-
   return (
     <div
-      className={`rounded-lg border cursor-pointer transition-all duration-300 hover:shadow-sm ${cardStyles}`}
-      onClick={() => setExpanded(!expanded)}
-    >
+      className={`rounded-lg border cursor-pointer transition-all duration-300 hover:shadow-sm ${bg} ${highlighted ? 'pulse-highlight' : ''}`}
+      onClick={() => setExpanded(!expanded)}>
       <div className="px-[10px] py-[8px]">
-        {/* Row 1: dot → status tag → agent badge ... session_id → time */}
         <div className="flex items-center gap-[6px] mb-[4px]">
-          <div className="flex items-center gap-[6px]">
-            <span className={`w-[6px] h-[6px] rounded-full shrink-0 ${statusDot}`} />
-            <span className={`text-[9px] font-semibold px-[5px] py-[1px] rounded-[3px] ${statusTag.cls} tracking-wide`}>
-              {statusTag.text}
-            </span>
-            <span className="text-[9px] font-semibold px-[5px] py-[1px] rounded-[3px] bg-[--pager-badge-bg] text-[--pager-badge-text] tracking-wide uppercase">
-              {agentLabel}
-            </span>
-          </div>
+          <StatusIcon status={status} />
+          <span className={`text-[9px] font-semibold px-[5px] py-[1px] rounded-[3px] tracking-wide ${tag.bgClass} ${tag.textClass}`}>
+            {tag.text}
+          </span>
+          <span className="text-[9px] font-semibold px-[5px] py-[1px] rounded-[3px] bg-[--pager-badge-bg] text-[--pager-badge-text] tracking-wide uppercase">
+            {agentLabel}
+          </span>
           <span className="flex-1" />
           <span className="text-[9px] text-[--pager-text-faint] font-mono">{sessionPrefix}</span>
           <span className="text-[9px] text-[--pager-text-faint]">{relativeTime}</span>
         </div>
-
-        {/* Row 2: tool tag + content + jump button */}
-        <div className="flex items-center justify-between pl-[12px]">
+        <div className="flex items-center justify-between pl-[22px]">
           <div className="flex items-center gap-[6px] flex-1 min-w-0">
             {toolName && (
               <span className="text-[9px] font-mono font-medium px-[4px] py-[1px] bg-[--pager-tool-bg] rounded-[3px] text-[--pager-tool-text] shrink-0">
@@ -89,24 +147,56 @@ export default function SessionCard({ session }: Props) {
             onClick={handleJump}
             disabled={jumping}
             title="Jump to terminal"
-            className="ml-[6px] p-[3px] rounded text-[--pager-text-faint] hover:text-[--pager-blue] hover:bg-[--pager-filter-bg] disabled:opacity-30 shrink-0 transition-colors"
-          >
+            className="ml-[6px] p-[3px] rounded text-[--pager-text-faint] hover:text-[--pager-blue] hover:bg-[--pager-filter-bg] disabled:opacity-30 shrink-0 transition-colors">
             {jumping ? (
-              <svg className="w-[13px] h-[13px] animate-spin" viewBox="0 0 16 16" fill="none">
-                <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="2" strokeDasharray="28" strokeDashoffset="8" />
-              </svg>
+              <Loader2 size={13} className="animate-spin" />
             ) : (
               <ArrowRight size={13} />
             )}
           </button>
         </div>
-
-        {/* Expanded content */}
-        {expanded && contentRaw && (
-          <div className="mt-[6px] pl-[12px]">
-            <pre className="p-[6px] bg-[--pager-detail-bg] rounded-md text-[10px] leading-relaxed text-[--pager-detail-text] font-mono whitespace-pre-wrap break-all max-h-32 overflow-y-auto border border-[--pager-detail-border]">
-              {contentRaw}
-            </pre>
+        {expanded && (
+          <div className="mt-[6px] pl-[22px]">
+            <div className="bg-[rgba(255,255,255,0.025)] border border-[rgba(255,255,255,0.04)] rounded-[6px] py-[4px] mb-[6px]">
+              <MetaRow Icon={FolderOpen} label="PATH" value={session.CWD || ''} copyable />
+              <MetaRow Icon={Hash} label="SESSION" value={session.SessionID || session.Key || ''} copyable />
+              <MetaRow Icon={Clock} label="TIME" value={formatTimestamp(session.LastEvent?.timestamp ?? session.UpdatedAt)} />
+            </div>
+            {session.LastEvent?.content_raw && (
+              <pre className="p-[6px] bg-[--pager-detail-bg] border border-[--pager-detail-border] rounded-[6px] text-[10px] leading-relaxed text-[--pager-detail-text] font-mono whitespace-pre-wrap break-all max-h-32 overflow-y-auto">
+                {session.LastEvent.content_raw}
+              </pre>
+            )}
+            {showMore && (
+              <div className="bg-[rgba(255,255,255,0.025)] border border-[rgba(255,255,255,0.04)] rounded-[6px] py-[4px] mb-[6px]">
+                <MetaRow
+                  Icon={Wrench}
+                  label="TOOL ID"
+                  value={session.LastEvent?.tool_use_id ?? ''}
+                  copyable
+                />
+                <MetaRow
+                  Icon={Terminal}
+                  label="TTY"
+                  value={
+                    session.TTY
+                      ? `${session.TTY}${session.TermProgram ? ' · ' + session.TermProgram : ''}`
+                      : ''
+                  }
+                />
+                <MetaRow
+                  Icon={ShieldCheck}
+                  label="PERM"
+                  value={session.LastEvent?.permission_mode ?? ''}
+                />
+              </div>
+            )}
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowMore(!showMore) }}
+              className="w-full flex items-center justify-center gap-[4px] py-[4px] px-[8px] mt-[4px] text-[10px] text-[--pager-text-muted] bg-transparent border border-dashed border-[rgba(255,255,255,0.08)] rounded-[5px] hover:text-[--pager-text-secondary] hover:border-[rgba(255,255,255,0.16)]">
+              {showMore ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+              {showMore ? '收起' : '更多'}
+            </button>
           </div>
         )}
       </div>

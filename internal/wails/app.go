@@ -10,6 +10,7 @@ import (
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
+	"github.com/wailsapp/wails/v3/pkg/services/notifications"
 
 	"pager/internal/adapter/httpapi"
 	"pager/internal/adapter/notify"
@@ -53,6 +54,30 @@ func NewPagerApp(assets embed.FS) *application.App {
 	}
 	p.store = eventStore
 
+	// ── Window handles (declared early so notification callbacks can capture them) ──
+	var popupWindow *application.WebviewWindow
+	var settingsWindow *application.WebviewWindow
+
+	// ── NotificationService (Wails-native, replaces osascript) ─────────────
+	notifSvc := notifications.New()
+	notifSvc.OnNotificationResponse(func(result notifications.NotificationResult) {
+		if result.Error != nil {
+			slog.Warn("notification response error", "module", "notify", "err", result.Error)
+			return
+		}
+		sessionID, _ := result.Response.UserInfo["session_id"].(string)
+		if sessionID == "" {
+			return
+		}
+		if popupWindow != nil {
+			popupWindow.Show()
+			popupWindow.Focus()
+		}
+		if app := application.Get(); app != nil {
+			app.Event.Emit("highlight-session", map[string]any{"session_id": sessionID})
+		}
+	})
+
 	// ── SessionTracker ──────────────────────────────────────────────────────
 	p.tracker = session.NewTracker(func(sessions []*session.Session) {
 		wailsApp := application.Get()
@@ -65,7 +90,7 @@ func NewPagerApp(assets embed.FS) *application.App {
 			cfg, _ := config.LoadFrom(config.DefaultPath())
 			e := sessions[0].LastEvent
 			if notify.ShouldNotifyByConfig(e, cfg.NotificationEvents) {
-				notify.ShowEvent(e, cfg.Language)
+				notify.ShowEvent(notifSvc, e, cfg.Language)
 			}
 		}
 
@@ -99,10 +124,12 @@ func NewPagerApp(assets embed.FS) *application.App {
 	// ── Services ────────────────────────────────────────────────────────────
 	sessionBinding := &SessionBinding{tracker: p.tracker, store: eventStore}
 
-	var popupWindow *application.WebviewWindow
-	var settingsWindow *application.WebviewWindow
-
+	var lastHotkey = initialCfg.HotkeyToggle
 	settingsBinding := NewSettingsBinding(func(cfg config.Settings) {
+		if cfg.HotkeyToggle == lastHotkey {
+			return
+		}
+		lastHotkey = cfg.HotkeyToggle
 		RegisterHotkey(popupWindow, cfg.HotkeyToggle)
 	}, eventStore)
 
@@ -118,6 +145,7 @@ func NewPagerApp(assets embed.FS) *application.App {
 			application.NewService(sessionBinding),
 			application.NewService(settingsBinding),
 			application.NewService(windowBinding),
+			application.NewService(notifSvc),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.BundledAssetFileServer(assets),
@@ -150,7 +178,8 @@ func NewPagerApp(assets embed.FS) *application.App {
 		HideOnFocusLost:  false, // Managed manually via WindowLostFocus hook
 		BackgroundColour: application.NewRGBA(0, 0, 0, 0),
 		Mac: application.MacWindow{
-			Backdrop: application.MacBackdropTransparent,
+			Backdrop:           application.MacBackdropTransparent,
+			CollectionBehavior: application.MacWindowCollectionBehaviorMoveToActiveSpace,
 		},
 	})
 
@@ -208,6 +237,18 @@ func NewPagerApp(assets embed.FS) *application.App {
 		RegisterHotkey(popupWindow, initialCfg.HotkeyToggle)
 	}()
 
+	// ── Hotkey health check on app activate ─────────────────────────────────
+	// If the user re-focuses Pager (after long idle, sleep/wake, or permission
+	// churn) and the hotkey goroutine has died silently, re-register it.
+	wailsApp.Event.OnApplicationEvent(events.Mac.ApplicationDidBecomeActive, func(_ *application.ApplicationEvent) {
+		if IsHotkeyHealthy() {
+			return
+		}
+		cfg, _ := config.LoadFrom(config.DefaultPath())
+		logger.Warn("hotkey unhealthy on app activate, re-registering", "key", cfg.HotkeyToggle)
+		RegisterHotkey(popupWindow, cfg.HotkeyToggle)
+	})
+
 	logger.Info("app assembled")
 	return wailsApp
 }
@@ -221,6 +262,11 @@ func (p *PagerApp) ServiceStartup(_ context.Context, _ application.ServiceOption
 
 // ServiceShutdown implements application.ServiceShutdown.
 func (p *PagerApp) ServiceShutdown() error {
+	if p.srv != nil {
+		if err := p.srv.Stop(); err != nil {
+			slog.Warn("httpapi.Stop returned error", "module", "wails", "err", err)
+		}
+	}
 	if p.store != nil {
 		slog.Info("closing event store", "module", "wails")
 		return p.store.Close()
@@ -230,21 +276,21 @@ func (p *PagerApp) ServiceShutdown() error {
 
 func (p *PagerApp) updateTrayIcon(sessions []*session.Session) {
 	hasWaiting := false
-	hasActive := false
+	hasWorking := false
 
 	for _, s := range sessions {
 		switch s.Status {
 		case entity.StatusWaiting:
 			hasWaiting = true
-		case entity.StatusActive:
-			hasActive = true
+		case entity.StatusWorking:
+			hasWorking = true
 		}
 	}
 
 	switch {
 	case hasWaiting:
 		p.tray.SetLabel("●")
-	case hasActive:
+	case hasWorking:
 		p.tray.SetLabel("")
 	default:
 		p.tray.SetLabel("")

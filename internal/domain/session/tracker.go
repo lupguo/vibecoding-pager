@@ -10,20 +10,19 @@ import (
 
 // Session represents an active agent session.
 type Session struct {
-	Key            string                       `json:"Key"`
-	Agent          string                       `json:"Agent"`
-	Host           string                       `json:"Host"`
-	CWD            string                       `json:"CWD"`
-	TTY            string                       `json:"TTY"`
-	TermProgram    string                       `json:"TermProgram"`
-	ITermSessionID string                       `json:"ITermSessionID"`
-	Status         string                       `json:"Status"`
-	AttentionLevel string                       `json:"AttentionLevel"`
-	AgentLabel     string                       `json:"AgentLabel"`
-	SessionID      string                       `json:"SessionID"`
+	Key            string                        `json:"Key"`
+	Agent          string                        `json:"Agent"`
+	Host           string                        `json:"Host"`
+	CWD            string                        `json:"CWD"`
+	TTY            string                        `json:"TTY"`
+	TermProgram    string                        `json:"TermProgram"`
+	ITermSessionID string                        `json:"ITermSessionID"`
+	Status         entity.SessionStatus          `json:"Status"`
+	AgentLabel     string                        `json:"AgentLabel"`
+	SessionID      string                        `json:"SessionID"`
 	LastEvent      *entity.AgentEvent            `json:"LastEvent"`
 	PendingTools   map[string]*entity.AgentEvent `json:"PendingTools"`
-	UpdatedAt      time.Time                    `json:"UpdatedAt"`
+	UpdatedAt      time.Time                     `json:"UpdatedAt"`
 }
 
 // Tracker maintains real-time session state from an event stream.
@@ -75,40 +74,30 @@ func (t *Tracker) TrackEvent(e *entity.AgentEvent) {
 		s.UpdatedAt = time.Now()
 	}
 
-	// Update attention level and agent label from event
-	if e.AttentionLevel != "" {
-		s.AttentionLevel = e.AttentionLevel
-	}
+	// Update agent label from event
 	if e.AgentLabel != "" {
 		s.AgentLabel = e.AgentLabel
 	}
 
+	// Maintain pending-tool bookkeeping (must run before DeriveStatus so the
+	// hasPendingAskUser flag is accurate).
 	switch e.EventType {
-	case entity.EventPreToolUse:
-		s.Status = entity.StatusWaiting
+	case "PreToolUse":
 		if e.ToolUseID != "" {
 			s.PendingTools[e.ToolUseID] = e
 		}
-	case entity.EventPostToolUse:
+	case "PostToolUse":
 		if e.ToolUseID != "" {
 			delete(s.PendingTools, e.ToolUseID)
 		}
-		if len(s.PendingTools) == 0 {
-			s.Status = entity.StatusActive
-		}
-	case entity.EventStop:
-		// If AskUserQuestion is pending (awaiting user response), keep attention state.
-		if hasAskUserPending(s.PendingTools) {
-			s.Status = entity.StatusWaiting
-		} else {
-			s.Status = entity.StatusFinished
+	case "Stop", "SessionEnd":
+		// Clean termination clears pending bookkeeping unless AskUserQuestion is in flight.
+		if !hasAskUserPending(s.PendingTools) {
 			s.PendingTools = make(map[string]*entity.AgentEvent)
 		}
-	case entity.EventError:
-		s.Status = entity.StatusError
-	case entity.EventSessionStart:
-		s.Status = entity.StatusActive
 	}
+
+	s.Status = DeriveStatus(e.EventType, e.ToolName, e.PermissionMode, hasAskUserPending(s.PendingTools))
 
 	if t.onUpdate != nil {
 		t.onUpdate(t.snapshotLocked())
@@ -169,6 +158,38 @@ func (t *Tracker) Dismiss(key string) {
 	if t.onUpdate != nil {
 		t.onUpdate(t.snapshotLocked())
 	}
+}
+
+// DismissByProject removes all sessions whose CWD's last segment equals project.
+// Returns the dismissed session keys for caller-side store sync.
+func (t *Tracker) DismissByProject(project string) []string {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	var keys []string
+	for k, s := range t.sessions {
+		if ProjectFromCWD(s.CWD) == project {
+			keys = append(keys, k)
+			delete(t.sessions, k)
+		}
+	}
+	if len(keys) > 0 && t.onUpdate != nil {
+		t.onUpdate(t.snapshotLocked())
+	}
+	return keys
+}
+
+// ProjectFromCWD returns the last non-empty path segment of cwd.
+// Mirrors the frontend's projectFromCWD logic to keep grouping consistent.
+func ProjectFromCWD(cwd string) string {
+	for i := len(cwd) - 1; i >= 0; i-- {
+		if cwd[i] == '/' {
+			if i == len(cwd)-1 {
+				continue
+			}
+			return cwd[i+1:]
+		}
+	}
+	return cwd
 }
 
 // hasAskUserPending checks if any pending tool is AskUserQuestion.

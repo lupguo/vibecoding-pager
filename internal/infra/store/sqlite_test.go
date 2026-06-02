@@ -1,6 +1,7 @@
 package store
 
 import (
+	"database/sql"
 	"encoding/json"
 	"path/filepath"
 	"testing"
@@ -212,4 +213,100 @@ func TestSQLiteStore_SessionEvents(t *testing.T) {
 	if len(events) != 2 {
 		t.Errorf("expected 2 events for sess-query, got %d", len(events))
 	}
+}
+
+func TestMigrationV1ToV2(t *testing.T) {
+	dir := t.TempDir()
+	dbPath := filepath.Join(dir, "v1.db")
+
+	dsn := "file:" + dbPath + "?_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)"
+	raw, err := sql.Open("sqlite", dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	v1Schema := `
+CREATE TABLE t_sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_key TEXT NOT NULL UNIQUE,
+    session_id TEXT NOT NULL DEFAULT '',
+    agent TEXT NOT NULL DEFAULT 'claude-code',
+    host TEXT NOT NULL DEFAULT '',
+    cwd TEXT NOT NULL DEFAULT '',
+    project_name TEXT NOT NULL DEFAULT '',
+    tty TEXT NOT NULL DEFAULT '',
+    term_program TEXT NOT NULL DEFAULT '',
+    iterm_session_id TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'active',
+    attention_level TEXT NOT NULL DEFAULT 'running',
+    agent_label TEXT NOT NULL DEFAULT 'CC',
+    created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+    deleted_at TEXT DEFAULT NULL
+);
+CREATE TABLE t_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_key TEXT NOT NULL,
+    event_type TEXT NOT NULL,
+    tool_name TEXT NOT NULL DEFAULT '',
+    tool_use_id TEXT NOT NULL DEFAULT '',
+    content TEXT NOT NULL DEFAULT '',
+    content_raw TEXT NOT NULL DEFAULT '',
+    attention_level TEXT NOT NULL DEFAULT '',
+    permission_mode TEXT NOT NULL DEFAULT '',
+    raw_payload BLOB DEFAULT NULL,
+    timestamp TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+    FOREIGN KEY (session_key) REFERENCES t_sessions(session_key)
+);
+INSERT INTO t_sessions (session_key, status) VALUES ('s-active', 'active');
+INSERT INTO t_sessions (session_key, status) VALUES ('s-finished', 'finished');
+INSERT INTO t_sessions (session_key, status) VALUES ('s-error', 'error');
+`
+	if _, err := raw.Exec(v1Schema); err != nil {
+		t.Fatalf("seed v1 schema: %v", err)
+	}
+	_ = raw.Close()
+
+	store, err := NewSQLiteStore(dbPath)
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	defer store.Close()
+
+	rows, err := store.db.Queryx(`SELECT session_key, status FROM t_sessions ORDER BY session_key`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]string{}
+	for rows.Next() {
+		var k, s string
+		if err := rows.Scan(&k, &s); err != nil {
+			t.Fatal(err)
+		}
+		got[k] = s
+	}
+	rows.Close()
+
+	want := map[string]string{
+		"s-active":   "working",
+		"s-finished": "done",
+		"s-error":    "error",
+	}
+	for k, w := range want {
+		if got[k] != w {
+			t.Errorf("status[%s] = %q; want %q", k, got[k], w)
+		}
+	}
+
+	cols, _ := store.db.Queryx(`PRAGMA table_info(t_sessions)`)
+	for cols.Next() {
+		var cid int
+		var name, ctype string
+		var notnull, pk int
+		var dflt any
+		_ = cols.Scan(&cid, &name, &ctype, &notnull, &dflt, &pk)
+		if name == "attention_level" {
+			t.Errorf("t_sessions.attention_level still present after migration")
+		}
+	}
+	cols.Close()
 }

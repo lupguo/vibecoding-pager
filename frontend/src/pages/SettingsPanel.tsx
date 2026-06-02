@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { X } from 'lucide-react'
+import { X, Settings as SettingsIcon, Bell, Database, Info } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { useSettingsStore } from '../store/settings'
 import GeneralSettings from './settings/GeneralSettings'
 import NotificationSettings from './settings/NotificationSettings'
@@ -15,11 +16,11 @@ export default function SettingsPanel() {
   const settings = useSettingsStore((s) => s.settings)
   const isZh = i18n.language === 'zh'
 
-  const navItems: { id: Page; icon: string; label: string }[] = [
-    { id: 'general', icon: '⚙️', label: t('nav.general') },
-    { id: 'notifications', icon: '🔔', label: t('nav.notifications') },
-    { id: 'data', icon: '💾', label: isZh ? '数据' : 'Data' },
-    { id: 'about', icon: 'ℹ️', label: t('nav.about') },
+  const navItems: { id: Page; Icon: LucideIcon; label: string }[] = [
+    { id: 'general',       Icon: SettingsIcon, label: t('nav.general') },
+    { id: 'notifications', Icon: Bell,         label: t('nav.notifications') },
+    { id: 'data',          Icon: Database,     label: isZh ? '数据' : 'Data' },
+    { id: 'about',         Icon: Info,         label: t('nav.about') },
   ]
 
   const handleClose = async () => {
@@ -65,7 +66,7 @@ export default function SettingsPanel() {
                   : 'text-[rgba(0,0,0,0.75)] dark:text-[rgba(255,255,255,0.6)] hover:bg-[rgba(0,0,0,0.04)] dark:hover:bg-[rgba(255,255,255,0.05)]'
                 }`}
             >
-              <span className="text-[14px]">{item.icon}</span>
+              <item.Icon size={14} strokeWidth={2} className="shrink-0" />
               {item.label}
             </button>
           ))}

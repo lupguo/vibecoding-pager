@@ -125,3 +125,20 @@ func TestLoadFrom_WithNotificationEvents(t *testing.T) {
 		t.Errorf("expected 2 events, got %d", len(cfg.NotificationEvents["CC"]))
 	}
 }
+
+func TestCollapsedProjectsRoundTrip(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "settings.json")
+	cfg := Defaults()
+	cfg.CollapsedProjects = []string{"foo", "bar"}
+	if err := SaveTo(path, cfg); err != nil {
+		t.Fatal(err)
+	}
+	loaded, err := LoadFrom(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(loaded.CollapsedProjects) != 2 || loaded.CollapsedProjects[0] != "foo" {
+		t.Errorf("CollapsedProjects = %v; want [foo bar]", loaded.CollapsedProjects)
+	}
+}

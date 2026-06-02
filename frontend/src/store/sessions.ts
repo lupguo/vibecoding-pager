@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { Events } from '@wailsio/runtime'
 import { ListSessions } from '../../bindings/pager/internal/wails/sessionbinding.js'
 
-export type AttentionLevel = 'attention' | 'running' | 'done'
+export type SessionStatus = 'working' | 'waiting' | 'done' | 'error'
 
 export interface AgentEvent {
   agent: string
@@ -17,7 +17,6 @@ export interface AgentEvent {
   tool_use_id: string
   content: string
   content_raw: string
-  attention_level: AttentionLevel
   agent_label: string
   permission_mode?: string
   timestamp: string
@@ -31,8 +30,7 @@ export interface Session {
   TTY: string
   TermProgram: string
   ITermSessionID: string
-  Status: string
-  AttentionLevel: AttentionLevel
+  Status: SessionStatus
   AgentLabel: string
   SessionID: string
   LastEvent: AgentEvent | null
@@ -66,14 +64,14 @@ export const useSessionStore = create<SessionStore>((set) => ({
 function filterExpiredDone(sessions: Session[]): Session[] {
   const now = Date.now()
   return sessions.filter((s) => {
-    if (s.AttentionLevel !== 'done') return true
+    if (s.Status !== 'done') return true
     const updatedAt = new Date(s.UpdatedAt).getTime()
     return now - updatedAt < DONE_TIMEOUT_MS
   })
 }
 
 /** Extract project name from CWD (last path segment) */
-function projectFromCWD(cwd: string): string {
+export function projectFromCWD(cwd: string): string {
   const segments = cwd.split('/').filter(Boolean)
   return segments[segments.length - 1] || cwd
 }

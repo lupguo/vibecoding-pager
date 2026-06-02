@@ -107,13 +107,6 @@ export class AgentEvent {
              */
             this["content_raw"] = "";
         }
-        if (!("attention_level" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["attention_level"] = "";
-        }
         if (!("agent_label" in $$source)) {
             /**
              * @member
@@ -156,3 +149,36 @@ export class AgentEvent {
         return new AgentEvent(/** @type {Partial<AgentEvent>} */($$parsedSource));
     }
 }
+
+/**
+ * SessionStatus is the single source of truth for session UX state.
+ * Values are mutually exclusive; UI renders one tag per card.
+ * @readonly
+ * @enum {string}
+ */
+export const SessionStatus = {
+    /**
+     * The Go zero value for the underlying type of the enum.
+     */
+    $zero: "",
+
+    /**
+     * active, no user action needed
+     */
+    StatusWorking: "working",
+
+    /**
+     * user action required (any reason)
+     */
+    StatusWaiting: "waiting",
+
+    /**
+     * ended cleanly
+     */
+    StatusDone: "done",
+
+    /**
+     * ended with failure
+     */
+    StatusError: "error",
+};

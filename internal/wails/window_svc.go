@@ -50,6 +50,19 @@ func (w *WindowBinding) SetPopupWidth(width int) error {
 	return config.SaveTo(w.configPath, cfg)
 }
 
+// SetCollapsedProjects persists the list of project names whose group is collapsed.
+func (w *WindowBinding) SetCollapsedProjects(list []string) error {
+	cfg, _ := config.LoadFrom(w.configPath)
+	cfg.CollapsedProjects = list
+	if err := config.SaveTo(w.configPath, cfg); err != nil {
+		return err
+	}
+	if app := application.Get(); app != nil {
+		app.Event.Emit("settings-changed", cfg)
+	}
+	return nil
+}
+
 // OpenSettings shows the settings window.
 func (w *WindowBinding) OpenSettings() {
 	w.settings.Show()
