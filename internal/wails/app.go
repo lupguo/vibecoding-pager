@@ -59,6 +59,13 @@ func NewPagerApp(assets embed.FS) *application.App {
 	var settingsWindow *application.WebviewWindow
 
 	// ── NotificationService (Wails-native, replaces osascript) ─────────────
+	//
+	// Wails' macOS NotificationService.Startup hard-fails with "notifications
+	// require a valid bundle identifier" when [NSBundle mainBundle] has no
+	// CFBundleIdentifier — i.e. when the binary runs outside a .app bundle
+	// (`wails dev`, `make run`, raw `go run`). To keep dev iteration working,
+	// we register the service ONLY when bundled. notify.ShowEvent is already
+	// nil-safe, so unbundled runs will silently no-op on notification sends.
 	notifSvc := notifications.New()
 	notifSvc.OnNotificationResponse(func(result notifications.NotificationResult) {
 		if result.Error != nil {
@@ -77,6 +84,16 @@ func NewPagerApp(assets embed.FS) *application.App {
 			app.Event.Emit("highlight-session", map[string]any{"session_id": sessionID})
 		}
 	})
+
+	notificationsEnabled := runningInBundle()
+	if !notificationsEnabled {
+		slog.Warn(
+			"running unbundled (likely 'wails dev' or 'make run'); macOS notifications disabled — "+
+				"use 'make build && open build/bin/Pager.app' to verify notifications",
+			"module", "wails",
+		)
+		notifSvc = nil // makes notify.ShowEvent a no-op via its nil-guard
+	}
 
 	// ── SessionTracker ──────────────────────────────────────────────────────
 	p.tracker = session.NewTracker(func(sessions []*session.Session) {
@@ -137,16 +154,20 @@ func NewPagerApp(assets embed.FS) *application.App {
 	windowBinding := &WindowBinding{configPath: config.DefaultPath()}
 
 	// ── Wails app ───────────────────────────────────────────────────────────
+	services := []application.Service{
+		application.NewService(p),
+		application.NewService(sessionBinding),
+		application.NewService(settingsBinding),
+		application.NewService(windowBinding),
+	}
+	if notificationsEnabled {
+		services = append(services, application.NewService(notifSvc))
+	}
+
 	wailsApp := application.New(application.Options{
 		Name:        "Pager",
 		Description: "AI coding agents 状态感知层",
-		Services: []application.Service{
-			application.NewService(p),
-			application.NewService(sessionBinding),
-			application.NewService(settingsBinding),
-			application.NewService(windowBinding),
-			application.NewService(notifSvc),
-		},
+		Services:    services,
 		Assets: application.AssetOptions{
 			Handler: application.BundledAssetFileServer(assets),
 		},
