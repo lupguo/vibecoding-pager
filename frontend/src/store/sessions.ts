@@ -34,7 +34,8 @@ export interface Session {
   AgentLabel: string
   SessionID: string
   LastEvent: AgentEvent | null
-  PendingTools: Record<string, AgentEvent | null>
+  // PendingTools is intentionally omitted — backend marks it `json:"-"`
+  // because it is internal state-machine bookkeeping, not consumed by UI.
   UpdatedAt: string
 }
 

@@ -15,6 +15,15 @@ import * as time$0 from "../../../../time/models.js";
 
 /**
  * Session represents an active agent session.
+ * 
+ * PendingTools is internal state-machine bookkeeping for the tracker. It is
+ * excluded from JSON output (json:"-") because (a) the frontend does not
+ * consume it and (b) it is reset/mutated frequently inside TrackEvent —
+ * exposing it to the marshaler would race with the next TrackEvent.
+ * 
+ * snapshotLocked() additionally returns a deep copy of every Session and its
+ * maps so consumers can hold the snapshot indefinitely (Wails Event.Emit
+ * dispatches Marshal asynchronously) without risking concurrent mutation.
  */
 export class Session {
     /**
@@ -99,13 +108,6 @@ export class Session {
              */
             this["LastEvent"] = null;
         }
-        if (!("PendingTools" in $$source)) {
-            /**
-             * @member
-             * @type {{ [_ in string]?: entity$0.AgentEvent | null }}
-             */
-            this["PendingTools"] = {};
-        }
         if (!("UpdatedAt" in $$source)) {
             /**
              * @member
@@ -124,13 +126,9 @@ export class Session {
      */
     static createFrom($$source = {}) {
         const $$createField10_0 = $$createType1;
-        const $$createField11_0 = $$createType2;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("LastEvent" in $$parsedSource) {
             $$parsedSource["LastEvent"] = $$createField10_0($$parsedSource["LastEvent"]);
-        }
-        if ("PendingTools" in $$parsedSource) {
-            $$parsedSource["PendingTools"] = $$createField11_0($$parsedSource["PendingTools"]);
         }
         return new Session(/** @type {Partial<Session>} */($$parsedSource));
     }
@@ -139,4 +137,3 @@ export class Session {
 // Private type creation functions
 const $$createType0 = entity$0.AgentEvent.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
-const $$createType2 = $Create.Map($Create.Any, $$createType1);

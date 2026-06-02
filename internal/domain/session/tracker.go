@@ -1,6 +1,7 @@
 package session
 
 import (
+	"maps"
 	"sort"
 	"sync"
 	"time"
@@ -9,6 +10,15 @@ import (
 )
 
 // Session represents an active agent session.
+//
+// PendingTools is internal state-machine bookkeeping for the tracker. It is
+// excluded from JSON output (json:"-") because (a) the frontend does not
+// consume it and (b) it is reset/mutated frequently inside TrackEvent —
+// exposing it to the marshaler would race with the next TrackEvent.
+//
+// snapshotLocked() additionally returns a deep copy of every Session and its
+// maps so consumers can hold the snapshot indefinitely (Wails Event.Emit
+// dispatches Marshal asynchronously) without risking concurrent mutation.
 type Session struct {
 	Key            string                        `json:"Key"`
 	Agent          string                        `json:"Agent"`
@@ -21,7 +31,7 @@ type Session struct {
 	AgentLabel     string                        `json:"AgentLabel"`
 	SessionID      string                        `json:"SessionID"`
 	LastEvent      *entity.AgentEvent            `json:"LastEvent"`
-	PendingTools   map[string]*entity.AgentEvent `json:"PendingTools"`
+	PendingTools   map[string]*entity.AgentEvent `json:"-"`
 	UpdatedAt      time.Time                     `json:"UpdatedAt"`
 }
 
@@ -119,15 +129,32 @@ func (t *Tracker) ListByRecent() []*Session {
 	return t.snapshotLocked()
 }
 
+// snapshotLocked returns a deep copy of all sessions, sorted by UpdatedAt
+// descending. The deep copy is REQUIRED for correctness: callers (Wails
+// Event.Emit, HTTP /sessions handler) marshal the result asynchronously
+// after the tracker lock has been released, so any aliased *Session pointer
+// would race with subsequent TrackEvent mutations. Caller must hold t.mu
+// (read or write) for the duration of the call.
 func (t *Tracker) snapshotLocked() []*Session {
 	result := make([]*Session, 0, len(t.sessions))
 	for _, s := range t.sessions {
-		result = append(result, s)
+		result = append(result, cloneSession(s))
 	}
 	sort.Slice(result, func(i, j int) bool {
 		return result[i].UpdatedAt.After(result[j].UpdatedAt)
 	})
 	return result
+}
+
+// cloneSession deep-copies a Session so the result is safe to traverse
+// without holding the tracker lock. AgentEvent pointers are NOT cloned —
+// once a Session.LastEvent or PendingTools[id] is set, the AgentEvent it
+// points to is never mutated again (the pointer is replaced wholesale on
+// the next event), so pointer aliasing is safe.
+func cloneSession(s *Session) *Session {
+	c := *s
+	c.PendingTools = maps.Clone(s.PendingTools)
+	return &c
 }
 
 // Session finds a session by its key.

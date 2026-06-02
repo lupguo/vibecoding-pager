@@ -1,6 +1,9 @@
 package session
 
 import (
+	"encoding/json"
+	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -266,4 +269,68 @@ func TestDismissByProject(t *testing.T) {
 	if len(remaining) != 1 || remaining[0].SessionID != "s3" {
 		t.Errorf("remaining sessions = %+v; want only s3", remaining)
 	}
+}
+
+// TestSnapshot_ConcurrentMarshalSafety reproduces the production panic
+//
+//	encoding/json.mapEncoder.encode: index out of range [0] with length 0
+//
+// observed in Wails Event.Emit dispatch. Wails marshals the emitted payload
+// asynchronously on its own goroutine, so the snapshot returned by
+// snapshotLocked() must be safe to traverse without holding tracker.mu.
+//
+// Run with: go test -race ./internal/domain/session/...
+//
+// The current implementation aliases *Session pointers — TrackEvent then
+// mutates Session.PendingTools while the marshaler iterates it, causing
+// either a race-detector report or the upstream json encode panic.
+func TestSnapshot_ConcurrentMarshalSafety(t *testing.T) {
+	tr := NewTracker(nil)
+
+	const sessions = 4
+	const iters = 500
+
+	// Pre-create sessions so the steady-state has work to mutate.
+	for i := 0; i < sessions; i++ {
+		key := fmt.Sprintf("s-%d", i)
+		tr.TrackEvent(&entity.AgentEvent{
+			SessionID: key, CWD: "/p/" + key, EventType: "PreToolUse",
+			ToolName: "Bash", ToolUseID: "init", Timestamp: time.Now(),
+		})
+	}
+
+	var wg sync.WaitGroup
+
+	// Mutator: continuously add/remove pending tools across all sessions.
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for i := 0; i < iters; i++ {
+			key := fmt.Sprintf("s-%d", i%sessions)
+			id := fmt.Sprintf("tu-%d", i)
+			tr.TrackEvent(&entity.AgentEvent{
+				SessionID: key, CWD: "/p/" + key, EventType: "PreToolUse",
+				ToolName: "Bash", ToolUseID: id, Timestamp: time.Now(),
+			})
+			tr.TrackEvent(&entity.AgentEvent{
+				SessionID: key, CWD: "/p/" + key, EventType: "PostToolUse",
+				ToolName: "Bash", ToolUseID: id, Timestamp: time.Now(),
+			})
+		}
+	}()
+
+	// Marshaler: simulates Wails Emit's async json.Marshal on the snapshot.
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for i := 0; i < iters; i++ {
+			snap := tr.ListByRecent()
+			if _, err := json.Marshal(snap); err != nil {
+				t.Errorf("marshal failed at iter %d: %v", i, err)
+				return
+			}
+		}
+	}()
+
+	wg.Wait()
 }
