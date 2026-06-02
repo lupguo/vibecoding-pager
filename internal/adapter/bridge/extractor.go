@@ -170,6 +170,9 @@ func ExtractEventContent(eventType string, in *CCHookInput) (contentRaw, content
 		return in.StopReason, in.StopReason
 	case "StopFailure":
 		raw := in.ErrorType + ": " + in.ErrorMessage
+		if raw == ": " {
+			return "", ""
+		}
 		return raw, truncateRunes(raw, contentMaxRunes)
 	case "Error":
 		raw := in.ErrorType + ": " + in.ErrorMessage

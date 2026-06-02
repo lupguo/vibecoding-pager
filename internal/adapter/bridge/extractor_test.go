@@ -409,3 +409,11 @@ func TestExtractEventContent_MessageDisplay_UsesDelta(t *testing.T) {
 		t.Errorf("content = %q", content)
 	}
 }
+
+func TestExtractEventContent_StopFailure_BothEmpty_ReturnsEmpty(t *testing.T) {
+	in := &CCHookInput{}
+	raw, content := ExtractEventContent("StopFailure", in)
+	if raw != "" || content != "" {
+		t.Errorf("expected empty, got raw=%q content=%q", raw, content)
+	}
+}
