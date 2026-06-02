@@ -39,12 +39,19 @@ function StatusIcon({ status }: { status: SessionStatus }) {
 }
 
 function MetaRow({
-  Icon, label, value, copyable,
+  Icon, label, value, copyable, inline,
 }: {
   Icon: typeof FolderOpen
   label: string
   value: string
   copyable?: boolean
+  /**
+   * When true, render in a horizontal "footer" style: no uppercase label
+   * text (the icon carries the meaning), tighter padding, Copy button only
+   * appears when the parent row is hovered. Used in the compact expanded
+   * card footer; existing default-block callers leave this unset.
+   */
+  inline?: boolean
 }) {
   const [copied, setCopied] = useState(false)
   const handleCopy = async (e: React.MouseEvent) => {
@@ -58,6 +65,30 @@ function MetaRow({
       console.error('[pager] copy failed:', err)
     }
   }
+
+  if (inline) {
+    return (
+      <div
+        className="group/metarow flex items-center gap-[5px] text-[10px] text-[--pager-text-muted] min-w-0"
+        title={label}>
+        <Icon size={11} className="opacity-65 shrink-0" strokeWidth={2} />
+        <span
+          className="font-mono text-[--pager-text-secondary] truncate min-w-0"
+          title={value}>
+          {value || '—'}
+        </span>
+        <button
+          onClick={handleCopy}
+          className={`w-[16px] h-[16px] flex items-center justify-center rounded-[3px] text-[--pager-text-faint] hover:bg-[rgba(255,255,255,0.06)] hover:text-[--pager-text-secondary] shrink-0 transition-opacity opacity-0 group-hover/metarow:opacity-100 ${
+            !copyable || !value ? 'invisible' : ''
+          }`}
+          title="复制">
+          {copied ? <Check size={10} strokeWidth={2.5} /> : <Copy size={10} strokeWidth={2} />}
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div className="flex items-center gap-[6px] px-[8px] py-[3px] text-[10px] leading-[1.6] text-[--pager-text-secondary]">
       <Icon size={11} className="opacity-65 shrink-0 text-[--pager-text-muted]" strokeWidth={2} />
