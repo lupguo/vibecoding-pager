@@ -34,9 +34,9 @@
 
   /* Status colors — dual encoded with shape (lucide icon) */
   --c-working: #28a745;
-  --c-waiting: #ff3b30;
-  --c-done:    #5ac8fa;
-  --c-error:   #ff9f0a;
+  --c-waiting: #ff9500;
+  --c-done:    #cc9a00;
+  --c-error:   #ff453a;
 
   --bg-working: rgba(40, 167, 69, 0.05);
   --bd-working: rgba(40, 167, 69, 0.15);
@@ -44,15 +44,15 @@
 
   --bg-waiting: rgba(255, 59, 48, 0.06);
   --bd-waiting: rgba(255, 59, 48, 0.20);
-  --pill-waiting: rgba(255, 59, 48, 0.15);
+  --pill-waiting: rgba(255, 149, 0, 0.18);
 
   --bg-done: rgba(90, 200, 250, 0.05);
   --bd-done: rgba(90, 200, 250, 0.18);
-  --pill-done: rgba(90, 200, 250, 0.14);
+  --pill-done: rgba(255, 204, 0, 0.18);
 
   --bg-error: rgba(255, 159, 10, 0.07);
   --bd-error: rgba(255, 159, 10, 0.22);
-  --pill-error: rgba(255, 159, 10, 0.16);
+  --pill-error: rgba(255, 69, 58, 0.18);
 }
 
 :root.light {
@@ -89,9 +89,9 @@
   --pager-detail-text: rgba(255, 255, 255, 0.55);
 
   --c-working: #30d158;
-  --c-waiting: #ff453a;
-  --c-done:    #5ac8fa;
-  --c-error:   #ff9f0a;
+  --c-waiting: #ff9500;
+  --c-done:    #cc9a00;
+  --c-error:   #ff453a;
 
   --bg-working: rgba(48, 209, 88, 0.07);
   --bd-working: rgba(48, 209, 88, 0.22);
@@ -99,15 +99,15 @@
 
   --bg-waiting: rgba(255, 69, 58, 0.10);
   --bd-waiting: rgba(255, 69, 58, 0.28);
-  --pill-waiting: rgba(255, 69, 58, 0.18);
+  --pill-waiting: rgba(255, 149, 0, 0.18);
 
   --bg-done: rgba(90, 200, 250, 0.05);
   --bd-done: rgba(90, 200, 250, 0.18);
-  --pill-done: rgba(90, 200, 250, 0.14);
+  --pill-done: rgba(255, 204, 0, 0.18);
 
   --bg-error: rgba(255, 159, 10, 0.08);
   --bd-error: rgba(255, 159, 10, 0.25);
-  --pill-error: rgba(255, 159, 10, 0.18);
+  --pill-error: rgba(255, 69, 58, 0.18);
 }
 
 /* System preference fallback (no class = "system" theme) */
@@ -142,9 +142,9 @@
     --pager-detail-text: rgba(255, 255, 255, 0.55);
 
     --c-working: #30d158;
-    --c-waiting: #ff453a;
-    --c-done:    #5ac8fa;
-    --c-error:   #ff9f0a;
+    --c-waiting: #ff9500;
+    --c-done:    #cc9a00;
+    --c-error:   #ff453a;
 
     --bg-working: rgba(48, 209, 88, 0.07);
     --bd-working: rgba(48, 209, 88, 0.22);
@@ -152,15 +152,15 @@
 
     --bg-waiting: rgba(255, 69, 58, 0.10);
     --bd-waiting: rgba(255, 69, 58, 0.28);
-    --pill-waiting: rgba(255, 69, 58, 0.18);
+    --pill-waiting: rgba(255, 149, 0, 0.18);
 
     --bg-done: rgba(90, 200, 250, 0.05);
     --bd-done: rgba(90, 200, 250, 0.18);
-    --pill-done: rgba(90, 200, 250, 0.14);
+    --pill-done: rgba(255, 204, 0, 0.18);
 
     --bg-error: rgba(255, 159, 10, 0.08);
     --bd-error: rgba(255, 159, 10, 0.25);
-    --pill-error: rgba(255, 159, 10, 0.18);
+    --pill-error: rgba(255, 69, 58, 0.18);
   }
 }
 
