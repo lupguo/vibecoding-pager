@@ -64,8 +64,10 @@ func NewPagerApp(assets embed.FS) *application.App {
 	// require a valid bundle identifier" when [NSBundle mainBundle] has no
 	// CFBundleIdentifier — i.e. when the binary runs outside a .app bundle
 	// (`wails dev`, `make run`, raw `go run`). To keep dev iteration working,
-	// we register the service ONLY when bundled. notify.ShowEvent is already
-	// nil-safe, so unbundled runs will silently no-op on notification sends.
+	// we register the service ONLY when bundled. When unbundled, notifSvc is
+	// passed to notify.ShowEvent as nil — that triggers the osascript
+	// fallback path so notifications still appear in the macOS Notification
+	// Center (no click-to-deep-link, but visibility is preserved).
 	notifSvc := notifications.New()
 	notifSvc.OnNotificationResponse(func(result notifications.NotificationResult) {
 		if result.Error != nil {
@@ -88,11 +90,12 @@ func NewPagerApp(assets embed.FS) *application.App {
 	notificationsEnabled := runningInBundle()
 	if !notificationsEnabled {
 		slog.Warn(
-			"running unbundled (likely 'wails dev' or 'make run'); macOS notifications disabled — "+
-				"use 'make build && open build/bin/Pager.app' to verify notifications",
+			"running unbundled (likely 'wails dev' or 'make run'); using osascript fallback "+
+				"for notifications — click-to-deep-link is unavailable, run "+
+				"'make build && open build/bin/Pager.app' for the full Wails-native experience",
 			"module", "wails",
 		)
-		notifSvc = nil // makes notify.ShowEvent a no-op via its nil-guard
+		notifSvc = nil // notify.ShowEvent now routes to osascript instead of no-op
 	}
 
 	// ── SessionTracker ──────────────────────────────────────────────────────
