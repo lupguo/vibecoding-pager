@@ -26,17 +26,19 @@ Send each event via `pager-cc-bridge` (or test bridge harness) and verify card r
 | 1 | Click project header | Group collapses / chevron rotates from down to right |
 | 2 | Click again | Group expands |
 | 3 | Quit + relaunch | Previously collapsed projects still collapsed |
-| 4 | Hover project header | Trash2 button fades in on the right |
-| 5 | Click Trash2 | All cards in that project vanish; SQLite `t_sessions.deleted_at` populated |
+| 4 | Hover project header | BrushCleaning button fades in on the right |
+| 5 | Click BrushCleaning (扫帚 icon) | All cards in that project vanish; SQLite `t_sessions.deleted_at` populated |
 
 ## C. Expanded Card
 
 | Step | Action | Expected |
 |---|---|---|
-| 1 | Click any card | PATH / SESSION / TIME rows render with FolderOpen / Hash / Clock icons |
-| 2 | Click Copy on PATH | Icon swaps to Check for ~800ms; clipboard contains the CWD |
-| 3 | Click "更多" | TOOL ID / TTY / PERM rows render with Wrench / Terminal / ShieldCheck |
-| 4 | Click "收起" | Folded section hides; button text reverts to "更多" |
+| 1 | Click any card | Card expands; `<pre>` with content_raw appears as the first block |
+| 2 | Look below `<pre>` | A single-row footer shows PATH (FolderOpen icon + value) and SESSION (Hash icon + value), separated from `<pre>` by a dashed top border |
+| 3 | Hover the footer | Copy buttons fade in next to PATH and SESSION values |
+| 4 | Click Copy on PATH | Icon swaps to Check for ~800ms; clipboard contains the CWD |
+| 5 | Verify removed UI | NO "更多 / 收起" button anywhere; NO TIME row; NO TOOL ID / TTY / PERM rows reachable |
+| 6 | Click the card again | Card collapses back to the summary row |
 
 ## D. Multi-Space Window
 
