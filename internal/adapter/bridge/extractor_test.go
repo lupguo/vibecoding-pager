@@ -344,3 +344,24 @@ func TestExtractEventContent_Error_BothEmpty_ReturnsEmpty(t *testing.T) {
 		t.Errorf("expected empty, got raw=%q content=%q", raw, content)
 	}
 }
+
+func TestExtractEventContent_PostToolBatch_JoinsToolNames(t *testing.T) {
+	in := &CCHookInput{
+		ToolCalls: json.RawMessage(`[{"tool_name":"Bash"},{"tool_name":"Edit"},{"tool_name":"Read"}]`),
+	}
+	raw, content := ExtractEventContent("PostToolBatch", in)
+	if raw != "Bash, Edit, Read" {
+		t.Errorf("raw = %q, want %q", raw, "Bash, Edit, Read")
+	}
+	if content != "Bash, Edit, Read" {
+		t.Errorf("content = %q", content)
+	}
+}
+
+func TestExtractEventContent_PostToolBatch_EmptyArray(t *testing.T) {
+	in := &CCHookInput{ToolCalls: json.RawMessage(`[]`)}
+	raw, content := ExtractEventContent("PostToolBatch", in)
+	if raw != "" || content != "" {
+		t.Errorf("expected empty, got raw=%q content=%q", raw, content)
+	}
+}

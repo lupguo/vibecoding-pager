@@ -198,7 +198,12 @@ func ExtractEventContent(eventType string, in *CCHookInput) (contentRaw, content
 		raw := in.ToolName + ": " + in.DenialReason
 		return raw, truncateRunes(raw, contentMaxRunes)
 	case "PostToolBatch":
-		return "", ""
+		names := extractBatchToolNames(in.ToolCalls)
+		if len(names) == 0 {
+			return "", ""
+		}
+		raw := strings.Join(names, ", ")
+		return raw, truncateRunes(raw, contentMaxRunes)
 
 	// Context layer
 	case "PreCompact":
@@ -226,4 +231,26 @@ func ExtractEventContent(eventType string, in *CCHookInput) (contentRaw, content
 	default:
 		return "", ""
 	}
+}
+
+// extractBatchToolNames parses PostToolBatch's tool_calls JSON array
+// (each element having a tool_name) and returns the names in order.
+// On parse failure or nil input, returns nil.
+func extractBatchToolNames(raw json.RawMessage) []string {
+	if len(raw) == 0 {
+		return nil
+	}
+	var calls []struct {
+		ToolName string `json:"tool_name"`
+	}
+	if err := json.Unmarshal(raw, &calls); err != nil {
+		return nil
+	}
+	names := make([]string, 0, len(calls))
+	for _, c := range calls {
+		if c.ToolName != "" {
+			names = append(names, c.ToolName)
+		}
+	}
+	return names
 }
