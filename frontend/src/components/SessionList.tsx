@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { ChevronDown, ChevronRight, Folder, Trash2 } from 'lucide-react'
+import { BrushCleaning, ChevronDown, ChevronRight, Folder } from 'lucide-react'
 import { useProjectGroups } from '../store/sessions'
 import { useUIStore } from '../store/uistate'
 import { useSettingsStore } from '../store/settings'
@@ -70,7 +70,7 @@ export default function SessionList() {
                     console.error('[pager] DismissSessionsByProject failed:', err)
                   }
                 }}>
-                <Trash2 size={11} strokeWidth={2} />
+                <BrushCleaning size={11} strokeWidth={2} />
               </button>
             </div>
             {!collapsed && (
