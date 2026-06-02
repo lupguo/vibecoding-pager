@@ -365,3 +365,25 @@ func TestExtractEventContent_PostToolBatch_EmptyArray(t *testing.T) {
 		t.Errorf("expected empty, got raw=%q content=%q", raw, content)
 	}
 }
+
+func TestExtractEventContent_SubagentStop_PrefersLastAssistantMessage(t *testing.T) {
+	in := &CCHookInput{
+		AgentType:            "claude",
+		LastAssistantMessage: "All changes have been applied.",
+	}
+	raw, content := ExtractEventContent("SubagentStop", in)
+	if raw != "All changes have been applied." {
+		t.Errorf("raw = %q", raw)
+	}
+	if content != "All changes have been applied." {
+		t.Errorf("content = %q", content)
+	}
+}
+
+func TestExtractEventContent_SubagentStop_FallsBackToAgentType(t *testing.T) {
+	in := &CCHookInput{AgentType: "claude"}
+	raw, _ := ExtractEventContent("SubagentStop", in)
+	if raw != "claude" {
+		t.Errorf("raw = %q, want %q", raw, "claude")
+	}
+}

@@ -182,6 +182,9 @@ func ExtractEventContent(eventType string, in *CCHookInput) (contentRaw, content
 	case "SubagentStart":
 		return in.AgentType, in.AgentType
 	case "SubagentStop":
+		if in.LastAssistantMessage != "" {
+			return in.LastAssistantMessage, truncateRunes(in.LastAssistantMessage, contentMaxRunes)
+		}
 		return in.AgentType, in.AgentType
 	case "TaskCreated":
 		return in.TaskSubject, truncateRunes(in.TaskSubject, contentMaxRunes)
