@@ -322,3 +322,25 @@ func TestExtractEventContent_SessionStart(t *testing.T) {
 		t.Errorf("raw: got %q", raw)
 	}
 }
+
+func TestExtractEventContent_Error_UsesErrorTypeAndMessage(t *testing.T) {
+	in := &CCHookInput{
+		ErrorType:    "rate_limit",
+		ErrorMessage: "60 req/min exceeded",
+	}
+	raw, content := ExtractEventContent("Error", in)
+	if raw != "rate_limit: 60 req/min exceeded" {
+		t.Errorf("raw = %q, want %q", raw, "rate_limit: 60 req/min exceeded")
+	}
+	if content != "rate_limit: 60 req/min exceeded" {
+		t.Errorf("content = %q", content)
+	}
+}
+
+func TestExtractEventContent_Error_BothEmpty_ReturnsEmpty(t *testing.T) {
+	in := &CCHookInput{}
+	raw, content := ExtractEventContent("Error", in)
+	if raw != "" || content != "" {
+		t.Errorf("expected empty, got raw=%q content=%q", raw, content)
+	}
+}
