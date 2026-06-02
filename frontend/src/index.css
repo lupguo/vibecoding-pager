@@ -42,16 +42,16 @@
   --bd-working: rgba(40, 167, 69, 0.15);
   --pill-working: rgba(40, 167, 69, 0.12);
 
-  --bg-waiting: rgba(255, 59, 48, 0.06);
-  --bd-waiting: rgba(255, 59, 48, 0.20);
+  --bg-waiting: rgba(255, 149, 0, 0.06);
+  --bd-waiting: rgba(255, 149, 0, 0.20);
   --pill-waiting: rgba(255, 149, 0, 0.18);
 
-  --bg-done: rgba(90, 200, 250, 0.05);
-  --bd-done: rgba(90, 200, 250, 0.18);
+  --bg-done: rgba(204, 154, 0, 0.05);
+  --bd-done: rgba(204, 154, 0, 0.18);
   --pill-done: rgba(255, 204, 0, 0.18);
 
-  --bg-error: rgba(255, 159, 10, 0.07);
-  --bd-error: rgba(255, 159, 10, 0.22);
+  --bg-error: rgba(255, 69, 58, 0.07);
+  --bd-error: rgba(255, 69, 58, 0.22);
   --pill-error: rgba(255, 69, 58, 0.18);
 }
 
@@ -97,16 +97,16 @@
   --bd-working: rgba(48, 209, 88, 0.22);
   --pill-working: rgba(48, 209, 88, 0.15);
 
-  --bg-waiting: rgba(255, 69, 58, 0.10);
-  --bd-waiting: rgba(255, 69, 58, 0.28);
+  --bg-waiting: rgba(255, 149, 0, 0.10);
+  --bd-waiting: rgba(255, 149, 0, 0.28);
   --pill-waiting: rgba(255, 149, 0, 0.18);
 
-  --bg-done: rgba(90, 200, 250, 0.05);
-  --bd-done: rgba(90, 200, 250, 0.18);
+  --bg-done: rgba(204, 154, 0, 0.05);
+  --bd-done: rgba(204, 154, 0, 0.18);
   --pill-done: rgba(255, 204, 0, 0.18);
 
-  --bg-error: rgba(255, 159, 10, 0.08);
-  --bd-error: rgba(255, 159, 10, 0.25);
+  --bg-error: rgba(255, 69, 58, 0.08);
+  --bd-error: rgba(255, 69, 58, 0.25);
   --pill-error: rgba(255, 69, 58, 0.18);
 }
 
@@ -150,16 +150,16 @@
     --bd-working: rgba(48, 209, 88, 0.22);
     --pill-working: rgba(48, 209, 88, 0.15);
 
-    --bg-waiting: rgba(255, 69, 58, 0.10);
-    --bd-waiting: rgba(255, 69, 58, 0.28);
+    --bg-waiting: rgba(255, 149, 0, 0.10);
+    --bd-waiting: rgba(255, 149, 0, 0.28);
     --pill-waiting: rgba(255, 149, 0, 0.18);
 
-    --bg-done: rgba(90, 200, 250, 0.05);
-    --bd-done: rgba(90, 200, 250, 0.18);
+    --bg-done: rgba(204, 154, 0, 0.05);
+    --bd-done: rgba(204, 154, 0, 0.18);
     --pill-done: rgba(255, 204, 0, 0.18);
 
-    --bg-error: rgba(255, 159, 10, 0.08);
-    --bd-error: rgba(255, 159, 10, 0.25);
+    --bg-error: rgba(255, 69, 58, 0.08);
+    --bd-error: rgba(255, 69, 58, 0.25);
     --pill-error: rgba(255, 69, 58, 0.18);
   }
 }
