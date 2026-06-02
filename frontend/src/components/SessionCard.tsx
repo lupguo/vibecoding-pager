@@ -122,6 +122,7 @@ export default function SessionCard({ session, highlighted }: Props) {
   const toolName = session.LastEvent?.tool_name ?? ''
   const sessionPrefix = (session.SessionID || session.Key || '').slice(0, 8)
   const agentLabel = session.AgentLabel || 'CC'
+  const eventType = session.LastEvent?.event_type ?? ''
 
   const handleJump = async (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -150,6 +151,11 @@ export default function SessionCard({ session, highlighted }: Props) {
           <span className="text-[9px] font-semibold px-[5px] py-[1px] rounded-[3px] bg-[--pager-badge-bg] text-[--pager-badge-text] tracking-wide uppercase">
             {agentLabel}
           </span>
+          {eventType && (
+            <span className="text-[9px] font-medium px-[5px] py-[1px] rounded-[3px] tracking-wide border border-[--pager-border] text-[--pager-text-secondary]">
+              {eventType}
+            </span>
+          )}
           <span className="flex-1" />
           <span className="text-[9px] text-[--pager-text-faint] font-mono">{sessionPrefix}</span>
           <span className="text-[9px] text-[--pager-text-faint]">{relativeTime}</span>
