@@ -14,10 +14,11 @@ Send each event via `pager-cc-bridge` (or test bridge harness) and verify card r
 
 | Step | Event | Expected card |
 |---|---|---|
-| 1 | `--event PreToolUse --agent CC` with stdin `{"tool_name":"AskUserQuestion","cwd":"/p/x","session_id":"r1"}` | WAITING tag (red), HandHelping pulsing icon |
+| 1 | `--event PreToolUse --agent CC` with stdin `{"tool_name":"AskUserQuestion","cwd":"/p/x","session_id":"r1"}` | WAITING tag (warm orange #ff9500), HandHelping pulsing icon |
 | 2 | `--event PreToolUse` with `{"tool_name":"Edit","permission_mode":"bypassPermissions",...}` | WORKING tag (green), Loader2 spinning |
-| 3 | `--event Stop` (same session) | DONE tag (light blue), CheckCircle2 |
-| 4 | `--event StopFailure` (new session) | ERROR tag (orange), AlertTriangle |
+| 3 | `--event Stop` (same session) | DONE tag (yellow-brown #cc9a00), CheckCircle2 |
+| 4 | `--event StopFailure` (new session) | ERROR tag (red #ff453a), AlertTriangle |
+| 5 | All four events above | header shows event_type as outline pill (no fill, secondary text color) right after the agent pill — values: `PreToolUse`, `Stop`, `StopFailure` |
 
 ## B. Project Grouping
 
@@ -90,6 +91,14 @@ go test -tags=integration ./internal/... -run 'TestE2E_' -v
 ```
 
 Expected: PASS for all 9 sub-tests in `TestE2E_StatusModelDataPath` plus `TestE2E_DismissByProjectFlow`.
+
+After running, manually verify the new columns are populated:
+
+```bash
+sqlite3 ~/.config/pager/pager.db "SELECT event_type, cwd, project_name FROM t_events ORDER BY id DESC LIMIT 5"
+```
+
+Expected: every row has non-empty `cwd` and `project_name` (project_name = last segment of cwd).
 
 ---
 
