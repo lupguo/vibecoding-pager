@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import {
-  ArrowRight, AlertTriangle, CheckCircle2, ChevronDown, ChevronUp,
-  Clock, Copy, Check, FolderOpen, HandHelping, Hash, Loader2,
-  ShieldCheck, Terminal, Wrench,
+  ArrowRight, AlertTriangle, CheckCircle2,
+  Copy, Check, FolderOpen, HandHelping, Hash, Loader2,
 } from 'lucide-react'
 import type { Session, SessionStatus } from '../store/sessions'
 import { JumpToTerminal } from '../../bindings/pager/internal/wails/sessionbinding.js'
@@ -110,18 +109,10 @@ function MetaRow({
   )
 }
 
-function formatTimestamp(iso: string): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  if (isNaN(d.getTime())) return ''
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
-}
 
 export default function SessionCard({ session, highlighted }: Props) {
   const [jumping, setJumping] = useState(false)
   const [expanded, setExpanded] = useState(false)
-  const [showMore, setShowMore] = useState(false)
 
   const status: SessionStatus = (session.Status as SessionStatus) || 'working'
   const tag = STATUS_TAG[status]
@@ -187,47 +178,16 @@ export default function SessionCard({ session, highlighted }: Props) {
           </button>
         </div>
         {expanded && (
-          <div className="mt-[6px] pl-[22px]">
-            <div className="bg-[rgba(255,255,255,0.025)] border border-[rgba(255,255,255,0.04)] rounded-[6px] py-[4px] mb-[6px]">
-              <MetaRow Icon={FolderOpen} label="PATH" value={session.CWD || ''} copyable />
-              <MetaRow Icon={Hash} label="SESSION" value={session.SessionID || session.Key || ''} copyable />
-              <MetaRow Icon={Clock} label="TIME" value={formatTimestamp(session.LastEvent?.timestamp ?? session.UpdatedAt)} />
-            </div>
+          <div className="mt-[6px] pl-[18px]">
             {session.LastEvent?.content_raw && (
-              <pre className="p-[6px] bg-[--pager-detail-bg] border border-[--pager-detail-border] rounded-[6px] text-[10px] leading-relaxed text-[--pager-detail-text] font-mono whitespace-pre-wrap break-all max-h-32 overflow-y-auto">
+              <pre className="px-[6px] py-[5px] bg-[--pager-detail-bg] border border-[--pager-detail-border] rounded-[6px] text-[10px] leading-relaxed text-[--pager-detail-text] font-mono whitespace-pre-wrap break-all max-h-32 overflow-y-auto">
                 {session.LastEvent.content_raw}
               </pre>
             )}
-            {showMore && (
-              <div className="bg-[rgba(255,255,255,0.025)] border border-[rgba(255,255,255,0.04)] rounded-[6px] py-[4px] mb-[6px]">
-                <MetaRow
-                  Icon={Wrench}
-                  label="TOOL ID"
-                  value={session.LastEvent?.tool_use_id ?? ''}
-                  copyable
-                />
-                <MetaRow
-                  Icon={Terminal}
-                  label="TTY"
-                  value={
-                    session.TTY
-                      ? `${session.TTY}${session.TermProgram ? ' · ' + session.TermProgram : ''}`
-                      : ''
-                  }
-                />
-                <MetaRow
-                  Icon={ShieldCheck}
-                  label="PERM"
-                  value={session.LastEvent?.permission_mode ?? ''}
-                />
-              </div>
-            )}
-            <button
-              onClick={(e) => { e.stopPropagation(); setShowMore(!showMore) }}
-              className="w-full flex items-center justify-center gap-[4px] py-[4px] px-[8px] mt-[4px] text-[10px] text-[--pager-text-muted] bg-transparent border border-dashed border-[rgba(255,255,255,0.08)] rounded-[5px] hover:text-[--pager-text-secondary] hover:border-[rgba(255,255,255,0.16)]">
-              {showMore ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
-              {showMore ? '收起' : '更多'}
-            </button>
+            <div className="flex items-center gap-[14px] mt-[5px] pt-[5px] border-t border-dashed border-[rgba(255,255,255,0.08)] min-w-0">
+              <MetaRow Icon={FolderOpen} label="PATH" value={session.CWD || ''} copyable inline />
+              <MetaRow Icon={Hash} label="SESSION" value={session.SessionID || session.Key || ''} copyable inline />
+            </div>
           </div>
         )}
       </div>
