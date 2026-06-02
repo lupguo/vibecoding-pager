@@ -104,9 +104,14 @@ Do NOT implement these:
 - Text replies to CC from within Pager
 - Multi-machine unified view
 - Codex/other agent bridge (fields reserved, not wired)
-- SQLite persistence (in-memory Registry is sufficient for v1)
 - WebSocket (Wails Events handles Go -> UI push)
 - Linux/Windows support
+
+> **Note on SQLite:** Earlier drafts of this section deferred SQLite to a
+> later release. As of the 2026-06-01 redesign, SQLite persistence is
+> shipped (see `internal/infra/store/sqlite.go` — sessions and events are
+> persisted, replayed on startup, soft-deleted on Dismiss). It is part
+> of v1.5 — no longer a v1.0 boundary.
 
 ## Key Files
 

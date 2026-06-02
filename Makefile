@@ -27,9 +27,17 @@ dev-frontend:
 
 # ─── Build ───────────────────────────────────────────────────────────────────
 
-## Build production .app bundle
+## Build production .app bundle (output: bin/Pager.app)
+##
+## Wails v3 alpha.96 split the old `wails3 build` into two phases:
+##   - `wails3 build`   produces a raw Mach-O at bin/Pager
+##   - `wails3 package` wraps that into bin/Pager.app/Contents/{MacOS,Resources}
+##                      and ad-hoc codesigns it ("- " identity)
+## We want the bundle for `open` + macOS NotificationService bundle-id
+## requirement, so this target uses package. (`-config` flag was removed
+## upstream — wails.json + build/config.yml are picked up automatically.)
 build: frontend-build
-	wails3 build -config ./build/config.yml
+	wails3 package
 
 ## Build Go binary only (no frontend rebuild)
 build-go:

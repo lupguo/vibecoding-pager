@@ -4,7 +4,7 @@
 > `internal/domain/session`, or any file under `frontend/src/`.
 
 **Build:** `make build`
-**Launch:** `open build/bin/Pager.app`
+**Launch:** `open bin/Pager.app`
 
 Each row = one click-through. Check ✅ when verified, ❌ if regressed.
 

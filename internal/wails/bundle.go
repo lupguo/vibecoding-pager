@@ -6,7 +6,7 @@ import (
 )
 
 // runningInBundle reports whether the current process is launched from inside a
-// macOS .app bundle (e.g. `open build/bin/Pager.app`). Returns false when the
+// macOS .app bundle (e.g. `open bin/Pager.app`). Returns false when the
 // binary runs unbundled — typically `wails dev` or `make run`. Used to gate the
 // Wails NotificationService, which calls into UNUserNotificationCenter and
 // hard-fails on Startup with "notifications require a valid bundle identifier"

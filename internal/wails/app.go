@@ -92,7 +92,7 @@ func NewPagerApp(assets embed.FS) *application.App {
 		slog.Warn(
 			"running unbundled (likely 'wails dev' or 'make run'); using osascript fallback "+
 				"for notifications — click-to-deep-link is unavailable, run "+
-				"'make build && open build/bin/Pager.app' for the full Wails-native experience",
+				"'make build && open bin/Pager.app' for the full Wails-native experience",
 			"module", "wails",
 		)
 		notifSvc = nil // notify.ShowEvent now routes to osascript instead of no-op
