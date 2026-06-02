@@ -35,6 +35,8 @@ CREATE TABLE IF NOT EXISTS t_events (
     permission_mode TEXT    NOT NULL DEFAULT '',        -- bypassPermissions / default / etc.
     raw_payload     BLOB             DEFAULT NULL,      -- 完整 stdin JSON
     timestamp       TEXT    NOT NULL DEFAULT (datetime('now','localtime')),
+    cwd             TEXT    NOT NULL DEFAULT '',          -- v2.1: 冗余自 t_sessions（调试便利）
+    project_name    TEXT    NOT NULL DEFAULT '',          -- v2.1: 冗余自 t_sessions
 
     FOREIGN KEY (session_key) REFERENCES t_sessions(session_key)
 );
@@ -42,3 +44,4 @@ CREATE TABLE IF NOT EXISTS t_events (
 CREATE INDEX IF NOT EXISTS idx_events_session_ts ON t_events(session_key, timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_events_type       ON t_events(event_type);
 CREATE INDEX IF NOT EXISTS idx_events_timestamp  ON t_events(timestamp DESC);
+-- idx_events_project is created by migrate() after the cwd/project_name columns are guaranteed present

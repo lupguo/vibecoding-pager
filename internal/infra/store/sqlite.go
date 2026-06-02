@@ -408,4 +408,19 @@ func migrate(db *sqlx.DB) {
 	// v2.0: drop obsolete attention_level columns (SQLite >= 3.35; modernc.org/sqlite v1.51 supports it)
 	_, _ = db.Exec(`ALTER TABLE t_sessions DROP COLUMN attention_level`)
 	_, _ = db.Exec(`ALTER TABLE t_events DROP COLUMN attention_level`)
+
+	// v2.1: redundant cwd / project_name on t_events for ad-hoc debugging
+	_, _ = db.Exec(`ALTER TABLE t_events ADD COLUMN cwd          TEXT NOT NULL DEFAULT ''`)
+	_, _ = db.Exec(`ALTER TABLE t_events ADD COLUMN project_name TEXT NOT NULL DEFAULT ''`)
+	_, _ = db.Exec(`CREATE INDEX IF NOT EXISTS idx_events_project ON t_events(project_name, timestamp DESC)`)
+
+	// v2.1: backfill cwd / project_name for existing events that joined late
+	// COALESCE guards against orphan events (no matching session row → subselect returns NULL,
+	// which would violate NOT NULL constraint without the fallback to '').
+	_, _ = db.Exec(`
+		UPDATE t_events
+		SET cwd = COALESCE((SELECT s.cwd FROM t_sessions s WHERE s.session_key = t_events.session_key), ''),
+		    project_name = COALESCE((SELECT s.project_name FROM t_sessions s WHERE s.session_key = t_events.session_key), '')
+		WHERE cwd = '' OR project_name = ''
+	`)
 }
