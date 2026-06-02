@@ -215,6 +215,94 @@ func TestSQLiteStore_SessionEvents(t *testing.T) {
 	}
 }
 
+func TestSQLiteStore_InsertEvent_PopulatesCwdAndProjectName(t *testing.T) {
+	dbPath := tempDBPath(t)
+	s, err := NewSQLiteStore(dbPath)
+	if err != nil {
+		t.Fatalf("NewSQLiteStore: %v", err)
+	}
+
+	e := makeTestEvent("sess-cwd", entity.EventPreToolUse, "Bash")
+	e.CWD = "/Users/dev/projects/myapp"
+	s.Record(e)
+
+	if err := s.Close(); err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+
+	// Reopen with raw SQL to inspect the new columns
+	rawDB, err := sql.Open("sqlite", dbPath)
+	if err != nil {
+		t.Fatalf("sql.Open: %v", err)
+	}
+	defer rawDB.Close()
+
+	var cwd, project string
+	err = rawDB.QueryRow(
+		`SELECT cwd, project_name FROM t_events WHERE session_key = ? ORDER BY id DESC LIMIT 1`,
+		"sess-cwd",
+	).Scan(&cwd, &project)
+	if err != nil {
+		t.Fatalf("query: %v", err)
+	}
+	if cwd != "/Users/dev/projects/myapp" {
+		t.Errorf("cwd = %q, want %q", cwd, "/Users/dev/projects/myapp")
+	}
+	if project != "myapp" {
+		t.Errorf("project_name = %q, want %q", project, "myapp")
+	}
+}
+
+func TestSQLiteStore_Migrate_BackfillsCwdAndProjectName(t *testing.T) {
+	dbPath := tempDBPath(t)
+
+	// First open: NewSQLiteStore creates schema + runs migrate (no-op for new DB)
+	// + insert a session and an event with the new columns auto-populated.
+	s, err := NewSQLiteStore(dbPath)
+	if err != nil {
+		t.Fatalf("NewSQLiteStore: %v", err)
+	}
+	e := makeTestEvent("sess-bf", entity.EventPreToolUse, "Bash")
+	e.CWD = "/projects/legacy"
+	s.Record(e)
+	if err := s.Close(); err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+
+	// Simulate "old data": clear the new columns to '' on the existing row,
+	// then re-open (which runs migrate -> backfill).
+	rawDB, err := sql.Open("sqlite", dbPath)
+	if err != nil {
+		t.Fatalf("sql.Open: %v", err)
+	}
+	if _, err := rawDB.Exec(`UPDATE t_events SET cwd='', project_name='' WHERE session_key='sess-bf'`); err != nil {
+		t.Fatalf("clear cols: %v", err)
+	}
+	rawDB.Close()
+
+	// Reopen — migrate() should backfill from t_sessions.
+	s2, err := NewSQLiteStore(dbPath)
+	if err != nil {
+		t.Fatalf("reopen: %v", err)
+	}
+	defer s2.Close()
+
+	rawDB2, _ := sql.Open("sqlite", dbPath)
+	defer rawDB2.Close()
+	var cwd, project string
+	if err := rawDB2.QueryRow(
+		`SELECT cwd, project_name FROM t_events WHERE session_key='sess-bf' LIMIT 1`,
+	).Scan(&cwd, &project); err != nil {
+		t.Fatalf("query: %v", err)
+	}
+	if cwd == "" || project == "" {
+		t.Errorf("expected backfill, got cwd=%q project=%q", cwd, project)
+	}
+	if project != "legacy" {
+		t.Errorf("project_name = %q, want %q", project, "legacy")
+	}
+}
+
 func TestMigrationV1ToV2(t *testing.T) {
 	dir := t.TempDir()
 	dbPath := filepath.Join(dir, "v1.db")

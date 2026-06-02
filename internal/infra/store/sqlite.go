@@ -371,12 +371,13 @@ func (s *sqliteStore) writeBatch(events []*entity.AgentEvent) {
 
 		// INSERT event
 		_, err = tx.Exec(`
-			INSERT INTO t_events (session_key, agent_label, event_type, tool_name, tool_use_id, content, content_raw, permission_mode, raw_payload, timestamp)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			INSERT INTO t_events (session_key, agent_label, event_type, tool_name, tool_use_id, content, content_raw, permission_mode, raw_payload, timestamp, cwd, project_name)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		`,
 			sessionKey, e.AgentLabel, e.EventType, e.ToolName, e.ToolUseID,
 			e.Content, e.ContentRaw, e.PermissionMode,
 			[]byte(e.RawPayload), ts,
+			e.CWD, session.ProjectFromCWD(e.CWD),
 		)
 		if err != nil {
 			slog.Error("insert event", "error", err, "session_key", sessionKey)
