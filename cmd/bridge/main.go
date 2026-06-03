@@ -34,11 +34,15 @@ func main() {
 		return
 	}
 
-	// Extract content based on event type
+	// Extract content based on event type. PreToolUse / Permission* dispatch to
+	// rules.Pre with tool_input; PostToolUse to rules.Post with tool_response.
 	var contentRaw, content string
-	if isToolEvent(eventType) {
-		contentRaw, content = bridge.ExtractContent(in.ToolName, in.ToolInput)
-	} else {
+	switch eventType {
+	case "PreToolUse", "PermissionRequest", "PermissionDenied":
+		contentRaw, content = bridge.ExtractContent("pre", in.ToolName, in.ToolInput)
+	case "PostToolUse":
+		contentRaw, content = bridge.ExtractContent("post", in.ToolName, in.ToolResult)
+	default:
 		contentRaw, content = bridge.ExtractEventContent(eventType, &in)
 	}
 

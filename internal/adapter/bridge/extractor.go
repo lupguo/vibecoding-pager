@@ -2,16 +2,43 @@ package bridge
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
+
+	"gopkg.in/yaml.v3"
 )
 
 const contentMaxRunes = 60
 
-// ExtractContent extracts a human-readable summary from tool name + input.
-// Returns (contentRaw, content) where content is truncated to contentMaxRunes.
-func ExtractContent(toolName string, toolInput json.RawMessage) (contentRaw, content string) {
-	raw := extractRaw(toolName, toolInput)
+// loadedRules is initialized once at package init and reused across calls.
+// LoadRules failure is fatal — extract_rules.yaml is embedded, so a parse
+// error means the binary itself is malformed.
+var loadedRules *Rules
+
+func init() {
+	r, err := LoadRules()
+	if err != nil {
+		panic("bridge: failed to load embedded extract_rules.yaml: " + err.Error())
+	}
+	loadedRules = r
+}
+
+// ExtractContent extracts a (raw, truncated) summary from a tool event payload.
+//
+//	phase = "pre"  → payload is tool_input,    use rules.Pre[toolName]
+//	phase = "post" → payload is tool_response, use rules.Post[toolName]
+//
+// Falls back to rules.default for unknown tools, then to toolName itself if
+// every rule resolution yields empty.
+func ExtractContent(phase, toolName string, payload json.RawMessage) (contentRaw, content string) {
+	var raw string
+	switch phase {
+	case "pre":
+		raw = renderPre(toolName, payload)
+	case "post":
+		raw = renderPost(toolName, payload)
+	default:
+		raw = toolName
+	}
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
 		raw = toolName
@@ -19,127 +46,93 @@ func ExtractContent(toolName string, toolInput json.RawMessage) (contentRaw, con
 	return raw, truncateRunes(raw, contentMaxRunes)
 }
 
-func extractRaw(toolName string, toolInput json.RawMessage) string {
-	unmarshal := func(v any) bool {
-		return json.Unmarshal(toolInput, v) == nil
+// renderPre looks up a Pre rule. Preserves the legacy MCP-prefix special case
+// (mcp__github__create_pr → "MCP: create_pr") that the old extractRaw had.
+func renderPre(toolName string, payload []byte) string {
+	if rule, ok := loadedRules.Pre[toolName]; ok {
+		return Evaluate(rule, payload, toolName)
 	}
-
-	switch toolName {
-	case "Bash":
-		var in BashInput
-		if unmarshal(&in) && in.Command != "" {
-			return in.Command
-		}
-	case "Edit":
-		var in FileInput
-		if unmarshal(&in) && in.FilePath != "" {
-			return "编辑 " + in.FilePath
-		}
-	case "Write":
-		var in FileInput
-		if unmarshal(&in) && in.FilePath != "" {
-			return "写入 " + in.FilePath
-		}
-	case "Read":
-		var in FileInput
-		if unmarshal(&in) && in.FilePath != "" {
-			return "读取 " + in.FilePath
-		}
-	case "Glob":
-		var in GlobInput
-		if unmarshal(&in) && in.Pattern != "" {
-			return "查找 " + in.Pattern
-		}
-	case "Grep":
-		var in GrepInput
-		if unmarshal(&in) && in.Pattern != "" {
-			return "搜索 " + in.Pattern
-		}
-	case "WebFetch":
-		var in WebFetchInput
-		if unmarshal(&in) && in.URL != "" {
-			return "抓取 " + in.URL
-		}
-	case "WebSearch":
-		var in WebSearchInput
-		if unmarshal(&in) && in.Query != "" {
-			return "搜索 " + in.Query
-		}
-	case "Task":
-		var in TaskInput
-		if unmarshal(&in) && in.Description != "" {
-			return "子任务: " + in.Description
-		}
-	case "AskUserQuestion":
-		var in AskUserQuestionInput
-		if unmarshal(&in) && len(in.Questions) > 0 && in.Questions[0].Question != "" {
-			return in.Questions[0].Question
-		}
-	case "Agent":
-		var in AgentInput
-		if unmarshal(&in) {
-			if in.Description != "" {
-				return "子任务: " + in.Description
-			}
-			if in.Prompt != "" {
-				return "子任务: " + in.Prompt
-			}
-		}
-	case "TaskCreate":
-		var in TaskCreateInput
-		if unmarshal(&in) && in.Subject != "" {
-			return in.Subject
-		}
-	case "TaskUpdate":
-		var in TaskUpdateInput
-		if unmarshal(&in) {
-			parts := []string{}
-			if in.Subject != "" {
-				parts = append(parts, in.Subject)
-			}
-			if in.Status != "" {
-				parts = append(parts, "→"+in.Status)
-			}
-			if len(parts) > 0 {
-				return strings.Join(parts, " ")
-			}
-		}
-	case "TaskGet", "TaskList":
-		return toolName
-	case "TaskStop":
-		return toolName
-	case "NotebookEdit":
-		var in struct {
-			NotebookPath string `json:"notebook_path"`
-		}
-		if unmarshal(&in) && in.NotebookPath != "" {
-			return in.NotebookPath
-		}
-	case "LSP":
-		var in struct {
-			Operation string `json:"operation"`
-			FilePath  string `json:"filePath"`
-		}
-		if unmarshal(&in) && in.Operation != "" {
-			return "LSP " + in.Operation + ": " + in.FilePath
-		}
-	}
-
-	// MCP tools: mcp__github__create_pr etc.
 	if strings.HasPrefix(toolName, "mcp__") {
 		parts := strings.Split(toolName, "__")
-		return fmt.Sprintf("MCP: %s", parts[len(parts)-1])
+		return "MCP: " + parts[len(parts)-1]
 	}
-
-	return toolName
+	return Evaluate(loadedRules.Pre["default"], payload, toolName)
 }
 
-func truncateRunes(s string, n int) string {
-	r := []rune(s)
-	if len(r) <= n {
-		return s
+// renderPost dispatches by payload shape (string vs object) when the rule is
+// structured. Falls back to default rule for unknown tools.
+func renderPost(toolName string, payload []byte) string {
+	node, ok := loadedRules.Post[toolName]
+	if !ok {
+		node, ok = loadedRules.Post["default"]
+		if !ok {
+			return toolName
+		}
 	}
-	return string(r[:n]) + "…"
+	return RenderPostRule(node, payload, toolName)
+}
+
+// RenderPostRule walks a Post yaml.Node:
+//   - ScalarNode: plain string template, applied directly
+//   - MappingNode: branches by payload shape (string/object), then
+//     object_paths probe list, then fallback template
+func RenderPostRule(node yaml.Node, payload []byte, toolName string) string {
+	if node.Kind == yaml.ScalarNode {
+		return Evaluate(node.Value, payload, toolName)
+	}
+	if node.Kind != yaml.MappingNode {
+		return ""
+	}
+	get := func(key string) (yaml.Node, bool) {
+		for i := 0; i+1 < len(node.Content); i += 2 {
+			if node.Content[i].Value == key {
+				return *node.Content[i+1], true
+			}
+		}
+		return yaml.Node{}, false
+	}
+
+	trimmed := bytesTrimSpace(payload)
+	isString := len(trimmed) > 0 && trimmed[0] == '"'
+
+	if isString {
+		if n, ok := get("string"); ok {
+			if v := Evaluate(n.Value, payload, toolName); v != "" {
+				return v
+			}
+		}
+	} else {
+		if n, ok := get("object"); ok {
+			if v := Evaluate(n.Value, payload, toolName); v != "" {
+				return v
+			}
+		}
+		if n, ok := get("object_paths"); ok && n.Kind == yaml.SequenceNode {
+			for _, p := range n.Content {
+				template := "{" + p.Value + "}"
+				if v := Evaluate(template, payload, toolName); v != "" {
+					return v
+				}
+			}
+		}
+	}
+	if n, ok := get("fallback"); ok {
+		return Evaluate(n.Value, payload, toolName)
+	}
+	return ""
+}
+
+// bytesTrimSpace returns payload without leading/trailing ASCII whitespace.
+func bytesTrimSpace(b []byte) []byte {
+	start := 0
+	for start < len(b) && (b[start] == ' ' || b[start] == '\t' || b[start] == '\n' || b[start] == '\r') {
+		start++
+	}
+	end := len(b)
+	for end > start && (b[end-1] == ' ' || b[end-1] == '\t' || b[end-1] == '\n' || b[end-1] == '\r') {
+		end--
+	}
+	return b[start:end]
 }
 
 // ExtractEventContent extracts content from all non-tool event types.
@@ -207,7 +200,7 @@ func ExtractEventContent(eventType string, in *CCHookInput) (contentRaw, content
 		raw := in.ToolName + ": " + in.ToolError
 		return raw, truncateRunes(raw, contentMaxRunes)
 	case "PermissionRequest":
-		return ExtractContent(in.ToolName, in.ToolInput)
+		return ExtractContent("pre", in.ToolName, in.ToolInput)
 	case "PermissionDenied":
 		raw := in.ToolName + ": " + in.DenialReason
 		return raw, truncateRunes(raw, contentMaxRunes)
@@ -293,4 +286,12 @@ func notificationTypeLabel(ntype string) string {
 	default:
 		return ""
 	}
+}
+
+func truncateRunes(s string, n int) string {
+	r := []rune(s)
+	if len(r) <= n {
+		return s
+	}
+	return string(r[:n]) + "…"
 }

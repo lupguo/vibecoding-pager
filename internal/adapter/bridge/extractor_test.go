@@ -8,7 +8,7 @@ import (
 
 func TestExtractContent_Bash(t *testing.T) {
 	input := json.RawMessage(`{"command":"go build ./..."}`)
-	raw, content := ExtractContent("Bash", input)
+	raw, content := ExtractContent("pre", "Bash", input)
 	if raw != "go build ./..." {
 		t.Errorf("raw = %q, want %q", raw, "go build ./...")
 	}
@@ -19,7 +19,7 @@ func TestExtractContent_Bash(t *testing.T) {
 
 func TestExtractContent_Edit(t *testing.T) {
 	input := json.RawMessage(`{"file_path":"/src/main.go"}`)
-	raw, content := ExtractContent("Edit", input)
+	raw, content := ExtractContent("pre", "Edit", input)
 	if raw != "编辑 /src/main.go" {
 		t.Errorf("raw = %q, want %q", raw, "编辑 /src/main.go")
 	}
@@ -30,7 +30,7 @@ func TestExtractContent_Edit(t *testing.T) {
 
 func TestExtractContent_Write(t *testing.T) {
 	input := json.RawMessage(`{"file_path":"/tmp/out.txt"}`)
-	raw, content := ExtractContent("Write", input)
+	raw, content := ExtractContent("pre", "Write", input)
 	if raw != "写入 /tmp/out.txt" {
 		t.Errorf("raw = %q, want %q", raw, "写入 /tmp/out.txt")
 	}
@@ -41,7 +41,7 @@ func TestExtractContent_Write(t *testing.T) {
 
 func TestExtractContent_Read(t *testing.T) {
 	input := json.RawMessage(`{"file_path":"/etc/hosts"}`)
-	raw, content := ExtractContent("Read", input)
+	raw, content := ExtractContent("pre", "Read", input)
 	if raw != "读取 /etc/hosts" {
 		t.Errorf("raw = %q, want %q", raw, "读取 /etc/hosts")
 	}
@@ -52,7 +52,7 @@ func TestExtractContent_Read(t *testing.T) {
 
 func TestExtractContent_Glob(t *testing.T) {
 	input := json.RawMessage(`{"pattern":"**/*.go"}`)
-	raw, _ := ExtractContent("Glob", input)
+	raw, _ := ExtractContent("pre", "Glob", input)
 	if raw != "查找 **/*.go" {
 		t.Errorf("raw = %q, want %q", raw, "查找 **/*.go")
 	}
@@ -60,7 +60,7 @@ func TestExtractContent_Glob(t *testing.T) {
 
 func TestExtractContent_Grep(t *testing.T) {
 	input := json.RawMessage(`{"pattern":"TODO"}`)
-	raw, _ := ExtractContent("Grep", input)
+	raw, _ := ExtractContent("pre", "Grep", input)
 	if raw != "搜索 TODO" {
 		t.Errorf("raw = %q, want %q", raw, "搜索 TODO")
 	}
@@ -68,7 +68,7 @@ func TestExtractContent_Grep(t *testing.T) {
 
 func TestExtractContent_WebFetch(t *testing.T) {
 	input := json.RawMessage(`{"url":"https://example.com"}`)
-	raw, _ := ExtractContent("WebFetch", input)
+	raw, _ := ExtractContent("pre", "WebFetch", input)
 	if raw != "抓取 https://example.com" {
 		t.Errorf("raw = %q, want %q", raw, "抓取 https://example.com")
 	}
@@ -76,7 +76,7 @@ func TestExtractContent_WebFetch(t *testing.T) {
 
 func TestExtractContent_WebSearch(t *testing.T) {
 	input := json.RawMessage(`{"query":"golang wails v3"}`)
-	raw, _ := ExtractContent("WebSearch", input)
+	raw, _ := ExtractContent("pre", "WebSearch", input)
 	if raw != "搜索 golang wails v3" {
 		t.Errorf("raw = %q, want %q", raw, "搜索 golang wails v3")
 	}
@@ -84,7 +84,7 @@ func TestExtractContent_WebSearch(t *testing.T) {
 
 func TestExtractContent_Task(t *testing.T) {
 	input := json.RawMessage(`{"description":"Run linter"}`)
-	raw, _ := ExtractContent("Task", input)
+	raw, _ := ExtractContent("pre", "Task", input)
 	if raw != "子任务: Run linter" {
 		t.Errorf("raw = %q, want %q", raw, "子任务: Run linter")
 	}
@@ -92,7 +92,7 @@ func TestExtractContent_Task(t *testing.T) {
 
 func TestExtractContent_MCP(t *testing.T) {
 	input := json.RawMessage(`{}`)
-	raw, _ := ExtractContent("mcp__github__create_pr", input)
+	raw, _ := ExtractContent("pre", "mcp__github__create_pr", input)
 	if raw != "MCP: create_pr" {
 		t.Errorf("raw = %q, want %q", raw, "MCP: create_pr")
 	}
@@ -100,7 +100,7 @@ func TestExtractContent_MCP(t *testing.T) {
 
 func TestExtractContent_Unknown(t *testing.T) {
 	input := json.RawMessage(`{}`)
-	raw, _ := ExtractContent("SomeNewTool", input)
+	raw, _ := ExtractContent("pre", "SomeNewTool", input)
 	if raw != "SomeNewTool" {
 		t.Errorf("raw = %q, want %q", raw, "SomeNewTool")
 	}
@@ -109,7 +109,7 @@ func TestExtractContent_Unknown(t *testing.T) {
 func TestExtractContent_Truncation(t *testing.T) {
 	longCmd := "echo 'this is a very long command that definitely exceeds sixty characters limit for display'"
 	input, _ := json.Marshal(BashInput{Command: longCmd})
-	raw, content := ExtractContent("Bash", json.RawMessage(input))
+	raw, content := ExtractContent("pre", "Bash", json.RawMessage(input))
 	if raw != longCmd {
 		t.Errorf("raw should be untruncated")
 	}
@@ -124,7 +124,7 @@ func TestExtractContent_Truncation(t *testing.T) {
 
 func TestExtractContent_EmptyInput(t *testing.T) {
 	input := json.RawMessage(`{}`)
-	raw, _ := ExtractContent("Bash", input)
+	raw, _ := ExtractContent("pre", "Bash", input)
 	if raw != "Bash" {
 		t.Errorf("raw = %q, want %q", raw, "Bash")
 	}
@@ -132,7 +132,7 @@ func TestExtractContent_EmptyInput(t *testing.T) {
 
 func TestExtractContent_AskUserQuestion(t *testing.T) {
 	input := `{"questions":[{"question":"你偏好哪种 UI 风格？","header":"UI","options":[],"multiSelect":false}]}`
-	_, content := ExtractContent("AskUserQuestion", json.RawMessage(input))
+	_, content := ExtractContent("pre", "AskUserQuestion", json.RawMessage(input))
 	if !strings.Contains(content, "你偏好哪种 UI 风格") {
 		t.Errorf("content = %q, want to contain question text", content)
 	}
@@ -140,7 +140,7 @@ func TestExtractContent_AskUserQuestion(t *testing.T) {
 
 func TestExtractContent_Agent(t *testing.T) {
 	input := `{"prompt":"Review the code for security issues","description":"Security review"}`
-	_, content := ExtractContent("Agent", json.RawMessage(input))
+	_, content := ExtractContent("pre", "Agent", json.RawMessage(input))
 	if !strings.Contains(content, "Security review") {
 		t.Errorf("content = %q, want to contain description", content)
 	}
@@ -148,7 +148,7 @@ func TestExtractContent_Agent(t *testing.T) {
 
 func TestExtractContent_AgentFallbackToPrompt(t *testing.T) {
 	input := `{"prompt":"Review the code for security issues"}`
-	raw, _ := ExtractContent("Agent", json.RawMessage(input))
+	raw, _ := ExtractContent("pre", "Agent", json.RawMessage(input))
 	if !strings.Contains(raw, "Review the code") {
 		t.Errorf("raw = %q, want to contain prompt text", raw)
 	}
@@ -156,7 +156,7 @@ func TestExtractContent_AgentFallbackToPrompt(t *testing.T) {
 
 func TestExtractContent_TaskCreate(t *testing.T) {
 	input := json.RawMessage(`{"subject":"Fix login bug","description":"Form crashes on submit","activeForm":"Fixing login"}`)
-	raw, content := ExtractContent("TaskCreate", input)
+	raw, content := ExtractContent("pre", "TaskCreate", input)
 	if raw != "Fix login bug" {
 		t.Errorf("raw: got %q", raw)
 	}
@@ -167,7 +167,7 @@ func TestExtractContent_TaskCreate(t *testing.T) {
 
 func TestExtractContent_TaskUpdate(t *testing.T) {
 	input := json.RawMessage(`{"taskId":"1","status":"completed","subject":"Fix login bug"}`)
-	raw, content := ExtractContent("TaskUpdate", input)
+	raw, content := ExtractContent("pre", "TaskUpdate", input)
 	if raw != "Fix login bug →completed" {
 		t.Errorf("raw: got %q", raw)
 	}
@@ -178,7 +178,7 @@ func TestExtractContent_TaskUpdate(t *testing.T) {
 
 func TestExtractContent_TaskUpdate_StatusOnly(t *testing.T) {
 	input := json.RawMessage(`{"taskId":"1","status":"in_progress"}`)
-	raw, content := ExtractContent("TaskUpdate", input)
+	raw, content := ExtractContent("pre", "TaskUpdate", input)
 	if raw != "→in_progress" {
 		t.Errorf("raw: got %q", raw)
 	}
@@ -189,7 +189,7 @@ func TestExtractContent_TaskUpdate_StatusOnly(t *testing.T) {
 
 func TestExtractContent_TaskGet(t *testing.T) {
 	input := json.RawMessage(`{"taskId":"1"}`)
-	raw, _ := ExtractContent("TaskGet", input)
+	raw, _ := ExtractContent("pre", "TaskGet", input)
 	if raw != "TaskGet" {
 		t.Errorf("raw: got %q", raw)
 	}
@@ -197,7 +197,7 @@ func TestExtractContent_TaskGet(t *testing.T) {
 
 func TestExtractContent_TaskList(t *testing.T) {
 	input := json.RawMessage(`{}`)
-	raw, _ := ExtractContent("TaskList", input)
+	raw, _ := ExtractContent("pre", "TaskList", input)
 	if raw != "TaskList" {
 		t.Errorf("raw: got %q", raw)
 	}
@@ -205,7 +205,7 @@ func TestExtractContent_TaskList(t *testing.T) {
 
 func TestExtractContent_LSP(t *testing.T) {
 	input := json.RawMessage(`{"operation":"goToDefinition","filePath":"main.go","line":10,"character":5}`)
-	raw, _ := ExtractContent("LSP", input)
+	raw, _ := ExtractContent("pre", "LSP", input)
 	if raw != "LSP goToDefinition: main.go" {
 		t.Errorf("raw: got %q", raw)
 	}
@@ -213,7 +213,7 @@ func TestExtractContent_LSP(t *testing.T) {
 
 func TestExtractContent_NotebookEdit(t *testing.T) {
 	input := json.RawMessage(`{"notebook_path":"/tmp/test.ipynb","new_source":"print('hi')"}`)
-	raw, _ := ExtractContent("NotebookEdit", input)
+	raw, _ := ExtractContent("pre", "NotebookEdit", input)
 	if raw != "/tmp/test.ipynb" {
 		t.Errorf("raw: got %q", raw)
 	}
@@ -495,5 +495,79 @@ func TestExtractEventContent_Notification_EmptyMessageFallsBackToType(t *testing
 	raw, _ := ExtractEventContent("Notification", in)
 	if raw != "[等输入] idle_prompt" {
 		t.Errorf("raw = %q", raw)
+	}
+}
+
+// ─── Post phase ──────────────────────────────────────────────────────────────
+
+func TestExtractContent_Post_Bash(t *testing.T) {
+	raw, _ := ExtractContent("post", "Bash", []byte(`{"stdout":"hello\nworld","exitCode":0}`))
+	if raw != "hello (exit=0)" {
+		t.Errorf("raw = %q", raw)
+	}
+}
+
+func TestExtractContent_Post_Edit_Success(t *testing.T) {
+	raw, _ := ExtractContent("post", "Edit", []byte(`{"success":true,"filePath":"/x.go"}`))
+	if raw != "✓写入 /x.go" {
+		t.Errorf("raw = %q", raw)
+	}
+}
+
+func TestExtractContent_Post_Edit_Failure(t *testing.T) {
+	raw, _ := ExtractContent("post", "Edit", []byte(`{"success":false,"filePath":"/x.go"}`))
+	if raw != "✗失败 /x.go" {
+		t.Errorf("raw = %q", raw)
+	}
+}
+
+// CC-INT shape: tool_response is an object containing answers array.
+func TestExtractContent_Post_AskUserQuestion_Object(t *testing.T) {
+	payload := []byte(`{"answers":["why? : because"]}`)
+	raw, _ := ExtractContent("post", "AskUserQuestion", payload)
+	if raw != "why? : because" {
+		t.Errorf("raw = %q", raw)
+	}
+}
+
+// CodeBuddy shape: tool_response is a bare JSON string.
+func TestExtractContent_Post_AskUserQuestion_String(t *testing.T) {
+	payload := []byte(`" · q1 → a1"`)
+	raw, _ := ExtractContent("post", "AskUserQuestion", payload)
+	// ExtractContent applies strings.TrimSpace, so the leading space in the
+	// bare-string payload is dropped before truncation.
+	if raw != "· q1 → a1" {
+		t.Errorf("raw = %q", raw)
+	}
+}
+
+func TestExtractContent_Post_UnknownTool_DefaultObjectPaths(t *testing.T) {
+	// stdout is in default.object_paths, so it resolves.
+	raw, _ := ExtractContent("post", "MyTool", []byte(`{"stdout":"out"}`))
+	if raw != "out" {
+		t.Errorf("raw = %q", raw)
+	}
+}
+
+func TestExtractContent_Post_UnknownTool_FallbackJSON(t *testing.T) {
+	// Payload has none of the default object_paths → fallback to <json:120>.
+	raw, _ := ExtractContent("post", "MyTool", []byte(`{"weird_field":"x"}`))
+	if raw != `{"weird_field":"x"}` {
+		t.Errorf("raw = %q", raw)
+	}
+}
+
+func TestExtractContent_Pre_UnknownToolFallsBackToToolName(t *testing.T) {
+	raw, _ := ExtractContent("pre", "MyCustomTool", []byte(`{}`))
+	if raw != "MyCustomTool" {
+		t.Errorf("raw = %q", raw)
+	}
+}
+
+func TestExtractContent_TruncatesTo60Runes(t *testing.T) {
+	long := strings.Repeat("a", 100)
+	_, content := ExtractContent("pre", "Bash", []byte(`{"command":"`+long+`"}`))
+	if r := []rune(content); len(r) != 61 { // 60 + "…"
+		t.Errorf("content rune length = %d, want 61", len(r))
 	}
 }
