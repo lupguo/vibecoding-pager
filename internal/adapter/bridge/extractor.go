@@ -143,8 +143,15 @@ func truncateRunes(s string, n int) string {
 }
 
 // ExtractEventContent extracts content from all non-tool event types.
-// Returns (contentRaw, content) — raw data only, no i18n prefixes.
-// UI is responsible for combining event type labels with content for display.
+// Returns (contentRaw, content). The convention is "raw data only, no i18n
+// prefixes" — UI combines event-type labels with content for display.
+//
+// Exception: Notification events prepend a Chinese type label
+// ([等授权]/[等输入]/[认证]) via notificationTypeLabel, so the type-derived
+// hint survives storage and propagates to all consumers (UI, SQLite history,
+// macOS system notifications). This is a deliberate v1.0 simplification —
+// see docs/superpowers/specs/2026-06-03-pager-event-parsing-bugfix-design.md §3.3.
+//
 // Event types use CC-native CamelCase names (e.g., "Stop", "SessionStart").
 func ExtractEventContent(eventType string, in *CCHookInput) (contentRaw, content string) {
 	switch eventType {
