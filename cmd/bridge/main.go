@@ -92,15 +92,6 @@ func parseArgs(args []string) (eventType, agentLabel string) {
 	return
 }
 
-// isToolEvent returns true if the event type involves tool use with tool_input.
-func isToolEvent(eventType string) bool {
-	switch eventType {
-	case "PreToolUse", "PostToolUse", "PermissionRequest", "PermissionDenied":
-		return true
-	}
-	return false
-}
-
 // shouldDrop returns true for events that have no actionable signal and would
 // pollute the session list. Currently only filters CodeBuddy's auth_success
 // Notification (which carries no session_id, would trigger the host:cwd:tty

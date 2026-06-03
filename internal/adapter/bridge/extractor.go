@@ -69,14 +69,14 @@ func renderPost(toolName string, payload []byte) string {
 			return toolName
 		}
 	}
-	return RenderPostRule(node, payload, toolName)
+	return renderPostRule(node, payload, toolName)
 }
 
-// RenderPostRule walks a Post yaml.Node:
+// renderPostRule walks a Post yaml.Node:
 //   - ScalarNode: plain string template, applied directly
 //   - MappingNode: branches by payload shape (string/object), then
 //     object_paths probe list, then fallback template
-func RenderPostRule(node yaml.Node, payload []byte, toolName string) string {
+func renderPostRule(node yaml.Node, payload []byte, toolName string) string {
 	if node.Kind == yaml.ScalarNode {
 		return Evaluate(node.Value, payload, toolName)
 	}

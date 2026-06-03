@@ -46,27 +46,6 @@ func TestParseArgs_Empty(t *testing.T) {
 	}
 }
 
-func TestIsToolEvent(t *testing.T) {
-	tests := []struct {
-		eventType string
-		want      bool
-	}{
-		{"PreToolUse", true},
-		{"PostToolUse", true},
-		{"PermissionRequest", true},
-		{"PermissionDenied", true},
-		{"Stop", false},
-		{"Notification", false},
-		{"SessionStart", false},
-	}
-	for _, tt := range tests {
-		got := isToolEvent(tt.eventType)
-		if got != tt.want {
-			t.Errorf("isToolEvent(%q): got %v, want %v", tt.eventType, got, tt.want)
-		}
-	}
-}
-
 func TestShouldDrop_NotificationWithoutSession(t *testing.T) {
 	in := &bridge.CCHookInput{SessionID: ""}
 	if !shouldDrop("Notification", in) {
