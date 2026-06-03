@@ -130,3 +130,128 @@ func TestCCHookInput_EffortLevel(t *testing.T) {
 		t.Errorf("Effort: got %+v", in.Effort)
 	}
 }
+
+// TestCCHookInput_PostToolUse_BashRoundTrip verifies that the tool_response
+// field unmarshals into ToolResult. This guards against the field-tag drift
+// caught by T5 (was `tool_result`, CC sends `tool_response`).
+func TestCCHookInput_PostToolUse_BashRoundTrip(t *testing.T) {
+	raw := []byte(`{
+		"hook_event_name":"PostToolUse",
+		"tool_name":"Bash",
+		"tool_use_id":"u1",
+		"tool_input":{"command":"echo hi"},
+		"tool_response":{"stdout":"hi","exitCode":0}
+	}`)
+	var in CCHookInput
+	if err := json.Unmarshal(raw, &in); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if in.ToolName != "Bash" {
+		t.Errorf("ToolName = %q, want Bash", in.ToolName)
+	}
+	if len(in.ToolResult) == 0 {
+		t.Fatal("ToolResult is empty — likely tool_response field-tag drift")
+	}
+	contentRaw, _ := ExtractContent("post", in.ToolName, in.ToolResult)
+	if contentRaw != "hi (exit=0)" {
+		t.Errorf("contentRaw = %q, want %q", contentRaw, "hi (exit=0)")
+	}
+}
+
+// TestCCHookInput_Stop_LastAssistantMessageRoundTrip pins the last_assistant_message
+// field tag (used in Stop/SubagentStop event content extraction).
+func TestCCHookInput_Stop_LastAssistantMessageRoundTrip(t *testing.T) {
+	raw := []byte(`{
+		"hook_event_name":"Stop",
+		"last_assistant_message":"All done.",
+		"stop_reason":"end_turn"
+	}`)
+	var in CCHookInput
+	if err := json.Unmarshal(raw, &in); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if in.LastAssistantMessage != "All done." {
+		t.Errorf("LastAssistantMessage = %q, want %q (field tag drift?)", in.LastAssistantMessage, "All done.")
+	}
+	if in.StopReason != "end_turn" {
+		t.Errorf("StopReason = %q (field tag drift?)", in.StopReason)
+	}
+}
+
+// TestCCHookInput_TaskCreated_RoundTrip pins task_subject (Bug 4a hot path).
+func TestCCHookInput_TaskCreated_RoundTrip(t *testing.T) {
+	raw := []byte(`{
+		"hook_event_name":"TaskCreated",
+		"task_id":"t1",
+		"task_subject":"do the thing"
+	}`)
+	var in CCHookInput
+	if err := json.Unmarshal(raw, &in); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if in.TaskSubject != "do the thing" {
+		t.Errorf("TaskSubject = %q (field tag drift?)", in.TaskSubject)
+	}
+}
+
+// TestCCHookInput_UserPromptExpansion_RoundTrip pins command_name + command_args.
+func TestCCHookInput_UserPromptExpansion_RoundTrip(t *testing.T) {
+	raw := []byte(`{
+		"hook_event_name":"UserPromptExpansion",
+		"command_name":"brainstorm",
+		"command_args":"foo bar"
+	}`)
+	var in CCHookInput
+	if err := json.Unmarshal(raw, &in); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if in.CommandName != "brainstorm" {
+		t.Errorf("CommandName = %q (field tag drift?)", in.CommandName)
+	}
+	if in.CommandArgs != "foo bar" {
+		t.Errorf("CommandArgs = %q (field tag drift?)", in.CommandArgs)
+	}
+}
+
+// TestCCHookInput_MessageDisplay_RoundTrip pins delta.
+func TestCCHookInput_MessageDisplay_RoundTrip(t *testing.T) {
+	raw := []byte(`{"hook_event_name":"MessageDisplay","delta":"streamed text"}`)
+	var in CCHookInput
+	if err := json.Unmarshal(raw, &in); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if in.Delta != "streamed text" {
+		t.Errorf("Delta = %q (field tag drift?)", in.Delta)
+	}
+}
+
+// TestCCHookInput_Notification_RoundTrip pins notification_type + message.
+func TestCCHookInput_Notification_RoundTrip(t *testing.T) {
+	raw := []byte(`{
+		"hook_event_name":"Notification",
+		"notification_type":"permission_prompt",
+		"message":"needs your permission to use Bash"
+	}`)
+	var in CCHookInput
+	if err := json.Unmarshal(raw, &in); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if in.NotificationType != "permission_prompt" {
+		t.Errorf("NotificationType = %q (field tag drift?)", in.NotificationType)
+	}
+	if in.Message != "needs your permission to use Bash" {
+		t.Errorf("Message = %q (field tag drift?)", in.Message)
+	}
+}
+
+// TestCCHookInput_SessionEnd_RoundTrip pins reason (added by Task 1).
+func TestCCHookInput_SessionEnd_RoundTrip(t *testing.T) {
+	raw := []byte(`{"hook_event_name":"SessionEnd","reason":"compact"}`)
+	var in CCHookInput
+	if err := json.Unmarshal(raw, &in); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if in.Reason != "compact" {
+		t.Errorf("Reason = %q (field tag drift?)", in.Reason)
+	}
+}
