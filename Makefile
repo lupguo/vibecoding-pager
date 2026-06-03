@@ -12,13 +12,13 @@ GO_LDFLAGS  := -ldflags="-extldflags '-Wl,-w'"
 VITE_PORT   := 9245
 HTTP_PORT   := 7421
 
-.PHONY: dev build run clean test bridge install-hooks install-hooks-codebuddy frontend-deps frontend-build bindings icon lint stop
+.PHONY: dev build run clean test bridge install-bridge install-hooks install-hooks-codebuddy frontend-deps frontend-build bindings icon lint stop
 
 # ─── Development ─────────────────────────────────────────────────────────────
 
 ## Run in dev mode (Wails hot-reload + Vite HMR)
 ## Automatically kills any previous dev processes on the same ports.
-dev: stop
+dev: stop install-bridge
 	wails3 dev -config ./build/config.yml -port $(VITE_PORT)
 
 ## Run frontend dev server only (for UI iteration without Go rebuild)
@@ -36,7 +36,7 @@ dev-frontend:
 ## We want the bundle for `open` + macOS NotificationService bundle-id
 ## requirement, so this target uses package. (`-config` flag was removed
 ## upstream — wails.json + build/config.yml are picked up automatically.)
-build: frontend-build
+build: frontend-build install-bridge
 	wails3 package
 
 ## Build Go binary only (no frontend rebuild)
@@ -46,6 +46,12 @@ build-go:
 ## Build pager-cc-bridge binary
 bridge:
 	go build -o $(BRIDGE_BIN) ./cmd/bridge
+
+## Build bridge and report deployment metadata
+install-bridge: bridge
+	@echo "✓ bridge built at $(BRIDGE_BIN)"
+	@echo "  mtime: $$(date -r $(BRIDGE_BIN) '+%F %T')"
+	@echo "  sha:   $$(shasum -a 256 $(BRIDGE_BIN) | cut -c1-12)"
 
 ## Install CC hooks into ~/.claude/settings.json
 install-hooks: bridge
@@ -58,7 +64,7 @@ install-hooks-codebuddy: bridge
 # ─── Run ─────────────────────────────────────────────────────────────────────
 
 ## Run the built binary directly
-run: build-go
+run: build-go install-bridge
 	./$(APP_BIN)
 
 # ─── Frontend ────────────────────────────────────────────────────────────────
@@ -119,6 +125,7 @@ help:
 	@echo "  make build          Build production .app"
 	@echo "  make build-go       Build Go binary only"
 	@echo "  make bridge         Build pager-cc-bridge"
+	@echo "  make install-bridge Build bridge with deployment verification"
 	@echo "  make install-hooks  Install CC hooks into ~/.claude/settings.json"
 	@echo "  make install-hooks-codebuddy  Install CodeBuddy hooks into ~/.codebuddy/settings.json"
 	@echo "  make run            Build and run"

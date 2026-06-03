@@ -82,6 +82,29 @@ Summary of the canonical mapping (see `DeriveStatus` for the full table):
 
 Session key: CC `session_id` (preferred) or `host:cwd:tty` triple (fallback).
 
+## Bridge Binary Lifecycle
+
+After modifying `internal/adapter/bridge/*` or `cmd/bridge/*`, run:
+
+```bash
+make install-bridge
+```
+
+This rebuilds `bin/pager-cc-bridge` (the binary that CC/CodeBuddy hooks invoke
+via `~/.claude/settings.json` and `~/.codebuddy/settings.json`) and prints its
+mtime + sha so you can confirm deployment.
+
+**Why this matters:** the 2026-06-03 root-cause investigation of "TaskCreated /
+PostToolBatch / SessionEnd / SubagentStart all empty content" found that
+events were being recorded against a stale bridge binary that predated commit
+`1ba099f` (CC field alignment refactor). New rules in extractor.go are inert
+until the binary is rebuilt — this is by design (hooks are external
+processes), and `make install-bridge` is the discipline that closes the gap.
+
+`make dev` / `make run` / `make build` already depend on `install-bridge`, so
+in practice you only need to run it explicitly when iterating on the bridge
+without restarting the Pager app.
+
 ## Code Conventions
 
 - Go: standard library preferred; errors in bridge must be silent (exit 0)
