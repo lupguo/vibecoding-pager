@@ -78,6 +78,11 @@ func Evaluate(rule string, payload []byte, toolName string) string {
 }
 
 // resolveToken handles a single {…} expression body.
+//
+// Constraint: the literal substring "//" inside a token is reserved for the
+// fallback operator. Avoid embedding raw "//" in path expressions or filter
+// arguments (e.g., do not write {$.url|default:http://x}); use a different
+// representation or escape mechanism if such literals are ever needed.
 func resolveToken(token string, payload []byte, toolName string) string {
 	token = strings.TrimSpace(token)
 

@@ -182,3 +182,45 @@ func TestEvaluate_JSONTruncate_Embedded(t *testing.T) {
 		t.Errorf("got %q, want %q", got, want)
 	}
 }
+
+// ─── Branch coverage: unknown tokens / malformed input ───────────────────────
+
+func TestEvaluate_UnknownBaseToken(t *testing.T) {
+	// Token body that's neither $.path, tool_name, nor value should yield empty.
+	// Protects against typos in rule YAML.
+	if got := Evaluate("{foobar}", []byte(`{"foo":"bar"}`), "X"); got != "" {
+		t.Errorf("got %q, want empty for unknown base token", got)
+	}
+}
+
+func TestEvaluate_UnknownRawToken(t *testing.T) {
+	// <…> form other than json:N should yield empty.
+	if got := Evaluate("<base64:50>", []byte(`{"k":"v"}`), "X"); got != "" {
+		t.Errorf("got %q, want empty for unknown raw token", got)
+	}
+}
+
+func TestEvaluate_UnmatchedBrace(t *testing.T) {
+	// Unmatched { is written literally; the rest of the rule continues.
+	if got := Evaluate("foo {bar", []byte(`{}`), "X"); got != "foo {bar" {
+		t.Errorf("got %q, want literal pass-through", got)
+	}
+}
+
+func TestEvaluate_FilterFirstline_EmptyStdout(t *testing.T) {
+	// Path exists but value is empty string. Critical case: this is the exact
+	// "PostToolUse with empty stdout" pattern that motivated the bugfix.
+	got := Evaluate("{$.stdout|firstline}", []byte(`{"stdout":""}`), "Bash")
+	if got != "" {
+		t.Errorf("got %q, want empty", got)
+	}
+}
+
+func TestEvaluate_FilterChain_DefaultThenFirstline(t *testing.T) {
+	// |default:N triggers when path missing; the synthesized value then flows
+	// through subsequent filters. Verifies exists-flag propagation.
+	got := Evaluate("{$.stdout|default:fallback line\nignored|firstline}", []byte(`{}`), "Bash")
+	if got != "fallback line" {
+		t.Errorf("got %q, want %q", got, "fallback line")
+	}
+}
