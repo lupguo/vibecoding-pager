@@ -1,0 +1,41 @@
+version: 1
+
+# Pre phase: extract action description from tool_input.
+pre:
+  Bash:            "{$.command}"
+  Edit:            "编辑 {$.file_path}"
+  Write:           "写入 {$.file_path}"
+  Read:            "读取 {$.file_path}"
+  Glob:            "查找 {$.pattern}"
+  Grep:            "搜索 {$.pattern}"
+  WebFetch:        "抓取 {$.url}"
+  WebSearch:       "搜索 {$.query}"
+  AskUserQuestion: "{$.questions.0.question}"
+  Agent:           "子任务: {$.description // $.prompt}"
+  Task:            "子任务: {$.description}"
+  TaskCreate:      "{$.subject}"
+  TaskUpdate:      "{$.subject} →{$.status}"
+  NotebookEdit:    "{$.notebook_path}"
+  LSP:             "LSP {$.operation}: {$.filePath}"
+  default:         "{tool_name}"
+
+# Post phase: extract result summary from tool_response.
+post:
+  Bash:            "{$.stdout|firstline} (exit={$.exitCode|default:0})"
+  Read:            "已读 {$.file.numLines|default:?} 行"
+  Edit:            "{$.success|bool:✓写入,✗失败} {$.filePath}"
+  Write:           "{$.success|bool:✓写入,✗失败} {$.filePath}"
+  AskUserQuestion:
+    string:        "{value}"
+    object:        "{$.answers.0}"
+  Agent:           "{$.0.text|firstpara}"
+  default:
+    string:        "{value}"
+    object_paths:
+      - "$.answers.0"
+      - "$.stdout"
+      - "$.text"
+      - "$.message"
+      - "$.result"
+      - "$.summary"
+    fallback:      "<json:120>"

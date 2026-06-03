@@ -1,0 +1,184 @@
+package bridge
+
+import (
+	"strings"
+	"testing"
+)
+
+// ─── Loader ──────────────────────────────────────────────────────────────────
+
+func TestLoadRules_HasPreAndPost(t *testing.T) {
+	rules, err := LoadRules()
+	if err != nil {
+		t.Fatalf("LoadRules() error = %v", err)
+	}
+	if rules.Version != 1 {
+		t.Errorf("rules.Version = %d, want 1", rules.Version)
+	}
+	if _, ok := rules.Pre["Bash"]; !ok {
+		t.Error("rules.Pre missing Bash")
+	}
+	if _, ok := rules.Post["Bash"]; !ok {
+		t.Error("rules.Post missing Bash")
+	}
+	if _, ok := rules.Post["AskUserQuestion"]; !ok {
+		t.Error("rules.Post missing AskUserQuestion")
+	}
+}
+
+// ─── Basic substitution ──────────────────────────────────────────────────────
+
+func TestEvaluate_LiteralOnly(t *testing.T) {
+	if got := Evaluate("hello world", []byte(`{}`), "Bash"); got != "hello world" {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestEvaluate_SimplePath(t *testing.T) {
+	if got := Evaluate("{$.command}", []byte(`{"command":"go test"}`), "Bash"); got != "go test" {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestEvaluate_PathWithLiteralPrefix(t *testing.T) {
+	got := Evaluate("编辑 {$.file_path}", []byte(`{"file_path":"/src/main.go"}`), "Edit")
+	if got != "编辑 /src/main.go" {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestEvaluate_NestedPath(t *testing.T) {
+	got := Evaluate("{$.questions.0.question}", []byte(`{"questions":[{"question":"why?"}]}`), "AskUserQuestion")
+	if got != "why?" {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestEvaluate_MissingPathReturnsEmpty(t *testing.T) {
+	if got := Evaluate("{$.missing}", []byte(`{"command":"x"}`), "Bash"); got != "" {
+		t.Errorf("got %q, want empty", got)
+	}
+}
+
+// ─── Fallback / value / tool_name ────────────────────────────────────────────
+
+func TestEvaluate_FallbackOperator_SecondWins(t *testing.T) {
+	got := Evaluate("{$.description // $.prompt}", []byte(`{"prompt":"P"}`), "Agent")
+	if got != "P" {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestEvaluate_FallbackOperator_FirstWins(t *testing.T) {
+	got := Evaluate("{$.description // $.prompt}", []byte(`{"description":"D","prompt":"P"}`), "Agent")
+	if got != "D" {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestEvaluate_FallbackOperator_BothEmpty(t *testing.T) {
+	if got := Evaluate("{$.a // $.b}", []byte(`{}`), "Agent"); got != "" {
+		t.Errorf("got %q, want empty", got)
+	}
+}
+
+func TestEvaluate_ToolNameToken(t *testing.T) {
+	if got := Evaluate("{tool_name}", []byte(`{}`), "MyTool"); got != "MyTool" {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestEvaluate_ValueToken_StringPayload(t *testing.T) {
+	if got := Evaluate("{value}", []byte(`"hello"`), "AskUserQuestion"); got != "hello" {
+		t.Errorf("got %q", got)
+	}
+}
+
+// ─── Filters ─────────────────────────────────────────────────────────────────
+
+func TestEvaluate_FilterFirstline(t *testing.T) {
+	got := Evaluate("{$.stdout|firstline}", []byte(`{"stdout":"line1\nline2"}`), "Bash")
+	if got != "line1" {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestEvaluate_FilterFirstline_NoNewline(t *testing.T) {
+	got := Evaluate("{$.stdout|firstline}", []byte(`{"stdout":"single line"}`), "Bash")
+	if got != "single line" {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestEvaluate_FilterFirstpara(t *testing.T) {
+	got := Evaluate("{$.text|firstpara}", []byte(`{"text":"p1 line1\np1 line2\n\np2"}`), "Agent")
+	if got != "p1 line1\np1 line2" {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestEvaluate_FilterDefault_PathPresent(t *testing.T) {
+	got := Evaluate("{$.exitCode|default:0}", []byte(`{"exitCode":7}`), "Bash")
+	if got != "7" {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestEvaluate_FilterDefault_PathMissing(t *testing.T) {
+	got := Evaluate("{$.exitCode|default:0}", []byte(`{}`), "Bash")
+	if got != "0" {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestEvaluate_FilterBool_True(t *testing.T) {
+	got := Evaluate("{$.success|bool:✓写入,✗失败}", []byte(`{"success":true}`), "Edit")
+	if got != "✓写入" {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestEvaluate_FilterBool_False(t *testing.T) {
+	got := Evaluate("{$.success|bool:✓写入,✗失败}", []byte(`{"success":false}`), "Edit")
+	if got != "✗失败" {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestEvaluate_FilterChain_FullBashPostRule(t *testing.T) {
+	got := Evaluate(
+		"{$.stdout|firstline} (exit={$.exitCode|default:0})",
+		[]byte(`{"stdout":"hello\nworld","exitCode":0}`),
+		"Bash",
+	)
+	if got != "hello (exit=0)" {
+		t.Errorf("got %q", got)
+	}
+}
+
+// ─── <json:N> raw token ──────────────────────────────────────────────────────
+
+func TestEvaluate_JSONTruncate_Short(t *testing.T) {
+	if got := Evaluate("<json:120>", []byte(`{"k":"v"}`), "X"); got != `{"k":"v"}` {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestEvaluate_JSONTruncate_Long(t *testing.T) {
+	long := []byte(`{"k":"` + strings.Repeat("a", 300) + `"}`)
+	got := Evaluate("<json:50>", long, "X")
+	if !strings.HasSuffix(got, "…") {
+		t.Errorf("got %q, want suffix …", got)
+	}
+	if r := []rune(got); len(r) != 51 {
+		t.Errorf("rune length = %d, want 51", len(r))
+	}
+}
+
+func TestEvaluate_JSONTruncate_Embedded(t *testing.T) {
+	got := Evaluate("prefix:<json:5> suffix", []byte(`{"k":"v"}`), "X")
+	want := `prefix:{"k":… suffix`
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
