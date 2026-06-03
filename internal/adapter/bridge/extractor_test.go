@@ -262,7 +262,7 @@ func TestExtractEventContent_StopFailure(t *testing.T) {
 func TestExtractEventContent_Notification(t *testing.T) {
 	in := &CCHookInput{NotificationType: "permission_prompt", Message: "Approve file edit?"}
 	raw, _ := ExtractEventContent("Notification", in)
-	if raw != "Approve file edit?" {
+	if raw != "[等授权] Approve file edit?" {
 		t.Errorf("raw: got %q", raw)
 	}
 }
@@ -270,7 +270,7 @@ func TestExtractEventContent_Notification(t *testing.T) {
 func TestExtractEventContent_Notification_NoMessage(t *testing.T) {
 	in := &CCHookInput{NotificationType: "idle_prompt", Message: ""}
 	raw, _ := ExtractEventContent("Notification", in)
-	if raw != "idle_prompt" {
+	if raw != "[等输入] idle_prompt" {
 		t.Errorf("raw: got %q", raw)
 	}
 }
@@ -415,5 +415,85 @@ func TestExtractEventContent_StopFailure_BothEmpty_ReturnsEmpty(t *testing.T) {
 	raw, content := ExtractEventContent("StopFailure", in)
 	if raw != "" || content != "" {
 		t.Errorf("expected empty, got raw=%q content=%q", raw, content)
+	}
+}
+
+func TestExtractEventContent_SessionEnd_UsesReason(t *testing.T) {
+	in := &CCHookInput{Reason: "clear"}
+	raw, content := ExtractEventContent("SessionEnd", in)
+	if raw != "clear" || content != "clear" {
+		t.Errorf("got (%q, %q), want (clear, clear)", raw, content)
+	}
+}
+
+func TestExtractEventContent_SessionEnd_EmptyReason(t *testing.T) {
+	in := &CCHookInput{Reason: ""}
+	raw, content := ExtractEventContent("SessionEnd", in)
+	if raw != "" || content != "" {
+		t.Errorf("expected empty, got (%q, %q)", raw, content)
+	}
+}
+
+func TestExtractEventContent_SubagentStart_AgentTypePresent(t *testing.T) {
+	in := &CCHookInput{AgentType: "general-purpose", AgentID: "agent-xyz"}
+	raw, _ := ExtractEventContent("SubagentStart", in)
+	if raw != "general-purpose" {
+		t.Errorf("raw = %q, want %q", raw, "general-purpose")
+	}
+}
+
+func TestExtractEventContent_SubagentStart_AgentIDFallback(t *testing.T) {
+	in := &CCHookInput{AgentType: "", AgentID: "agent-66639e99"}
+	raw, _ := ExtractEventContent("SubagentStart", in)
+	if raw != "agent-66639e99" {
+		t.Errorf("raw = %q, want %q", raw, "agent-66639e99")
+	}
+}
+
+func TestExtractEventContent_SubagentStart_BothEmpty(t *testing.T) {
+	in := &CCHookInput{AgentType: "", AgentID: ""}
+	raw, _ := ExtractEventContent("SubagentStart", in)
+	if raw != "" {
+		t.Errorf("raw = %q, want empty", raw)
+	}
+}
+
+func TestExtractEventContent_Notification_PermissionPrompt(t *testing.T) {
+	in := &CCHookInput{NotificationType: "permission_prompt", Message: "needs your permission to use Bash"}
+	raw, _ := ExtractEventContent("Notification", in)
+	if raw != "[等授权] needs your permission to use Bash" {
+		t.Errorf("raw = %q", raw)
+	}
+}
+
+func TestExtractEventContent_Notification_IdlePrompt(t *testing.T) {
+	in := &CCHookInput{NotificationType: "idle_prompt", Message: "CodeBuddy is waiting for your input"}
+	raw, _ := ExtractEventContent("Notification", in)
+	if raw != "[等输入] CodeBuddy is waiting for your input" {
+		t.Errorf("raw = %q", raw)
+	}
+}
+
+func TestExtractEventContent_Notification_AuthSuccess(t *testing.T) {
+	in := &CCHookInput{NotificationType: "auth_success", Message: "auth_success: example-user"}
+	raw, _ := ExtractEventContent("Notification", in)
+	if raw != "[认证] auth_success: example-user" {
+		t.Errorf("raw = %q", raw)
+	}
+}
+
+func TestExtractEventContent_Notification_UnknownType(t *testing.T) {
+	in := &CCHookInput{NotificationType: "", Message: "raw message only"}
+	raw, _ := ExtractEventContent("Notification", in)
+	if raw != "raw message only" {
+		t.Errorf("raw = %q", raw)
+	}
+}
+
+func TestExtractEventContent_Notification_EmptyMessageFallsBackToType(t *testing.T) {
+	in := &CCHookInput{NotificationType: "idle_prompt", Message: ""}
+	raw, _ := ExtractEventContent("Notification", in)
+	if raw != "[等输入] idle_prompt" {
+		t.Errorf("raw = %q", raw)
 	}
 }

@@ -152,7 +152,7 @@ func ExtractEventContent(eventType string, in *CCHookInput) (contentRaw, content
 	case "SessionStart":
 		return in.Source, in.Source
 	case "SessionEnd":
-		return "", ""
+		return in.Reason, in.Reason
 
 	// Turn layer
 	case "UserPromptSubmit":
@@ -183,7 +183,8 @@ func ExtractEventContent(eventType string, in *CCHookInput) (contentRaw, content
 
 	// Agent & Task layer
 	case "SubagentStart":
-		return in.AgentType, in.AgentType
+		raw := firstNonEmpty(in.AgentType, in.AgentID)
+		return raw, raw
 	case "SubagentStop":
 		if in.LastAssistantMessage != "" {
 			return in.LastAssistantMessage, truncateRunes(in.LastAssistantMessage, contentMaxRunes)
@@ -221,10 +222,11 @@ func ExtractEventContent(eventType string, in *CCHookInput) (contentRaw, content
 
 	// MCP & UI layer
 	case "Notification":
-		raw := in.Message
-		if raw == "" {
-			raw = in.NotificationType
+		msg := in.Message
+		if msg == "" {
+			msg = in.NotificationType
 		}
+		raw := notificationTypeLabel(in.NotificationType) + msg
 		return raw, truncateRunes(raw, contentMaxRunes)
 	case "Elicitation":
 		raw := in.ServerName + ": " + in.Message
@@ -259,4 +261,29 @@ func extractBatchToolNames(raw json.RawMessage) []string {
 		}
 	}
 	return names
+}
+
+// firstNonEmpty returns the first non-empty string from vals, or "" if all are empty.
+func firstNonEmpty(vals ...string) string {
+	for _, v := range vals {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
+}
+
+// notificationTypeLabel returns a Chinese-bracketed prefix for known
+// notification_type values, or empty string for unknown types.
+func notificationTypeLabel(ntype string) string {
+	switch ntype {
+	case "permission_prompt":
+		return "[等授权] "
+	case "idle_prompt":
+		return "[等输入] "
+	case "auth_success":
+		return "[认证] " // Bug 1 already drops these at bridge entry; defensive.
+	default:
+		return ""
+	}
 }

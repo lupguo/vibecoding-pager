@@ -30,6 +30,10 @@ func main() {
 	var in bridge.CCHookInput
 	_ = json.Unmarshal(raw, &in)
 
+	if shouldDrop(eventType, &in) {
+		return
+	}
+
 	// Extract content based on event type
 	var contentRaw, content string
 	if isToolEvent(eventType) {
@@ -88,6 +92,17 @@ func parseArgs(args []string) (eventType, agentLabel string) {
 func isToolEvent(eventType string) bool {
 	switch eventType {
 	case "PreToolUse", "PostToolUse", "PermissionRequest", "PermissionDenied":
+		return true
+	}
+	return false
+}
+
+// shouldDrop returns true for events that have no actionable signal and would
+// pollute the session list. Currently only filters CodeBuddy's auth_success
+// Notification (which carries no session_id, would trigger the host:cwd:tty
+// fallback, and make session_key look like a path).
+func shouldDrop(eventType string, in *bridge.CCHookInput) bool {
+	if eventType == "Notification" && in.SessionID == "" {
 		return true
 	}
 	return false

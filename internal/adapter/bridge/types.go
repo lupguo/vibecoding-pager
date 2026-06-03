@@ -18,6 +18,7 @@ type CCHookInput struct {
 	Source       string `json:"source"`        // SessionStart: startup/resume/clear/compact
 	Model        string `json:"model"`         // SessionStart
 	SessionTitle string `json:"session_title"` // SessionStart
+	Reason       string `json:"reason"`        // SessionEnd: other/clear/compact/logout
 
 	// ═══ Turn layer ═══
 	Prompt               string `json:"prompt"`                 // UserPromptSubmit

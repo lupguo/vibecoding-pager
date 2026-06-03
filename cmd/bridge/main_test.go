@@ -1,6 +1,10 @@
 package main
 
-import "testing"
+import (
+	"testing"
+
+	"pager/internal/adapter/bridge"
+)
 
 func TestParseArgs_NewFormat(t *testing.T) {
 	eventType, agent := parseArgs([]string{"--event", "StopFailure", "--agent", "CC-INT"})
@@ -60,5 +64,26 @@ func TestIsToolEvent(t *testing.T) {
 		if got != tt.want {
 			t.Errorf("isToolEvent(%q): got %v, want %v", tt.eventType, got, tt.want)
 		}
+	}
+}
+
+func TestShouldDrop_NotificationWithoutSession(t *testing.T) {
+	in := &bridge.CCHookInput{SessionID: ""}
+	if !shouldDrop("Notification", in) {
+		t.Error("expected drop for Notification without session_id")
+	}
+}
+
+func TestShouldDrop_NotificationWithSession(t *testing.T) {
+	in := &bridge.CCHookInput{SessionID: "abc-123"}
+	if shouldDrop("Notification", in) {
+		t.Error("expected keep for Notification with session_id")
+	}
+}
+
+func TestShouldDrop_PreToolUseWithoutSession(t *testing.T) {
+	in := &bridge.CCHookInput{SessionID: ""}
+	if shouldDrop("PreToolUse", in) {
+		t.Error("expected keep for PreToolUse without session_id (fallback path)")
 	}
 }
