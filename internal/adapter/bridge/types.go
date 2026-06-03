@@ -36,7 +36,7 @@ type CCHookInput struct {
 	ToolName     string          `json:"tool_name"`
 	ToolInput    json.RawMessage `json:"tool_input"`
 	ToolUseID    string          `json:"tool_use_id"`
-	ToolResult   json.RawMessage `json:"tool_result,omitempty"` // PostToolUse
+	ToolResult   json.RawMessage `json:"tool_response,omitempty"` // PostToolUse (CC sends as `tool_response`)
 	ToolError    string          `json:"error"`                 // PostToolUseFailure
 	DenialReason string          `json:"denial_reason"`         // PermissionDenied
 	ToolCalls    json.RawMessage `json:"tool_calls,omitempty"`  // PostToolBatch
