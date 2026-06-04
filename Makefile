@@ -18,8 +18,9 @@ HTTP_PORT   := 7421
 
 ## Run in dev mode (Wails hot-reload + Vite HMR)
 ## Automatically kills any previous dev processes on the same ports.
-dev: stop install-bridge
-	wails3 dev -config ./build/config.yml -port $(VITE_PORT)
+dev: stop install-bridge bindings
+	PAGER_CONFIG_DIR="$(PWD)/.config/pager" \
+		wails3 dev -config ./build/config.yml -port $(VITE_PORT)
 
 ## Run frontend dev server only (for UI iteration without Go rebuild)
 dev-frontend:
@@ -36,7 +37,7 @@ dev-frontend:
 ## We want the bundle for `open` + macOS NotificationService bundle-id
 ## requirement, so this target uses package. (`-config` flag was removed
 ## upstream — wails.json + build/config.yml are picked up automatically.)
-build: frontend-build install-bridge
+build: frontend-build install-bridge bindings
 	wails3 package
 
 ## Build Go binary only (no frontend rebuild)
@@ -64,8 +65,8 @@ install-hooks-codebuddy: bridge
 # ─── Run ─────────────────────────────────────────────────────────────────────
 
 ## Run the built binary directly
-run: build-go install-bridge
-	./$(APP_BIN)
+run: build-go install-bridge bindings
+	PAGER_CONFIG_DIR="$(PWD)/.config/pager" ./$(APP_BIN)
 
 # ─── Frontend ────────────────────────────────────────────────────────────────
 
@@ -126,11 +127,11 @@ help:
 	@echo "  make build-go       Build Go binary only"
 	@echo "  make bridge         Build pager-cc-bridge"
 	@echo "  make install-bridge Build bridge with deployment verification"
+	@echo "  make bindings       Regenerate Wails bindings (Go → TS, codegen)"
 	@echo "  make install-hooks  Install CC hooks into ~/.claude/settings.json"
 	@echo "  make install-hooks-codebuddy  Install CodeBuddy hooks into ~/.codebuddy/settings.json"
 	@echo "  make run            Build and run"
 	@echo "  make frontend-deps  Install frontend npm deps"
-	@echo "  make bindings       Regenerate Wails bindings"
 	@echo "  make icon           Generate app icon"
 	@echo "  make test           Run Go tests"
 	@echo "  make lint           Go vet + TypeScript check"
