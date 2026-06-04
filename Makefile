@@ -95,7 +95,9 @@ test:
 	go test ./...
 
 ## Run Go vet + build check
-lint:
+## Depends on `bindings` because frontend/src imports from frontend/bindings/
+## (codegen artifact, untracked) — fresh checkouts would otherwise fail tsc.
+lint: bindings
 	go vet ./...
 	cd $(FRONTEND) && npx tsc --noEmit
 
