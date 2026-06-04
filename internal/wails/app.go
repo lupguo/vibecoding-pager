@@ -4,8 +4,6 @@ import (
 	"context"
 	"embed"
 	"log/slog"
-	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -31,12 +29,6 @@ type PagerApp struct {
 	tray    *application.SystemTray
 }
 
-// defaultDBPath returns the SQLite database file path.
-func defaultDBPath() string {
-	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".config", "pager", "pager.db")
-}
-
 // NewPagerApp assembles and returns a runnable Wails application.
 func NewPagerApp(assets embed.FS) *application.App {
 	logger := slog.Default().With("module", "wails")
@@ -47,7 +39,7 @@ func NewPagerApp(assets embed.FS) *application.App {
 	initialCfg, _ := config.LoadFrom(config.DefaultPath())
 
 	// ── SQLite EventStore ───────────────────────────────────────────────────
-	eventStore, err := store.NewSQLiteStore(defaultDBPath())
+	eventStore, err := store.NewSQLiteStore(config.DefaultDBPath())
 	if err != nil {
 		slog.Error("failed to open event store", "error", err)
 		// Continue without persistence — graceful degradation

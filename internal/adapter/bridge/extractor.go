@@ -281,8 +281,6 @@ func notificationTypeLabel(ntype string) string {
 		return "[等授权] "
 	case "idle_prompt":
 		return "[等输入] "
-	case "auth_success":
-		return "[认证] " // Bug 1 already drops these at bridge entry; defensive.
 	default:
 		return ""
 	}

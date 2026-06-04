@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -140,5 +141,34 @@ func TestCollapsedProjectsRoundTrip(t *testing.T) {
 	}
 	if len(loaded.CollapsedProjects) != 2 || loaded.CollapsedProjects[0] != "foo" {
 		t.Errorf("CollapsedProjects = %v; want [foo bar]", loaded.CollapsedProjects)
+	}
+}
+
+func TestBaseDir_Override(t *testing.T) {
+	t.Setenv("PAGER_CONFIG_DIR", "/tmp/pager-test")
+	if got := BaseDir(); got != "/tmp/pager-test" {
+		t.Errorf("BaseDir() = %q, want %q", got, "/tmp/pager-test")
+	}
+}
+
+func TestBaseDir_Default(t *testing.T) {
+	t.Setenv("PAGER_CONFIG_DIR", "")
+	got := BaseDir()
+	if !strings.HasSuffix(got, "/Library/Application Support/Pager") {
+		t.Errorf("BaseDir() = %q, want path ending in '/Library/Application Support/Pager'", got)
+	}
+}
+
+func TestDefaultPath_UsesBaseDir(t *testing.T) {
+	t.Setenv("PAGER_CONFIG_DIR", "/tmp/pager-test")
+	if got := DefaultPath(); got != "/tmp/pager-test/settings.json" {
+		t.Errorf("DefaultPath() = %q, want %q", got, "/tmp/pager-test/settings.json")
+	}
+}
+
+func TestDefaultDBPath_UsesBaseDir(t *testing.T) {
+	t.Setenv("PAGER_CONFIG_DIR", "/tmp/pager-test")
+	if got := DefaultDBPath(); got != "/tmp/pager-test/pager.db" {
+		t.Errorf("DefaultDBPath() = %q, want %q", got, "/tmp/pager-test/pager.db")
 	}
 }

@@ -53,9 +53,30 @@ func Defaults() Settings {
 	}
 }
 
-func DefaultPath() string {
+// BaseDir returns the directory under which all Pager runtime data
+// (settings.json, pager.db, WAL files) lives. Resolution order:
+//
+//  1. PAGER_CONFIG_DIR env var (highest priority — used by `make dev`,
+//     `make run`, and tests for isolation)
+//  2. ~/Library/Application Support/Pager/ (macOS-native production default)
+//
+// The directory is NOT created here; callers should MkdirAll on first write.
+func BaseDir() string {
+	if envDir := os.Getenv("PAGER_CONFIG_DIR"); envDir != "" {
+		return envDir
+	}
 	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".config", "pager", "settings.json")
+	return filepath.Join(home, "Library", "Application Support", "Pager")
+}
+
+// DefaultPath returns the absolute path to settings.json under BaseDir().
+func DefaultPath() string {
+	return filepath.Join(BaseDir(), "settings.json")
+}
+
+// DefaultDBPath returns the absolute path to pager.db under BaseDir().
+func DefaultDBPath() string {
+	return filepath.Join(BaseDir(), "pager.db")
 }
 
 func LoadFrom(path string) (Settings, error) {

@@ -224,3 +224,26 @@ func TestEvaluate_FilterChain_DefaultThenFirstline(t *testing.T) {
 		t.Errorf("got %q, want %q", got, "fallback line")
 	}
 }
+
+// TestEvaluate_FallbackOperator_DocumentsHTTPURLLimitation pins the documented
+// constraint that "//" inside a token body is reserved for the fallback
+// operator. Future authors trying to use raw URL literals like "http://x" in
+// a default: filter argument will trip this — by design.
+//
+// Trace for input "{$.url|default:http://x}" against payload "{}":
+//   1. Token body "$.url|default:http://x" contains "//" → fallback chain
+//   2. Split on "//": ["$.url|default:http:", "/x"]
+//   3. Recurse on first part "$.url|default:http:":
+//      - $.url path missing (exists=false)
+//      - filter default:http: triggers, returns "http:"
+//   4. First non-empty wins → "http:"
+//
+// The user wanted "http://x". They got "http:". The // got eaten as a
+// fallback delimiter. This test exists so any future change to the parse
+// order of // vs | gets caught and forces a deliberate decision.
+func TestEvaluate_FallbackOperator_DocumentsHTTPURLLimitation(t *testing.T) {
+	got := Evaluate("{$.url|default:http://x}", []byte(`{}`), "X")
+	if got != "http:" {
+		t.Errorf("got %q, want %q — // constraint may have changed; update doc + DSL", got, "http:")
+	}
+}

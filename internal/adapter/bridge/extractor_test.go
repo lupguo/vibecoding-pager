@@ -474,14 +474,6 @@ func TestExtractEventContent_Notification_IdlePrompt(t *testing.T) {
 	}
 }
 
-func TestExtractEventContent_Notification_AuthSuccess(t *testing.T) {
-	in := &CCHookInput{NotificationType: "auth_success", Message: "auth_success: example-user"}
-	raw, _ := ExtractEventContent("Notification", in)
-	if raw != "[认证] auth_success: example-user" {
-		t.Errorf("raw = %q", raw)
-	}
-}
-
 func TestExtractEventContent_Notification_UnknownType(t *testing.T) {
 	in := &CCHookInput{NotificationType: "", Message: "raw message only"}
 	raw, _ := ExtractEventContent("Notification", in)
