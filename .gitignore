@@ -3,6 +3,7 @@ bin/
 *.exe
 *.app
 /bridge                       # Stray binary from `go build ./cmd/bridge` without -o bin/
+/pager                        # Stray binary from `go build .` without -o bin/
 
 # Frontend
 frontend/node_modules/
