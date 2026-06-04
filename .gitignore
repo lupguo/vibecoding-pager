@@ -2,10 +2,14 @@
 bin/
 *.exe
 *.app
+/bridge                       # Stray binary from `go build ./cmd/bridge` without -o bin/
 
 # Frontend
 frontend/node_modules/
 frontend/dist/
+
+# Test fixtures (local sandbox; not part of Go test suite)
+test/
 
 # IDE
 .idea/
@@ -22,3 +26,10 @@ frontend/dist/
 # Temp
 /tmp/
 .superpowers/
+
+# MCP / browser automation cache
+.playwright-mcp/
+
+# Local app data (SQLite + settings live in ~/.config/pager/, but if cwd-relative
+# DB files leak into the repo root or store/, ignore them)
+internal/infra/store/pager.db
