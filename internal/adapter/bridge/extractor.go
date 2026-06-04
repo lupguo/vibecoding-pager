@@ -140,7 +140,7 @@ func bytesTrimSpace(b []byte) []byte {
 // prefixes" — UI combines event-type labels with content for display.
 //
 // Exception: Notification events prepend a Chinese type label
-// ([等授权]/[等输入]/[认证]) via notificationTypeLabel, so the type-derived
+// ([等授权]/[等输入]) via notificationTypeLabel, so the type-derived
 // hint survives storage and propagates to all consumers (UI, SQLite history,
 // macOS system notifications). This is a deliberate v1.0 simplification —
 // see docs/superpowers/specs/2026-06-03-pager-event-parsing-bugfix-design.md §3.3.
