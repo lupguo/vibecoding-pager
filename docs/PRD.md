@@ -143,7 +143,7 @@ func (r *Registry) GetByTTY(tty string) (*Session, bool) { return nil, false }
 
 ---
 
-## 2. Bridge (pager-cc-bridge)
+## 2. Bridge (vibecoding-pager-cc-bridge)
 
 ### 2.1 Constraints
 

@@ -1,7 +1,7 @@
 package wails
 
 import (
-	"pager/internal/infra/config"
+	"github.com/lupguo/vibecoding-pager/internal/infra/config"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 )

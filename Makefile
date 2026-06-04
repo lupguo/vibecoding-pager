@@ -1,9 +1,10 @@
-# Pager — Development Lifecycle
+# VibeCoding Pager — Development Lifecycle
 # Usage: make dev | make build | make run | make clean
 
-APP_NAME    := Pager
+APP_NAME    := vibecoding-pager
+APP_BUNDLE  := VibeCoding Pager
 BIN_DIR     := bin
-BRIDGE_BIN  := $(BIN_DIR)/pager-cc-bridge
+BRIDGE_BIN  := $(BIN_DIR)/vibecoding-pager-cc-bridge
 APP_BIN     := $(BIN_DIR)/$(APP_NAME)
 FRONTEND    := frontend
 
@@ -28,11 +29,11 @@ dev-frontend:
 
 # ─── Build ───────────────────────────────────────────────────────────────────
 
-## Build production .app bundle (output: bin/Pager.app)
+## Build production .app bundle (output: bin/VibeCoding Pager.app)
 ##
 ## Wails v3 alpha.96 split the old `wails3 build` into two phases:
-##   - `wails3 build`   produces a raw Mach-O at bin/Pager
-##   - `wails3 package` wraps that into bin/Pager.app/Contents/{MacOS,Resources}
+##   - `wails3 build`   produces a raw Mach-O at bin/vibecoding-pager
+##   - `wails3 package` wraps that into bin/VibeCoding Pager.app/Contents/{MacOS,Resources}
 ##                      and ad-hoc codesigns it ("- " identity)
 ## We want the bundle for `open` + macOS NotificationService bundle-id
 ## requirement, so this target uses package. (`-config` flag was removed
@@ -44,7 +45,7 @@ build: frontend-build install-bridge bindings
 build-go:
 	go build $(GO_LDFLAGS) -o $(APP_BIN) .
 
-## Build pager-cc-bridge binary
+## Build vibecoding-pager-cc-bridge binary
 bridge:
 	go build -o $(BRIDGE_BIN) ./cmd/bridge
 
@@ -103,7 +104,7 @@ lint: bindings
 
 # ─── Housekeeping ────────────────────────────────────────────────────────────
 
-## Stop any running Pager dev processes (frees ports 9245 + 7421)
+## Stop any running VibeCoding Pager dev processes (frees ports 9245 + 7421)
 stop:
 	@lsof -ti:$(VITE_PORT) | xargs kill -9 2>/dev/null || true
 	@lsof -ti:$(HTTP_PORT) | xargs kill -9 2>/dev/null || true
@@ -120,14 +121,14 @@ rebuild: clean frontend-deps build
 
 ## Show available targets
 help:
-	@echo "Pager Development Commands:"
+	@echo "VibeCoding Pager Development Commands:"
 	@echo ""
 	@echo "  make dev            Run in dev mode (auto-kills previous instance)"
 	@echo "  make stop           Stop running dev processes (free ports)"
 	@echo "  make dev-frontend   Run frontend only (Vite HMR)"
 	@echo "  make build          Build production .app"
 	@echo "  make build-go       Build Go binary only"
-	@echo "  make bridge         Build pager-cc-bridge"
+	@echo "  make bridge         Build vibecoding-pager-cc-bridge"
 	@echo "  make install-bridge Build bridge with deployment verification"
 	@echo "  make bindings       Regenerate Wails bindings (Go → TS, codegen)"
 	@echo "  make install-hooks  Install CC hooks into ~/.claude/settings.json"

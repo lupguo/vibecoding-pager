@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"pager/internal/domain/entity"
-	"pager/internal/domain/session"
+	"github.com/lupguo/vibecoding-pager/internal/domain/entity"
+	"github.com/lupguo/vibecoding-pager/internal/domain/session"
 )
 
 func TestHandleEvent_ValidPost(t *testing.T) {

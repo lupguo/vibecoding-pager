@@ -8,7 +8,7 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"golang.design/x/hotkey"
 
-	"pager/internal/infra/log"
+	"github.com/lupguo/vibecoding-pager/internal/infra/log"
 )
 
 var (

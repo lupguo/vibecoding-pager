@@ -21,7 +21,7 @@ function App() {
         const width = window.innerWidth
         if (width >= 300 && width <= 600) {
           try {
-            const { SetPopupWidth } = await import('../bindings/pager/internal/wails/windowbinding.js')
+            const { SetPopupWidth } = await import('../bindings/github.com/lupguo/vibecoding-pager/internal/wails/windowbinding.js')
             await SetPopupWidth(width)
           } catch (err) {
             console.error('SetPopupWidth failed:', err)
@@ -41,7 +41,7 @@ function App() {
     const newPinned = !pinned
     setPinned(newPinned)
     try {
-      const { SetPinned } = await import('../bindings/pager/internal/wails/windowbinding.js')
+      const { SetPinned } = await import('../bindings/github.com/lupguo/vibecoding-pager/internal/wails/windowbinding.js')
       await SetPinned(newPinned)
     } catch (err) {
       console.error('SetPinned failed:', err)
@@ -51,7 +51,7 @@ function App() {
 
   const handleOpenSettings = async () => {
     try {
-      const { OpenSettings } = await import('../bindings/pager/internal/wails/windowbinding.js')
+      const { OpenSettings } = await import('../bindings/github.com/lupguo/vibecoding-pager/internal/wails/windowbinding.js')
       await OpenSettings()
     } catch (err) {
       console.error('OpenSettings failed:', err)

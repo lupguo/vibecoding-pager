@@ -53,12 +53,12 @@ func Defaults() Settings {
 	}
 }
 
-// BaseDir returns the directory under which all Pager runtime data
+// BaseDir returns the directory under which all VibeCoding Pager runtime data
 // (settings.json, pager.db, WAL files) lives. Resolution order:
 //
 //  1. PAGER_CONFIG_DIR env var (highest priority — used by `make dev`,
 //     `make run`, and tests for isolation)
-//  2. ~/Library/Application Support/Pager/ (macOS-native production default)
+//  2. ~/Library/Application Support/VibeCoding Pager/ (macOS-native production default)
 //
 // The directory is NOT created here; callers should MkdirAll on first write.
 func BaseDir() string {
@@ -66,7 +66,7 @@ func BaseDir() string {
 		return envDir
 	}
 	home, _ := os.UserHomeDir()
-	return filepath.Join(home, "Library", "Application Support", "Pager")
+	return filepath.Join(home, "Library", "Application Support", "VibeCoding Pager")
 }
 
 // DefaultPath returns the absolute path to settings.json under BaseDir().

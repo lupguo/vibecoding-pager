@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"pager/internal/domain/entity"
+	"github.com/lupguo/vibecoding-pager/internal/domain/entity"
 )
 
 func tempDBPath(t *testing.T) string {

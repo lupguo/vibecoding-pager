@@ -3,7 +3,7 @@ package session
 import (
 	"testing"
 
-	"pager/internal/domain/entity"
+	"github.com/lupguo/vibecoding-pager/internal/domain/entity"
 )
 
 func TestDeriveStatus(t *testing.T) {

@@ -9,8 +9,8 @@ import (
 
 	"github.com/wailsapp/wails/v3/pkg/services/notifications"
 
-	"pager/internal/domain/entity"
-	"pager/internal/domain/session"
+	"github.com/lupguo/vibecoding-pager/internal/domain/entity"
+	"github.com/lupguo/vibecoding-pager/internal/domain/session"
 )
 
 const NotificationIDPrefix = "evt-"
@@ -114,7 +114,7 @@ func extractBody(e *entity.AgentEvent) string {
 // the whole script is a single -e argument.
 func buildOsascriptCmd(title, body string) []string {
 	script := fmt.Sprintf(
-		`display notification "%s" with title "Pager" subtitle "%s" sound name "Tink"`,
+		`display notification "%s" with title "VibeCoding Pager" subtitle "%s" sound name "Tink"`,
 		osascriptEscape(body), osascriptEscape(title),
 	)
 	return []string{"-e", script}

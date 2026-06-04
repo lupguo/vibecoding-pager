@@ -1,8 +1,8 @@
 {
   "$schema": "https://wails.io/schemas/config.v3.json",
-  "name": "Pager",
-  "outputfilename": "Pager",
+  "name": "VibeCoding Pager",
+  "outputfilename": "vibecoding-pager",
   "author": {
-    "name": "sapaude"
+    "name": "lupguo"
   }
 }

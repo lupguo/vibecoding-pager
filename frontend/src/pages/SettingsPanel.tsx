@@ -25,7 +25,7 @@ export default function SettingsPanel() {
 
   const handleClose = async () => {
     try {
-      const { Hide } = await import('../../bindings/pager/internal/wails/windowbinding.js')
+      const { Hide } = await import('../../bindings/github.com/lupguo/vibecoding-pager/internal/wails/windowbinding.js')
       await Hide()
     } catch {
       // Fallback: use window.close or just ignore

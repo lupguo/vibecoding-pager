@@ -8,8 +8,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"pager/internal/domain/session"
-	"pager/internal/adapter/httpapi"
+	"github.com/lupguo/vibecoding-pager/internal/domain/session"
+	"github.com/lupguo/vibecoding-pager/internal/adapter/httpapi"
 )
 
 // Standalone test server — runs HTTP server + tracker without Wails GUI.

@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"pager/internal/domain/entity"
+	"github.com/lupguo/vibecoding-pager/internal/domain/entity"
 )
 
 func makeEvent(eventType, toolName, toolUseID, cwd, tty string) *entity.AgentEvent {

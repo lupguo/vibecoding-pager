@@ -1,6 +1,6 @@
-# Pager
+# VibeCoding Pager
 
-> macOS MenuBar app for **AI coding agent status awareness**. Claude Code / CodeBuddy hooks push events → Pager shows notifications + a session list → click to jump back to the right terminal tab.
+> macOS MenuBar app for **AI coding agent status awareness**. Claude Code / CodeBuddy hooks push events → VibeCoding Pager shows notifications + a session list → click to jump back to the right terminal tab.
 
 [![Go](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go)](https://go.dev/)
 [![Wails v3](https://img.shields.io/badge/Wails-v3--alpha.96-FF0000)](https://wails.io/)
@@ -16,7 +16,7 @@
 - 一堆 terminal tab，分不清哪个 session 在等输入、哪个在跑、哪个出错了
 - 想批准/拒绝某次工具调用，得手动找回那个 tab
 
-**Pager** 就是这个场景的"寻呼机"：常驻 MenuBar，通过 Claude Code 的 hook 机制接收事件，弹原生通知 + 维护会话列表，点击跳回对应 terminal tab。Hook 是 fire-and-forget —— **不阻塞 agent**，不影响你的工作流。
+**Pager** 就是这个场景的"寻呼机"（项目名 `vibecoding-pager`）：常驻 MenuBar，通过 Claude Code 的 hook 机制接收事件，弹原生通知 + 维护会话列表，点击跳回对应 terminal tab。Hook 是 fire-and-forget —— **不阻塞 agent**，不影响你的工作流。
 
 ---
 
@@ -36,12 +36,12 @@
 CC / CodeBuddy hook (stdin JSON)
         │
         ▼
-  pager-cc-bridge          (CLI binary, must exit 0 silently)
+  vibecoding-pager-cc-bridge   (CLI binary, must exit 0 silently)
         │
         ▼  HTTP POST :7421
-   Pager.app
+   VibeCoding Pager.app
    ├── Registry              (in-memory state machine)
-   ├── SQLite EventStore     (~/Library/Application Support/Pager/pager.db)
+   ├── SQLite EventStore     (~/Library/Application Support/VibeCoding Pager/pager.db)
    ├── macOS Notification    (osascript)
    └── React UI              (Wails v3 + zustand)
 ```
@@ -73,8 +73,8 @@ See [`ARCHITECTURE.md`](./ARCHITECTURE.md) for the full four-layer (`domain` / `
 ### Build & Run
 
 ```bash
-git clone git@github.com:lupguo/pager.git
-cd pager
+git clone git@github.com:lupguo/vibecoding-pager.git
+cd vibecoding-pager
 make frontend-deps          # one-time: npm install
 make dev                    # hot-reload dev mode (Wails + Vite)
 ```
@@ -82,34 +82,34 @@ make dev                    # hot-reload dev mode (Wails + Vite)
 For a production `.app` bundle:
 
 ```bash
-make build                  # outputs bin/Pager.app
-open bin/Pager.app
+make build                  # outputs bin/VibeCoding Pager.app
+open "bin/VibeCoding Pager.app"
 ```
 
 ### Install Hooks
 
-After Pager is running, register the bridge with your AI agent:
+After VibeCoding Pager is running, register the bridge with your AI agent:
 
 ```bash
 make install-hooks              # Claude Code (~/.claude/settings.json)
 make install-hooks-codebuddy    # CodeBuddy   (~/.codebuddy/settings.json)
 ```
 
-Each call writes `pager-cc-bridge` invocations into the agent's hook config. Subsequent agent sessions stream events to Pager automatically.
+Each call writes `vibecoding-pager-cc-bridge` invocations into the agent's hook config. Subsequent agent sessions stream events to VibeCoding Pager automatically.
 
 > **After modifying any code under `internal/adapter/bridge/` or `cmd/bridge/`**, re-run `make install-bridge` to rebuild and verify deployment metadata. `make dev` / `make run` / `make build` already do this for you.
 
 ## Configuration
 
-Pager runtime data (settings + SQLite) lives under one base directory:
+VibeCoding Pager runtime data (settings + SQLite) lives under one base directory:
 
-| Mode        | Trigger                              | Path                                          |
-|-------------|--------------------------------------|-----------------------------------------------|
-| Development | `make dev` / `make run`              | `<repo>/.config/pager/`                       |
-| Production  | Double-click `Pager.app`             | `~/Library/Application Support/Pager/`        |
-| Test / CI   | `PAGER_CONFIG_DIR=/tmp/x ./bin/Pager`| `/tmp/x/`                                     |
+| Mode        | Trigger                              | Path                                                |
+|-------------|--------------------------------------|-----------------------------------------------------|
+| Development | `make dev` / `make run`              | `<repo>/.config/pager/`                             |
+| Production  | Double-click `VibeCoding Pager.app`  | `~/Library/Application Support/VibeCoding Pager/`   |
+| Test / CI   | `PAGER_CONFIG_DIR=/tmp/x ./bin/vibecoding-pager` | `/tmp/x/`                               |
 
-Resolution: `PAGER_CONFIG_DIR` env var → macOS-native default. The dev path keeps experiments isolated from your installed `Pager.app`.
+Resolution: `PAGER_CONFIG_DIR` env var → macOS-native default. The dev path keeps experiments isolated from your installed `VibeCoding Pager.app`.
 
 ## Make Targets
 
@@ -118,7 +118,7 @@ make dev            Run in dev mode (Vite HMR + Wails hot-reload)
 make build          Build production .app bundle
 make run            Build Go binary + run (no Vite)
 make stop           Free ports 9245 + 7421
-make bridge         Build pager-cc-bridge CLI
+make bridge         Build vibecoding-pager-cc-bridge CLI
 make install-bridge Build bridge + print deploy hash
 make install-hooks  Wire bridge into ~/.claude/settings.json
 make bindings       Regenerate Wails Go ↔ TS bindings
@@ -133,7 +133,7 @@ make help           List all targets
 ```text
 .
 ├── cmd/
-│   ├── bridge/          pager-cc-bridge (hook CLI; must exit 0)
+│   ├── bridge/          vibecoding-pager-cc-bridge (hook CLI; must exit 0)
 │   └── icongen/         dev-only icon generator
 ├── internal/
 │   ├── domain/          entity/, session/ — business rules, zero framework deps

@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"pager/internal/adapter/bridge"
+	"github.com/lupguo/vibecoding-pager/internal/adapter/bridge"
 )
 
 func TestParseArgs_NewFormat(t *testing.T) {

@@ -1,4 +1,4 @@
-# Pager
+# VibeCoding Pager
 
 macOS MenuBar app for AI coding agent status awareness. CC hooks push events -> Pager shows notifications + session list -> user jumps back to terminal tab.
 
@@ -8,7 +8,7 @@ macOS MenuBar app for AI coding agent status awareness. CC hooks push events -> 
 make dev              # Run in dev mode (Wails + Vite hot reload)
 make build            # Build production .app
 make run              # Build and run
-make bridge           # Build pager-cc-bridge binary
+make bridge           # Build vibecoding-pager-cc-bridge binary
 make frontend-deps    # Install frontend deps
 make bindings         # Regenerate Wails bindings (after changing Go services)
 make test             # Run all Go tests
@@ -22,7 +22,7 @@ make help             # Show all available targets
 
 **Data flow:**
 ```
-CC hook (stdin) -> pager-cc-bridge -> HTTP POST :7421 -> Wails app (Registry) -> UI + Notification
+CC hook (stdin) -> vibecoding-pager-cc-bridge -> HTTP POST :7421 -> Wails app (Registry) -> UI + Notification
 ```
 
 **Four-layer structure (`internal/`):**
@@ -90,7 +90,7 @@ After modifying `internal/adapter/bridge/*` or `cmd/bridge/*`, run:
 make install-bridge
 ```
 
-This rebuilds `bin/pager-cc-bridge` (the binary that CC/CodeBuddy hooks invoke
+This rebuilds `bin/vibecoding-pager-cc-bridge` (the binary that CC/CodeBuddy hooks invoke
 via `~/.claude/settings.json` and `~/.codebuddy/settings.json`) and prints its
 mtime + sha so you can confirm deployment.
 
@@ -127,12 +127,12 @@ a single base directory chosen at startup by `config.BaseDir()`:
 | Mode                  | Trigger                              | BaseDir()                                  |
 |-----------------------|--------------------------------------|--------------------------------------------|
 | Development           | `make dev` / `make run`              | `<repo>/.config/pager/`                    |
-| Production (.app)     | Double-click Pager.app               | `~/Library/Application Support/Pager/`     |
-| Test / ad-hoc         | `PAGER_CONFIG_DIR=/tmp/X ./bin/Pager` | `/tmp/X/`                                  |
+| Production (.app)     | Double-click VibeCoding Pager.app               | `~/Library/Application Support/VibeCoding Pager/`     |
+| Test / ad-hoc         | `PAGER_CONFIG_DIR=/tmp/X ./bin/vibecoding-pager` | `/tmp/X/`                                  |
 
 Resolution order in `config.BaseDir()`:
 1. `PAGER_CONFIG_DIR` env var (highest priority)
-2. `~/Library/Application Support/Pager/` (macOS-native default)
+2. `~/Library/Application Support/VibeCoding Pager/` (macOS-native default)
 
 `make dev` / `make run` set `PAGER_CONFIG_DIR=$(PWD)/.config/pager` so dev
 work never pollutes your installed Pager.app's data. The dev directory
@@ -188,7 +188,7 @@ Do NOT implement these:
 | `internal/adapter/terminal/jump.go` | Terminal tab jump |
 | `internal/infra/config/config.go` | Settings persistence |
 | `internal/infra/log/log.go` | slog module logger |
-| `cmd/bridge/main.go` | pager-cc-bridge CLI |
+| `cmd/bridge/main.go` | vibecoding-pager-cc-bridge CLI |
 | `frontend/src/store/sessions.ts` | zustand session store |
 | `frontend/src/pages/SettingsPanel.tsx` | Settings panel UI |
 

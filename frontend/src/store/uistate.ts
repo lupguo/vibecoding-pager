@@ -52,7 +52,7 @@ function persistCollapsed(list: string[]) {
   persistTimer = setTimeout(async () => {
     try {
       const { SetCollapsedProjects } = await import(
-        '../../bindings/pager/internal/wails/windowbinding.js'
+        '../../bindings/github.com/lupguo/vibecoding-pager/internal/wails/windowbinding.js'
       )
       await SetCollapsedProjects(list)
     } catch (err) {

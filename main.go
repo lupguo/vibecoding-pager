@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"os"
 
-	infralog "pager/internal/infra/log"
-	"pager/internal/wails"
+	infralog "github.com/lupguo/vibecoding-pager/internal/infra/log"
+	"github.com/lupguo/vibecoding-pager/internal/wails"
 )
 
 //go:embed all:frontend/dist

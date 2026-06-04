@@ -3,7 +3,7 @@ package notify
 import (
 	"testing"
 
-	"pager/internal/domain/entity"
+	"github.com/lupguo/vibecoding-pager/internal/domain/entity"
 )
 
 func TestShouldNotify_AttentionOnly(t *testing.T) {
@@ -55,7 +55,7 @@ func TestBuildOsascriptCmd(t *testing.T) {
 			body:  "Stop",
 			wantArgs: []string{
 				"-e",
-				`display notification "Stop" with title "Pager" subtitle "Pager · projA" sound name "Tink"`,
+				`display notification "Stop" with title "VibeCoding Pager" subtitle "Pager · projA" sound name "Tink"`,
 			},
 		},
 		{
@@ -64,7 +64,7 @@ func TestBuildOsascriptCmd(t *testing.T) {
 			body:  `said "hello"`,
 			wantArgs: []string{
 				"-e",
-				`display notification "said \"hello\"" with title "Pager" subtitle "agent says \"hi\"" sound name "Tink"`,
+				`display notification "said \"hello\"" with title "VibeCoding Pager" subtitle "agent says \"hi\"" sound name "Tink"`,
 			},
 		},
 		{
@@ -73,7 +73,7 @@ func TestBuildOsascriptCmd(t *testing.T) {
 			body:  `\n is literal`,
 			wantArgs: []string{
 				"-e",
-				`display notification "\\n is literal" with title "Pager" subtitle "path C:\\foo" sound name "Tink"`,
+				`display notification "\\n is literal" with title "VibeCoding Pager" subtitle "path C:\\foo" sound name "Tink"`,
 			},
 		},
 		{
@@ -82,7 +82,7 @@ func TestBuildOsascriptCmd(t *testing.T) {
 			body:  "first\nsecond",
 			wantArgs: []string{
 				"-e",
-				`display notification "first second" with title "Pager" subtitle "line1 line2" sound name "Tink"`,
+				`display notification "first second" with title "VibeCoding Pager" subtitle "line1 line2" sound name "Tink"`,
 			},
 		},
 	}

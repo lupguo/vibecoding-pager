@@ -1,6 +1,6 @@
 package session
 
-import "pager/internal/domain/entity"
+import "github.com/lupguo/vibecoding-pager/internal/domain/entity"
 
 // Constants kept here to avoid magic strings. Mirrored against CC-native event types.
 const (

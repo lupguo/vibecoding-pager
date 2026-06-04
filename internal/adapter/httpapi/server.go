@@ -10,9 +10,9 @@ import (
 	"net/http"
 	"time"
 
-	"pager/internal/domain/entity"
-	"pager/internal/domain/session"
-	"pager/internal/infra/store"
+	"github.com/lupguo/vibecoding-pager/internal/domain/entity"
+	"github.com/lupguo/vibecoding-pager/internal/domain/session"
+	"github.com/lupguo/vibecoding-pager/internal/infra/store"
 )
 
 const ListenAddr = "127.0.0.1:7421"

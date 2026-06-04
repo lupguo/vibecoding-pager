@@ -6,7 +6,7 @@ import (
 )
 
 // EventType constants. Values are CamelCase to match the CC-native event names
-// produced by pager-cc-bridge. They MUST stay in sync with the switch cases in
+// produced by vibecoding-pager-cc-bridge. They MUST stay in sync with the switch cases in
 // session.DeriveStatus.
 const (
 	EventPreToolUse       = "PreToolUse"

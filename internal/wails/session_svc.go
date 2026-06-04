@@ -3,9 +3,9 @@ package wails
 import (
 	"fmt"
 
-	"pager/internal/adapter/terminal"
-	"pager/internal/domain/session"
-	"pager/internal/infra/store"
+	"github.com/lupguo/vibecoding-pager/internal/adapter/terminal"
+	"github.com/lupguo/vibecoding-pager/internal/domain/session"
+	"github.com/lupguo/vibecoding-pager/internal/infra/store"
 )
 
 // SessionBinding exposes session state and actions to the React frontend via Wails bindings.

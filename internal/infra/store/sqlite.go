@@ -14,8 +14,8 @@ import (
 	"github.com/jmoiron/sqlx"
 	_ "modernc.org/sqlite"
 
-	"pager/internal/domain/entity"
-	"pager/internal/domain/session"
+	"github.com/lupguo/vibecoding-pager/internal/domain/entity"
+	"github.com/lupguo/vibecoding-pager/internal/domain/session"
 )
 
 //go:embed schema.sql

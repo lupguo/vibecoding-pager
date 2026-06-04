@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"pager/internal/domain/entity"
+	"github.com/lupguo/vibecoding-pager/internal/domain/entity"
 )
 
 const serverURL = "http://127.0.0.1:7421/event"

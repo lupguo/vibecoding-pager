@@ -44,7 +44,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
 
   loadSettings: async () => {
     try {
-      const { GetSettings } = await import('../../bindings/pager/internal/wails/settingsbinding.js')
+      const { GetSettings } = await import('../../bindings/github.com/lupguo/vibecoding-pager/internal/wails/settingsbinding.js')
       const cfg = await GetSettings()
       // Normalize notification_events: binding type marks values as optional, ensure they're string[]
       const normalized: Settings = {
@@ -76,7 +76,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     if (partial.opacity !== undefined) applyOpacity(partial.opacity)
 
     try {
-      const { UpdateSettings } = await import('../../bindings/pager/internal/wails/settingsbinding.js')
+      const { UpdateSettings } = await import('../../bindings/github.com/lupguo/vibecoding-pager/internal/wails/settingsbinding.js')
       await UpdateSettings(updated)
     } catch (err) {
       console.error('[pager] UpdateSettings failed:', err)

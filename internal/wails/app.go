@@ -10,12 +10,12 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/events"
 	"github.com/wailsapp/wails/v3/pkg/services/notifications"
 
-	"pager/internal/adapter/httpapi"
-	"pager/internal/adapter/notify"
-	"pager/internal/domain/entity"
-	"pager/internal/domain/session"
-	"pager/internal/infra/config"
-	"pager/internal/infra/store"
+	"github.com/lupguo/vibecoding-pager/internal/adapter/httpapi"
+	"github.com/lupguo/vibecoding-pager/internal/adapter/notify"
+	"github.com/lupguo/vibecoding-pager/internal/domain/entity"
+	"github.com/lupguo/vibecoding-pager/internal/domain/session"
+	"github.com/lupguo/vibecoding-pager/internal/infra/config"
+	"github.com/lupguo/vibecoding-pager/internal/infra/store"
 )
 
 //go:embed assets/tray-icon@2x.png
@@ -160,7 +160,7 @@ func NewPagerApp(assets embed.FS) *application.App {
 	}
 
 	wailsApp := application.New(application.Options{
-		Name:        "Pager",
+		Name:        "VibeCoding Pager",
 		Description: "AI coding agents 状态感知层",
 		Services:    services,
 		Assets: application.AssetOptions{
@@ -179,7 +179,7 @@ func NewPagerApp(assets embed.FS) *application.App {
 
 	// ── Popup window ────────────────────────────────────────────────────────
 	popupWindow = wailsApp.Window.NewWithOptions(application.WebviewWindowOptions{
-		Title:            "Pager",
+		Title:            "VibeCoding Pager",
 		Name:             "pager-panel",
 		Width:            initialCfg.PopupWidth,
 		Height:           520,

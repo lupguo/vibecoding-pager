@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { Events } from '@wailsio/runtime'
-import { ListSessions } from '../../bindings/pager/internal/wails/sessionbinding.js'
+import { ListSessions } from '../../bindings/github.com/lupguo/vibecoding-pager/internal/wails/sessionbinding.js'
 
 export type SessionStatus = 'working' | 'waiting' | 'done' | 'error'
 

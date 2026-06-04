@@ -1,6 +1,6 @@
-# Pager Architecture & Directory Convention
+# VibeCoding Pager Architecture & Directory Convention
 
-本文档定义 Pager 项目的目录规范和架构约定，适用于所有 Go + Wails v3 开发。
+本文档定义 VibeCoding Pager 项目的目录规范和架构约定，适用于所有 Go + Wails v3 开发。
 
 ## 四象限分层架构
 
@@ -136,7 +136,7 @@ import (
 
 ```
 cmd/
-├── bridge/       pager-cc-bridge（hook 使用，必须 exit 0）
+├── bridge/       vibecoding-pager-cc-bridge（hook 使用，必须 exit 0）
 └── icongen/      图标生成器（开发工具）
 ```
 

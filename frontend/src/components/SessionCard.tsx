@@ -4,7 +4,7 @@ import {
   Copy, Check, FolderOpen, HandHelping, Hash, Loader2,
 } from 'lucide-react'
 import type { Session, SessionStatus } from '../store/sessions'
-import { JumpToTerminal } from '../../bindings/pager/internal/wails/sessionbinding.js'
+import { JumpToTerminal } from '../../bindings/github.com/lupguo/vibecoding-pager/internal/wails/sessionbinding.js'
 
 const COPY_FEEDBACK_MS = 800
 

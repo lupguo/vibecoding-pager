@@ -8,10 +8,10 @@ func TestIsBundlePath(t *testing.T) {
 		path string
 		want bool
 	}{
-		{"installed app bundle", "/Applications/Pager.app/Contents/MacOS/Pager", true},
-		{"build-dir app bundle", "/Users/me/repo/pager/bin/Pager.app/Contents/MacOS/Pager", true},
-		{"wails dev temp binary", "/var/folders/x0/abc/T/wails-dev/pager", false},
-		{"raw make-run binary", "/Users/me/repo/pager/bin/pager", false},
+		{"installed app bundle", "/Applications/VibeCoding Pager.app/Contents/MacOS/VibeCoding Pager", true},
+		{"build-dir app bundle", "/Users/me/repo/vibecoding-pager/bin/VibeCoding Pager.app/Contents/MacOS/VibeCoding Pager", true},
+		{"wails dev temp binary", "/var/folders/x0/abc/T/wails-dev/vibecoding-pager", false},
+		{"raw make-run binary", "/Users/me/repo/vibecoding-pager/bin/vibecoding-pager", false},
 		{"empty path", "", false},
 		{"unrelated path with .app substring", "/Users/foo/.app-template/something/MacOS/x", false},
 	}

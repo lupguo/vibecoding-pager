@@ -38,7 +38,7 @@ done
 
 # Apply defaults
 AGENT="${AGENT:-CC}"
-BRIDGE_PATH="${BRIDGE_PATH:-$SCRIPT_DIR/../bin/pager-cc-bridge}"
+BRIDGE_PATH="${BRIDGE_PATH:-$SCRIPT_DIR/../bin/vibecoding-pager-cc-bridge}"
 SETTINGS_FILE="${SETTINGS_FILE:-$HOME/.claude/settings.json}"
 
 if [ ! -f "$BRIDGE_PATH" ]; then

@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"pager/internal/domain/entity"
+	"github.com/lupguo/vibecoding-pager/internal/domain/entity"
 )
 
 // Session represents an active agent session.

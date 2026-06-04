@@ -154,8 +154,8 @@ func TestBaseDir_Override(t *testing.T) {
 func TestBaseDir_Default(t *testing.T) {
 	t.Setenv("PAGER_CONFIG_DIR", "")
 	got := BaseDir()
-	if !strings.HasSuffix(got, "/Library/Application Support/Pager") {
-		t.Errorf("BaseDir() = %q, want path ending in '/Library/Application Support/Pager'", got)
+	if !strings.HasSuffix(got, "/Library/Application Support/VibeCoding Pager") {
+		t.Errorf("BaseDir() = %q, want path ending in '/Library/Application Support/VibeCoding Pager'", got)
 	}
 }
 

@@ -20,10 +20,10 @@ import (
 	"testing"
 	"time"
 
-	"pager/internal/adapter/httpapi"
-	"pager/internal/domain/entity"
-	"pager/internal/domain/session"
-	"pager/internal/infra/store"
+	"github.com/lupguo/vibecoding-pager/internal/adapter/httpapi"
+	"github.com/lupguo/vibecoding-pager/internal/domain/entity"
+	"github.com/lupguo/vibecoding-pager/internal/domain/session"
+	"github.com/lupguo/vibecoding-pager/internal/infra/store"
 )
 
 // TestE2E_StatusModelDataPath drives the full bridge → HTTP → tracker → SQLite path

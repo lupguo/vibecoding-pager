@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"pager/internal/adapter/bridge"
-	"pager/internal/domain/entity"
+	"github.com/lupguo/vibecoding-pager/internal/adapter/bridge"
+	"github.com/lupguo/vibecoding-pager/internal/domain/entity"
 )
 
 
@@ -71,8 +71,8 @@ func main() {
 // parseArgs extracts event type and agent label from command-line args.
 // Supports both formats:
 //
-//	New: pager-cc-bridge --event <type> --agent <label>
-//	Old: pager-cc-bridge <type> [--agent <label>]
+//	New: vibecoding-pager-cc-bridge --event <type> --agent <label>
+//	Old: vibecoding-pager-cc-bridge <type> [--agent <label>]
 func parseArgs(args []string) (eventType, agentLabel string) {
 	eventType = "unknown"
 	agentLabel = "CC" // default

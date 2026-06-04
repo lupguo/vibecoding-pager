@@ -63,7 +63,7 @@ export default function SessionList() {
                   e.stopPropagation()
                   try {
                     const { DismissSessionsByProject } = await import(
-                      '../../bindings/pager/internal/wails/sessionbinding.js'
+                      '../../bindings/github.com/lupguo/vibecoding-pager/internal/wails/sessionbinding.js'
                     )
                     await DismissSessionsByProject(group.project)
                   } catch (err) {

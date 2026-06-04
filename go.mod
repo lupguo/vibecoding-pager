@@ -1,4 +1,4 @@
-module pager
+module github.com/lupguo/vibecoding-pager
 
 go 1.25.0
 

@@ -17,7 +17,7 @@ export default function DataSettings() {
 
   const loadStats = async () => {
     try {
-      const { GetDataStats } = await import('../../../bindings/pager/internal/wails/settingsbinding.js')
+      const { GetDataStats } = await import('../../../bindings/github.com/lupguo/vibecoding-pager/internal/wails/settingsbinding.js')
       const s = await GetDataStats()
       setStats(s)
     } catch (err) {
@@ -38,7 +38,7 @@ export default function DataSettings() {
 
     setPurging(true)
     try {
-      const { PurgeData } = await import('../../../bindings/pager/internal/wails/settingsbinding.js')
+      const { PurgeData } = await import('../../../bindings/github.com/lupguo/vibecoding-pager/internal/wails/settingsbinding.js')
       await PurgeData(days)
       await loadStats()
     } catch (err) {

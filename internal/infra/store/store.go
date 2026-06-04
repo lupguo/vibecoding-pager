@@ -1,6 +1,6 @@
 package store
 
-import "pager/internal/domain/entity"
+import "github.com/lupguo/vibecoding-pager/internal/domain/entity"
 
 // EventStore defines the contract for persistent event storage.
 type EventStore interface {

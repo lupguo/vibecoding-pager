@@ -2,9 +2,9 @@
 <plist version="1.0">
 <dict>
     <key>CFBundlePackageType</key><string>APPL</string>
-    <key>CFBundleName</key><string>Pager</string>
-    <key>CFBundleExecutable</key><string>Pager</string>
-    <key>CFBundleIdentifier</key><string>com.sapaude.pager</string>
+    <key>CFBundleName</key><string>VibeCoding Pager</string>
+    <key>CFBundleExecutable</key><string>VibeCoding Pager</string>
+    <key>CFBundleIdentifier</key><string>com.lupguo.vibecoding-pager</string>
     <key>CFBundleVersion</key><string>0.1.0</string>
     <key>CFBundleShortVersionString</key><string>0.1.0</string>
     <key>CFBundleIconFile</key><string>icons</string>

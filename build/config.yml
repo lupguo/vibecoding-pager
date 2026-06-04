@@ -1,11 +1,11 @@
 version: '3'
 
 info:
-  companyName: "sapaude"
-  productName: "Pager"
-  productIdentifier: "com.sapaude.pager"
+  companyName: "lupguo"
+  productName: "VibeCoding Pager"
+  productIdentifier: "com.lupguo.vibecoding-pager"
   description: "AI coding agents status monitor for macOS"
-  copyright: "(c) 2026, sapaude"
+  copyright: "(c) 2026, lupguo"
   version: "0.1.0"
 
 dev_mode:
@@ -26,9 +26,9 @@ dev_mode:
       - "*.go"
     git_ignore: true
   executes:
-    - cmd: go build -buildvcs=false -gcflags=all=-l -o bin/Pager .
+    - cmd: go build -buildvcs=false -gcflags=all=-l -o bin/vibecoding-pager .
       type: blocking
     - cmd: wails3 task common:dev:frontend
       type: background
-    - cmd: ./bin/Pager
+    - cmd: ./bin/vibecoding-pager
       type: primary
