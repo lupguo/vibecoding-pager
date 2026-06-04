@@ -22,6 +22,17 @@
 
 ## Features
 
+<table>
+<tr>
+<td width="50%"><img src="imgs/vibecoding-pager.png" alt="Session list" /></td>
+<td width="50%"><img src="imgs/vibecoding-pager-waiting-status.png" alt="Waiting status" /></td>
+</tr>
+<tr>
+<td align="center"><sub>Session list with 4-state status pills</sub></td>
+<td align="center"><sub><code>[等输入]</code> typed notification + waiting state</sub></td>
+</tr>
+</table>
+
 - **MenuBar tray** — always-on session pulse with 4-state colored icons (working / waiting / done / error)
 - **Native macOS notifications** — `[等授权] / [等输入]` typed labels distinguish permission vs input prompts
 - **Session list** — click any session to jump to its iTerm2 / Terminal.app tab
@@ -91,8 +102,9 @@ open "bin/VibeCoding Pager.app"
 After VibeCoding Pager is running, register the bridge with your AI agent:
 
 ```bash
-make install-hooks              # Claude Code (~/.claude/settings.json)
-make install-hooks-codebuddy    # CodeBuddy   (~/.codebuddy/settings.json)
+make install-hooks              # Claude Code         (~/.claude/settings.json)
+make install-hooks-cc-internal  # Claude Code Internal (~/.claude-internal/settings.json)
+make install-hooks-codebuddy    # CodeBuddy            (~/.codebuddy/settings.json)
 ```
 
 Each call writes `vibecoding-pager-cc-bridge` invocations into the agent's hook config. Subsequent agent sessions stream events to VibeCoding Pager automatically.

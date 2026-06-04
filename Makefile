@@ -63,6 +63,11 @@ install-hooks: bridge
 install-hooks-codebuddy: bridge
 	./scripts/install-hooks.sh --agent CodeBuddy --settings_file ~/.codebuddy/settings.json --bridge $(BRIDGE_BIN)
 
+## Install CC-Internal hooks into ~/.claude-internal/settings.json
+install-hooks-cc-internal: bridge
+	./scripts/install-hooks.sh --agent CC-Internal --settings_file ~/.claude-internal/settings.json --bridge $(BRIDGE_BIN)
+
+
 # ─── Run ─────────────────────────────────────────────────────────────────────
 
 ## Run the built binary directly
