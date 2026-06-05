@@ -10,6 +10,7 @@ func TestSelectByLabel_KnownLabels(t *testing.T) {
 		{"CC", true},
 		{"CC-Internal", true},
 		{"CodeBuddy", true},
+		{"Codex", true},
 		{"Unknown", false},
 		{"", false},
 	}
@@ -31,6 +32,17 @@ func TestSelectByLabel_CCAndCodeBuddyMapToSameType(t *testing.T) {
 	cb, _ := SelectByLabel("CodeBuddy")
 	if cc.ID() != cb.ID() {
 		t.Errorf("CC.ID()=%q, CodeBuddy.ID()=%q, want same", cc.ID(), cb.ID())
+	}
+}
+
+func TestSelectByLabel_CodexHasOwnID(t *testing.T) {
+	codex, ok := SelectByLabel("Codex")
+	if !ok || codex == nil {
+		t.Fatal("Codex not registered")
+	}
+	cc, _ := SelectByLabel("CC")
+	if codex.ID() == cc.ID() {
+		t.Error("Codex should have a different ID from CC")
 	}
 }
 

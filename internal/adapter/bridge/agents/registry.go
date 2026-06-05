@@ -8,6 +8,7 @@ var registry = map[string]Agent{
 	"CC":          ClaudeFamily{},
 	"CC-Internal": ClaudeFamily{},
 	"CodeBuddy":   ClaudeFamily{},
+	"Codex":       Codex{},
 }
 
 // SelectByLabel 根据 --agent 命令行参数返回对应 Agent 实例。
