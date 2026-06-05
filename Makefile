@@ -4,7 +4,8 @@
 APP_NAME    := vibecoding-pager
 APP_BUNDLE  := VibeCoding Pager
 BIN_DIR     := bin
-BRIDGE_BIN  := $(BIN_DIR)/vibecoding-pager-cc-bridge
+BRIDGE_BIN  := $(BIN_DIR)/pager-bridge
+INSTALLER_BIN := $(BIN_DIR)/pager-installhooks
 APP_BIN     := $(BIN_DIR)/$(APP_NAME)
 FRONTEND    := frontend
 
@@ -13,7 +14,7 @@ GO_LDFLAGS  := -ldflags="-extldflags '-Wl,-w'"
 VITE_PORT   := 9245
 HTTP_PORT   := 7421
 
-.PHONY: dev build run clean test bridge install-bridge install-hooks install-hooks-codebuddy frontend-deps frontend-build bindings icon lint stop
+.PHONY: dev build run clean test bridge installer install-bridge frontend-deps frontend-build bindings icon lint stop
 
 # ─── Development ─────────────────────────────────────────────────────────────
 
@@ -45,27 +46,21 @@ build: frontend-build install-bridge bindings
 build-go:
 	go build $(GO_LDFLAGS) -o $(APP_BIN) .
 
-## Build vibecoding-pager-cc-bridge binary
+## Build pager-bridge binary
 bridge:
-	go build -o $(BRIDGE_BIN) ./cmd/bridge
+	go build -o $(BRIDGE_BIN) ./cmd/pager-bridge
 
-## Build bridge and report deployment metadata
-install-bridge: bridge
-	@echo "✓ bridge built at $(BRIDGE_BIN)"
+## Build pager-installhooks binary (Go-based hook installer)
+installer:
+	@mkdir -p $(BIN_DIR)
+	go build -o $(INSTALLER_BIN) ./cmd/pager-installhooks
+
+## Build bridge + installer, install hooks for all default agents, and report deployment metadata
+install-bridge: bridge installer
+	$(INSTALLER_BIN) --bridge $(BRIDGE_BIN) --verbose
+	@echo "✓ pager-bridge installed at $(BRIDGE_BIN)"
 	@echo "  mtime: $$(date -r $(BRIDGE_BIN) '+%F %T')"
 	@echo "  sha:   $$(shasum -a 256 $(BRIDGE_BIN) | cut -c1-12)"
-
-## Install CC hooks into ~/.claude/settings.json
-install-hooks: bridge
-	./scripts/install-hooks.sh CC $(BRIDGE_BIN)
-
-## Install CodeBuddy hooks into ~/.codebuddy/settings.json
-install-hooks-codebuddy: bridge
-	./scripts/install-hooks.sh --agent CodeBuddy --settings_file ~/.codebuddy/settings.json --bridge $(BRIDGE_BIN)
-
-## Install CC-Internal hooks into ~/.claude-internal/settings.json
-install-hooks-cc-internal: bridge
-	./scripts/install-hooks.sh --agent CC-Internal --settings_file ~/.claude-internal/settings.json --bridge $(BRIDGE_BIN)
 
 
 # ─── Run ─────────────────────────────────────────────────────────────────────
@@ -133,11 +128,10 @@ help:
 	@echo "  make dev-frontend   Run frontend only (Vite HMR)"
 	@echo "  make build          Build production .app"
 	@echo "  make build-go       Build Go binary only"
-	@echo "  make bridge         Build vibecoding-pager-cc-bridge"
-	@echo "  make install-bridge Build bridge with deployment verification"
+	@echo "  make bridge         Build pager-bridge binary"
+	@echo "  make install-bridge Build & install hooks for all agents (CC/CC-Internal/CodeBuddy)"
+	@echo "  make installer            Build pager-installhooks (Go-based hook installer)"
 	@echo "  make bindings       Regenerate Wails bindings (Go → TS, codegen)"
-	@echo "  make install-hooks  Install CC hooks into ~/.claude/settings.json"
-	@echo "  make install-hooks-codebuddy  Install CodeBuddy hooks into ~/.codebuddy/settings.json"
 	@echo "  make run            Build and run"
 	@echo "  make frontend-deps  Install frontend npm deps"
 	@echo "  make icon           Generate app icon"
