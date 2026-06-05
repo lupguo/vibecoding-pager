@@ -247,3 +247,117 @@ func TestEvaluate_FallbackOperator_DocumentsHTTPURLLimitation(t *testing.T) {
 		t.Errorf("got %q, want %q — // constraint may have changed; update doc + DSL", got, "http:")
 	}
 }
+
+// ─── 链式 filter ──────────────────────────────────────────────────────────────
+
+func TestEvaluate_ChainedFilters(t *testing.T) {
+	got := Evaluate(
+		"{$.tool_calls|pluck:tool_name|join:, }",
+		[]byte(`{"tool_calls":[{"tool_name":"Bash"},{"tool_name":"Read"},{"tool_name":"Grep"}]}`),
+		"PostToolBatch",
+	)
+	if got != "Bash, Read, Grep" {
+		t.Errorf("got %q, want %q", got, "Bash, Read, Grep")
+	}
+}
+
+func TestEvaluate_ChainedFilters_EmptyArray(t *testing.T) {
+	got := Evaluate(
+		"{$.tool_calls|pluck:tool_name|join:, }",
+		[]byte(`{"tool_calls":[]}`),
+		"PostToolBatch",
+	)
+	if got != "" {
+		t.Errorf("got %q, want empty", got)
+	}
+}
+
+// ─── prefix filter ────────────────────────────────────────────────────────────
+
+func TestEvaluate_PrefixFilter_NonEmpty(t *testing.T) {
+	got := Evaluate("{$.command_args|prefix: }", []byte(`{"command_args":"foo"}`), "")
+	if got != " foo" {
+		t.Errorf("got %q, want %q", got, " foo")
+	}
+}
+
+func TestEvaluate_PrefixFilter_Empty(t *testing.T) {
+	got := Evaluate("{$.command_args|prefix: }", []byte(`{"command_args":""}`), "")
+	if got != "" {
+		t.Errorf("got %q, want empty", got)
+	}
+}
+
+func TestEvaluate_PrefixFilter_MissingField(t *testing.T) {
+	got := Evaluate("{$.x|prefix:[]}", []byte(`{}`), "")
+	if got != "" {
+		t.Errorf("got %q, want empty", got)
+	}
+}
+
+// ─── lookup filter ────────────────────────────────────────────────────────────
+
+func TestEvaluate_LookupFilter_Hit(t *testing.T) {
+	got := Evaluate(
+		"{$.notification_type|lookup:permission_prompt=[等授权] ,idle_prompt=[等输入] ,default=}",
+		[]byte(`{"notification_type":"permission_prompt"}`),
+		"",
+	)
+	if got != "[等授权] " {
+		t.Errorf("got %q, want %q", got, "[等授权] ")
+	}
+}
+
+func TestEvaluate_LookupFilter_Miss_HasDefault(t *testing.T) {
+	got := Evaluate(
+		"{$.x|lookup:foo=F,default=DEFAULT}",
+		[]byte(`{"x":"bar"}`),
+		"",
+	)
+	if got != "DEFAULT" {
+		t.Errorf("got %q, want %q", got, "DEFAULT")
+	}
+}
+
+func TestEvaluate_LookupFilter_Miss_NoDefault(t *testing.T) {
+	got := Evaluate("{$.x|lookup:foo=F}", []byte(`{"x":"bar"}`), "")
+	if got != "" {
+		t.Errorf("got %q, want empty", got)
+	}
+}
+
+// ─── pluck filter ─────────────────────────────────────────────────────────────
+
+func TestEvaluate_PluckFilter_ReturnsArray(t *testing.T) {
+	got := Evaluate(
+		"{$.calls|pluck:name}",
+		[]byte(`{"calls":[{"name":"a"},{"name":"b"}]}`),
+		"",
+	)
+	if got != `["a","b"]` {
+		t.Errorf("got %q, want %q", got, `["a","b"]`)
+	}
+}
+
+func TestEvaluate_PluckFilter_EmptyArray(t *testing.T) {
+	got := Evaluate("{$.calls|pluck:name}", []byte(`{"calls":[]}`), "")
+	if got != `[]` && got != "" {
+		t.Errorf("got %q, want [] or empty", got)
+	}
+}
+
+// ─── join filter ──────────────────────────────────────────────────────────────
+
+func TestEvaluate_JoinFilter_StringArray(t *testing.T) {
+	got := Evaluate(`{$.arr|join:, }`, []byte(`{"arr":["x","y","z"]}`), "")
+	if got != "x, y, z" {
+		t.Errorf("got %q, want %q", got, "x, y, z")
+	}
+}
+
+func TestEvaluate_JoinFilter_NotAnArray(t *testing.T) {
+	got := Evaluate(`{$.s|join:,}`, []byte(`{"s":"foo"}`), "")
+	if got != "foo" {
+		t.Errorf("got %q, want %q", got, "foo")
+	}
+}

@@ -2,6 +2,7 @@ package bridge
 
 import (
 	_ "embed"
+	"encoding/json"
 	"strings"
 
 	"github.com/tidwall/gjson"
@@ -84,7 +85,7 @@ func Evaluate(rule string, payload []byte, toolName string) string {
 // arguments (e.g., do not write {$.url|default:http://x}); use a different
 // representation or escape mechanism if such literals are ever needed.
 func resolveToken(token string, payload []byte, toolName string) string {
-	token = strings.TrimSpace(token)
+	token = strings.TrimLeft(token, " \t")
 
 	// Fallback chain: split on " // " and return first non-empty.
 	if strings.Contains(token, "//") {
@@ -122,7 +123,7 @@ func resolveToken(token string, payload []byte, toolName string) string {
 	}
 
 	for _, f := range pipe[1:] {
-		raw, exists = applyFilter(strings.TrimSpace(f), raw, exists)
+		raw, exists = applyFilter(strings.TrimLeft(f, " \t"), raw, exists)
 	}
 	return raw
 }
@@ -132,6 +133,7 @@ func resolveToken(token string, payload []byte, toolName string) string {
 // (not merely empty).
 func applyFilter(filter, value string, exists bool) (string, bool) {
 	name, arg, _ := strings.Cut(filter, ":")
+	name = strings.TrimRight(name, " \t")
 	switch name {
 	case "firstline":
 		if i := strings.IndexByte(value, '\n'); i != -1 {
@@ -154,8 +156,58 @@ func applyFilter(filter, value string, exists bool) (string, bool) {
 			return t, exists
 		}
 		return f, exists
+	case "prefix":
+		// prefix:<lit> — prepend lit if value non-empty; empty stays empty.
+		if value == "" {
+			return "", exists
+		}
+		return arg + value, exists
+	case "lookup":
+		// lookup:k1=v1,k2=v2,default=dv — switch table on value.
+		table, def := parseLookupArg(arg)
+		if v, ok := table[value]; ok {
+			return v, true
+		}
+		return def, true
+	case "pluck":
+		// pluck:<field> — value should be a JSON array; extract field from each element.
+		// gjson's "#.field" projection returns a JSON array of values.
+		res := gjson.Get(value, "#."+arg)
+		if !res.Exists() {
+			return "", false
+		}
+		return res.Raw, true
+	case "join":
+		// join:<sep> — value should be a JSON array of strings; join with sep.
+		// Non-array values pass through unchanged.
+		var arr []string
+		if err := json.Unmarshal([]byte(value), &arr); err != nil {
+			return value, exists
+		}
+		return strings.Join(arr, arg), exists
 	}
 	return value, exists
+}
+
+// parseLookupArg parses "k1=v1,k2=v2,default=dv" into (table, default).
+// Special key "default" goes into the default; other keys go into the table.
+// Both keys and values may be empty strings.
+func parseLookupArg(arg string) (map[string]string, string) {
+	table := map[string]string{}
+	def := ""
+	for _, pair := range strings.Split(arg, ",") {
+		idx := strings.Index(pair, "=")
+		if idx < 0 {
+			continue
+		}
+		k, v := pair[:idx], pair[idx+1:]
+		if k == "default" {
+			def = v
+			continue
+		}
+		table[k] = v
+	}
+	return table, def
 }
 
 // resolveRawToken handles <…> tokens. Currently only "json:N".
