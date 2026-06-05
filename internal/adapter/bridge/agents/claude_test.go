@@ -3,6 +3,7 @@ package agents
 import (
 	"testing"
 
+	"github.com/lupguo/vibecoding-pager/internal/adapter/bridge"
 	"github.com/lupguo/vibecoding-pager/internal/domain/entity"
 )
 
@@ -114,5 +115,28 @@ func TestClaudeFamily_ParseEnvelope_EmptyToolInputIsNil(t *testing.T) {
 	}
 	if env.ToolInput != nil && string(env.ToolInput) != "" {
 		t.Errorf("ToolInput should be nil/empty, got %q", string(env.ToolInput))
+	}
+}
+
+func TestClaudeFamily_Accept_NotificationWithoutSessionIDIsDropped(t *testing.T) {
+	env := &bridge.Envelope{SessionID: ""}
+	if (ClaudeFamily{}).Accept("Notification", env) {
+		t.Error("Notification with empty SessionID should be dropped")
+	}
+}
+
+func TestClaudeFamily_Accept_NotificationWithSessionIDIsKept(t *testing.T) {
+	env := &bridge.Envelope{SessionID: "abc"}
+	if !(ClaudeFamily{}).Accept("Notification", env) {
+		t.Error("Notification with SessionID should be kept")
+	}
+}
+
+func TestClaudeFamily_Accept_OtherEventsAlwaysKept(t *testing.T) {
+	env := &bridge.Envelope{SessionID: ""}
+	for _, evt := range []string{"PreToolUse", "Stop", "SessionStart"} {
+		if !(ClaudeFamily{}).Accept(evt, env) {
+			t.Errorf("event %q should be kept regardless of SessionID", evt)
+		}
 	}
 }

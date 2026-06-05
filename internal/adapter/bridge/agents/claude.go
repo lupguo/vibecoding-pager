@@ -43,7 +43,10 @@ func (ClaudeFamily) ParseEnvelope(raw []byte) (*bridge.Envelope, error) {
 }
 
 func (ClaudeFamily) Accept(eventType string, env *bridge.Envelope) bool {
-	// TODO Task 5
+	// CodeBuddy 的 auth_success Notification 没 session_id，丢
+	if eventType == "Notification" && env.SessionID == "" {
+		return false
+	}
 	return true
 }
 
