@@ -442,3 +442,30 @@ func TestEvaluate_JoinFilter_NotAnArray(t *testing.T) {
 		t.Errorf("got %q, want %q", got, "foo")
 	}
 }
+
+// ─── Codex bucket Lookup ──────────────────────────────────────────────────────
+
+func TestLookup_CodexPreToolUseIsMappingNode(t *testing.T) {
+	rules, _ := LoadRules()
+	n, ok := rules.Lookup("codex", "PreToolUse")
+	if !ok {
+		t.Fatal("Lookup miss")
+	}
+	if n.Kind != yaml.MappingNode {
+		t.Errorf("Kind = %v", n.Kind)
+	}
+}
+
+func TestLookup_CodexSessionStartIsScalar(t *testing.T) {
+	rules, _ := LoadRules()
+	n, ok := rules.Lookup("codex", "SessionStart")
+	if !ok {
+		t.Fatal("Lookup miss")
+	}
+	if n.Kind != yaml.ScalarNode {
+		t.Errorf("Kind = %v", n.Kind)
+	}
+	if n.Value != "{$.trigger}" {
+		t.Errorf("Value = %q", n.Value)
+	}
+}

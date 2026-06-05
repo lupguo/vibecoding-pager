@@ -51,3 +51,24 @@ claude:
   PostCompact:         ""
   InstructionsLoaded:  "{$.file_path}"
   MessageDisplay:      "{$.delta}"
+
+codex:
+  PreToolUse: &codex_pre
+    exec_command: "{$.tool_input.cmd}"
+    write_stdin:  "stdin→session {$.tool_input.session_id}"
+    default:      "{tool_name}"
+
+  PostToolUse:
+    exec_command: "{$.tool_response|firstline}"
+    write_stdin:  "{$.tool_response|firstline}"
+    default:      "{$.tool_response|firstline}"
+
+  PermissionRequest: *codex_pre
+
+  SessionStart:        "{$.trigger}"
+  UserPromptSubmit:    "{$.prompt}"
+  Stop:                "{$.stop_reason}"
+  SubagentStart:       "{$.agent_type}"
+  SubagentStop:        "{$.agent_type}"
+  PreCompact:          "{$.trigger}"
+  PostCompact:         ""
