@@ -12,13 +12,14 @@ import (
 //go:embed extract_rules.yaml
 var rulesYAML []byte
 
-// Rules represents the parsed extract_rules.yaml. Post values are kept as
-// yaml.Node so we can distinguish a plain string template from a structured
-// rule (with string:/object:/object_paths:/fallback: keys) at evaluation time.
+// Rules 表示解析后的 extract_rules.yaml v3。
+// 顶层是 agent → 事件名 → 模板节点的二级 map。
+// 每个事件下挂的 yaml.Node 是 ScalarNode（单 string 模板）或
+// MappingNode（per-tool 分桶 + default）。
 type Rules struct {
 	Version int                  `yaml:"version"`
-	Pre     map[string]string    `yaml:"pre"`
-	Post    map[string]yaml.Node `yaml:"post"`
+	Claude  map[string]yaml.Node `yaml:"claude"`
+	Codex   map[string]yaml.Node `yaml:"codex"`
 }
 
 // LoadRules parses the embedded yaml.
@@ -27,7 +28,62 @@ func LoadRules() (*Rules, error) {
 	if err := yaml.Unmarshal(rulesYAML, &r); err != nil {
 		return nil, err
 	}
+	r.resolveAliases()
 	return &r, nil
+}
+
+// resolveAliases replaces AliasNode entries in each bucket with a copy of the
+// node the alias points to. yaml.v3 stores aliases as AliasNode when the
+// target type is map[string]yaml.Node; this post-load pass normalises them so
+// callers always see MappingNode or ScalarNode.
+func (r *Rules) resolveAliases() {
+	for _, bucket := range []map[string]yaml.Node{r.Claude, r.Codex} {
+		for k, v := range bucket {
+			if v.Kind == yaml.AliasNode && v.Alias != nil {
+				bucket[k] = *v.Alias
+			}
+		}
+	}
+}
+
+// Lookup 返回 (agentID, eventType) 对应的 yaml.Node。
+// agentID 必须是 entity.AgentClaudeCode / AgentCodex 中的常量值。
+// 未命中返回 (zero, false)。
+func (r *Rules) Lookup(agentID, eventType string) (yaml.Node, bool) {
+	var bucket map[string]yaml.Node
+	switch agentID {
+	case "claude-code":
+		bucket = r.Claude
+	case "codex":
+		bucket = r.Codex
+	default:
+		return yaml.Node{}, false
+	}
+	n, ok := bucket[eventType]
+	return n, ok
+}
+
+// PickTemplate 在 MappingNode 中按 toolName 查模板，找不到回落 "default"。
+// ScalarNode 直接返回 .Value，忽略 toolName。
+// 既找不到 toolName 又没有 default 时返回空串。
+func PickTemplate(n yaml.Node, toolName string) string {
+	switch n.Kind {
+	case yaml.ScalarNode:
+		return n.Value
+	case yaml.MappingNode:
+		var defaultTmpl string
+		for i := 0; i+1 < len(n.Content); i += 2 {
+			k, v := n.Content[i], n.Content[i+1]
+			if k.Value == toolName {
+				return v.Value
+			}
+			if k.Value == "default" {
+				defaultTmpl = v.Value
+			}
+		}
+		return defaultTmpl
+	}
+	return ""
 }
 
 // Evaluate executes a rule template against a JSON payload.

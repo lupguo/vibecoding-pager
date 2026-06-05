@@ -1,41 +1,53 @@
-version: 1
+version: 3
 
-# Pre phase: extract action description from tool_input.
-pre:
-  Bash:            "{$.command}"
-  Edit:            "编辑 {$.file_path}"
-  Write:           "写入 {$.file_path}"
-  Read:            "读取 {$.file_path}"
-  Glob:            "查找 {$.pattern}"
-  Grep:            "搜索 {$.pattern}"
-  WebFetch:        "抓取 {$.url}"
-  WebSearch:       "搜索 {$.query}"
-  AskUserQuestion: "{$.questions.0.question}"
-  Agent:           "子任务: {$.description // $.prompt}"
-  Task:            "子任务: {$.description}"
-  TaskCreate:      "{$.subject}"
-  TaskUpdate:      "{$.subject} →{$.status}"
-  NotebookEdit:    "{$.notebook_path}"
-  LSP:             "LSP {$.operation}: {$.filePath}"
-  default:         "{tool_name}"
+claude:
+  PreToolUse: &claude_pre
+    Bash:            "{$.tool_input.command}"
+    Edit:            "编辑 {$.tool_input.file_path}"
+    Write:           "写入 {$.tool_input.file_path}"
+    Read:            "读取 {$.tool_input.file_path}"
+    Glob:            "查找 {$.tool_input.pattern}"
+    Grep:            "搜索 {$.tool_input.pattern}"
+    WebFetch:        "抓取 {$.tool_input.url}"
+    WebSearch:       "搜索 {$.tool_input.query}"
+    AskUserQuestion: "{$.tool_input.questions.0.question}"
+    Agent:           "子任务: {$.tool_input.description // $.tool_input.prompt}"
+    Task:            "子任务: {$.tool_input.description}"
+    TaskCreate:      "{$.tool_input.subject}"
+    TaskUpdate:      "{$.tool_input.subject} →{$.tool_input.status}"
+    NotebookEdit:    "{$.tool_input.notebook_path}"
+    LSP:             "LSP {$.tool_input.operation}: {$.tool_input.filePath}"
+    default:         "{tool_name}"
 
-# Post phase: extract result summary from tool_response.
-post:
-  Bash:            "{$.stdout|firstline} (exit={$.exitCode|default:0})"
-  Read:            "已读 {$.file.numLines|default:?} 行"
-  Edit:            "{$.success|bool:✓写入,✗失败} {$.filePath}"
-  Write:           "{$.success|bool:✓写入,✗失败} {$.filePath}"
-  AskUserQuestion:
-    string:        "{value}"
-    object:        "{$.answers.0}"
-  Agent:           "{$.0.text|firstpara}"
-  default:
-    string:        "{value}"
-    object_paths:
-      - "$.answers.0"
-      - "$.stdout"
-      - "$.text"
-      - "$.message"
-      - "$.result"
-      - "$.summary"
-    fallback:      "<json:120>"
+  PostToolUse:
+    Bash:            "{$.tool_response.stdout|firstline} (exit={$.tool_response.exitCode|default:0})"
+    Read:            "已读 {$.tool_response.file.numLines|default:?} 行"
+    Edit:            "{$.tool_response.success|bool:✓写入,✗失败} {$.tool_response.filePath}"
+    Write:           "{$.tool_response.success|bool:✓写入,✗失败} {$.tool_response.filePath}"
+    AskUserQuestion: "{$.tool_response.answers.0 // $.tool_response}"
+    Agent:           "{$.tool_response.0.text|firstpara}"
+    default:         "{$.tool_response.stdout // $.tool_response.text // $.tool_response.message // $.tool_response.result // $.tool_response.summary // $.tool_response}"
+
+  PermissionRequest: *claude_pre
+  PermissionDenied:  "{$.tool_name}: {$.denial_reason}"
+
+  SessionStart:        "{$.source}"
+  SessionEnd:          "{$.reason}"
+  UserPromptSubmit:    "{$.prompt}"
+  UserPromptExpansion: "/{$.command_name}{$.command_args|prefix: }"
+  Stop:                "{$.last_assistant_message} // {$.stop_reason}"
+  StopFailure:         "{$.error_type}: {$.error_message}"
+  Error:               "{$.error_type}: {$.error_message}"
+  SubagentStart:       "{$.agent_type} // {$.agent_id}"
+  SubagentStop:        "{$.last_assistant_message} // {$.agent_type}"
+  TaskCreated:         "{$.task_subject}"
+  TaskCompleted:       "{$.task_subject}"
+  PostToolUseFailure:  "{$.tool_name}: {$.error}"
+  PostToolBatch:       "{$.tool_calls|pluck:tool_name|join:, }"
+  Notification:        "{$.notification_type|lookup:permission_prompt=[等授权] ,idle_prompt=[等输入] ,default=}{$.message // $.notification_type}"
+  Elicitation:         "{$.server_name}: {$.message}"
+  ElicitationResult:   "{$.server_name}"
+  PreCompact:          "{$.trigger}"
+  PostCompact:         ""
+  InstructionsLoaded:  "{$.file_path}"
+  MessageDisplay:      "{$.delta}"

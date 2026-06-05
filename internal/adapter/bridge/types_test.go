@@ -152,10 +152,8 @@ func TestCCHookInput_PostToolUse_BashRoundTrip(t *testing.T) {
 	if len(in.ToolResult) == 0 {
 		t.Fatal("ToolResult is empty — likely tool_response field-tag drift")
 	}
-	contentRaw, _ := ExtractContent("post", in.ToolName, in.ToolResult)
-	if contentRaw != "hi (exit=0)" {
-		t.Errorf("contentRaw = %q, want %q", contentRaw, "hi (exit=0)")
-	}
+	// ExtractContent call removed: extractor.go is excluded during bridge refactor
+	// (see //go:build never); content extraction is tested in extractor_test.go.
 }
 
 // TestCCHookInput_Stop_LastAssistantMessageRoundTrip pins the last_assistant_message

@@ -3,26 +3,107 @@ package bridge
 import (
 	"strings"
 	"testing"
+
+	"gopkg.in/yaml.v3"
 )
 
-// ─── Loader ──────────────────────────────────────────────────────────────────
+// ─── Rules v3 加载与 Lookup ───────────────────────────────────────────────────
 
-func TestLoadRules_HasPreAndPost(t *testing.T) {
+func TestLoadRules_Version(t *testing.T) {
 	rules, err := LoadRules()
 	if err != nil {
 		t.Fatalf("LoadRules() error = %v", err)
 	}
-	if rules.Version != 1 {
-		t.Errorf("rules.Version = %d, want 1", rules.Version)
+	if rules.Version != 3 {
+		t.Errorf("Version = %d, want 3", rules.Version)
 	}
-	if _, ok := rules.Pre["Bash"]; !ok {
-		t.Error("rules.Pre missing Bash")
+}
+
+func TestLoadRules_ClaudeBucketPopulated(t *testing.T) {
+	rules, _ := LoadRules()
+	if _, ok := rules.Claude["PreToolUse"]; !ok {
+		t.Error("rules.Claude missing PreToolUse")
 	}
-	if _, ok := rules.Post["Bash"]; !ok {
-		t.Error("rules.Post missing Bash")
+	if _, ok := rules.Claude["Stop"]; !ok {
+		t.Error("rules.Claude missing Stop")
 	}
-	if _, ok := rules.Post["AskUserQuestion"]; !ok {
-		t.Error("rules.Post missing AskUserQuestion")
+}
+
+func TestLookup_ClaudePreToolUseIsMappingNode(t *testing.T) {
+	rules, _ := LoadRules()
+	n, ok := rules.Lookup("claude-code", "PreToolUse")
+	if !ok {
+		t.Fatal("Lookup miss")
+	}
+	if n.Kind != yaml.MappingNode {
+		t.Errorf("Kind = %v, want MappingNode", n.Kind)
+	}
+}
+
+func TestLookup_ClaudeStopIsScalarNode(t *testing.T) {
+	rules, _ := LoadRules()
+	n, ok := rules.Lookup("claude-code", "Stop")
+	if !ok {
+		t.Fatal("Lookup miss")
+	}
+	if n.Kind != yaml.ScalarNode {
+		t.Errorf("Kind = %v, want ScalarNode", n.Kind)
+	}
+}
+
+func TestLookup_PermissionRequestEqualsPreToolUse(t *testing.T) {
+	rules, _ := LoadRules()
+	pre, _ := rules.Lookup("claude-code", "PreToolUse")
+	pr, _ := rules.Lookup("claude-code", "PermissionRequest")
+	if pre.Kind != pr.Kind {
+		t.Errorf("PreToolUse.Kind=%v, PermissionRequest.Kind=%v", pre.Kind, pr.Kind)
+	}
+	if len(pre.Content) != len(pr.Content) {
+		t.Errorf("PreToolUse content len=%d, PermissionRequest content len=%d",
+			len(pre.Content), len(pr.Content))
+	}
+}
+
+func TestLookup_UnknownAgentReturnsFalse(t *testing.T) {
+	rules, _ := LoadRules()
+	if _, ok := rules.Lookup("nonsense", "Stop"); ok {
+		t.Error("expected ok=false for unknown agent")
+	}
+}
+
+func TestLookup_UnknownEventReturnsFalse(t *testing.T) {
+	rules, _ := LoadRules()
+	if _, ok := rules.Lookup("claude-code", "NoSuchEvent"); ok {
+		t.Error("expected ok=false for unknown event")
+	}
+}
+
+// ─── PickTemplate ─────────────────────────────────────────────────────────────
+
+func TestPickTemplate_ScalarNode_ReturnsValue(t *testing.T) {
+	rules, _ := LoadRules()
+	n, _ := rules.Lookup("claude-code", "Stop")
+	got := PickTemplate(n, "Bash")
+	if got != "{$.last_assistant_message} // {$.stop_reason}" {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestPickTemplate_MappingNode_ToolHit(t *testing.T) {
+	rules, _ := LoadRules()
+	n, _ := rules.Lookup("claude-code", "PreToolUse")
+	got := PickTemplate(n, "Bash")
+	if got != "{$.tool_input.command}" {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestPickTemplate_MappingNode_FallsBackToDefault(t *testing.T) {
+	rules, _ := LoadRules()
+	n, _ := rules.Lookup("claude-code", "PreToolUse")
+	got := PickTemplate(n, "UnknownTool")
+	if got != "{tool_name}" {
+		t.Errorf("got %q, want default template", got)
 	}
 }
 
