@@ -118,7 +118,7 @@ func processTarget(t Target, bridgePath string, uninstall, dryRun, verbose bool)
 	}
 
 	if dryRun {
-		buf, _ := json.MarshalIndent(settings, "", "  ")
+		buf, _ := json.MarshalIndent(formatTop(t.Format, settings), "", "  ")
 		fmt.Printf("[%s] would write to %s:\n%s\n", t.AgentLabel, path, string(buf))
 		return nil
 	}
@@ -174,18 +174,26 @@ func writeSettings(path, format string, settings map[string]any) error {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return err
 	}
-	var top any = settings
-	if format == "hooks-only" {
-		top = settings["hooks"]
-		if top == nil {
-			top = map[string]any{}
-		}
-	}
-	buf, err := json.MarshalIndent(top, "", "  ")
+	buf, err := json.MarshalIndent(formatTop(format, settings), "", "  ")
 	if err != nil {
 		return err
 	}
 	return os.WriteFile(path, buf, 0644)
+}
+
+// formatTop converts the internal {"hooks": {...}} settings map into the
+// shape that should actually be serialized for the given format. For
+// "hooks-only" (e.g. Codex), the top level IS the hooks object — no wrapper.
+// For "settings" (CC family), the wrapper stays.
+func formatTop(format string, settings map[string]any) any {
+	if format == "hooks-only" {
+		top := settings["hooks"]
+		if top == nil {
+			return map[string]any{}
+		}
+		return top
+	}
+	return settings
 }
 
 func removeAllPagerHooks(settings map[string]any) map[string]any {

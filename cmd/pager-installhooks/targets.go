@@ -16,7 +16,7 @@ var targets = []Target{
 	{"CC", "~/.claude/settings.local.json", "settings"},
 	{"CC-Internal", "~/.claude-internal/settings.local.json", "settings"},
 	{"CodeBuddy", "~/.codebuddy/settings.local.json", "settings"},
-	// "Codex" 在 PR 2 阶段加进来
+	{"Codex", "~/.codex/hooks.json", "hooks-only"},
 }
 
 // legacyCleanupTargets 是早期版本写过的非 .local.json 路径。

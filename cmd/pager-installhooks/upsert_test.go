@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"testing"
 )
 
@@ -184,5 +185,91 @@ func TestRemoveAllPagerHooks_PreservesUserHooks(t *testing.T) {
 	pre := out["hooks"].(map[string]any)["PreToolUse"].([]any)
 	if len(pre) != 1 {
 		t.Errorf("PreToolUse len = %d, want 1 (user entry preserved)", len(pre))
+	}
+}
+
+// TestFormatTop_HooksOnlyUnwrapsHooksKey verifies that the Codex-style
+// "hooks-only" format unwraps the internal {"hooks": {...}} envelope so
+// that the on-disk JSON has event names at the top level (Codex's native
+// schema for ~/.codex/hooks.json).
+func TestFormatTop_HooksOnlyUnwrapsHooksKey(t *testing.T) {
+	settings := map[string]any{
+		"hooks": map[string]any{
+			"Stop": []any{map[string]any{"matcher": "*"}},
+		},
+	}
+	top := formatTop("hooks-only", settings)
+	m, ok := top.(map[string]any)
+	if !ok {
+		t.Fatalf("top should be a map, got %T", top)
+	}
+	if _, hasWrapper := m["hooks"]; hasWrapper {
+		t.Error("hooks-only output must not contain a top-level \"hooks\" key")
+	}
+	if _, hasStop := m["Stop"]; !hasStop {
+		t.Error("hooks-only output should expose event names at top level (missing Stop)")
+	}
+}
+
+// TestFormatTop_SettingsKeepsWrapper verifies the CC-family "settings"
+// format leaves the {"hooks": {...}} envelope intact.
+func TestFormatTop_SettingsKeepsWrapper(t *testing.T) {
+	settings := map[string]any{
+		"hooks": map[string]any{"Stop": []any{}},
+		"permissions": map[string]any{
+			"allow": []any{"Bash(ls:*)"},
+		},
+	}
+	top := formatTop("settings", settings)
+	m, ok := top.(map[string]any)
+	if !ok {
+		t.Fatalf("top should be a map, got %T", top)
+	}
+	if _, ok := m["hooks"]; !ok {
+		t.Error("settings format should retain top-level \"hooks\" wrapper")
+	}
+	if _, ok := m["permissions"]; !ok {
+		t.Error("settings format should retain user's other keys (permissions)")
+	}
+}
+
+// TestFormatTop_HooksOnlyEmpty ensures that empty internal settings still
+// produce a valid empty-object top-level for hooks-only format.
+func TestFormatTop_HooksOnlyEmpty(t *testing.T) {
+	top := formatTop("hooks-only", map[string]any{})
+	buf, err := json.Marshal(top)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	if string(buf) != "{}" {
+		t.Errorf("empty hooks-only should marshal to {}, got %s", string(buf))
+	}
+}
+
+// TestTargets_CodexHooksOnly pins the Codex target's contract: ~/.codex/hooks.json
+// with the hooks-only format. If this test breaks, the installer's Codex
+// integration needs revisiting.
+func TestTargets_CodexHooksOnly(t *testing.T) {
+	var codex *Target
+	for i := range targets {
+		if targets[i].AgentLabel == "Codex" {
+			codex = &targets[i]
+			break
+		}
+	}
+	if codex == nil {
+		t.Fatal("Codex target missing from targets slice")
+	}
+	if codex.SettingsFile != "~/.codex/hooks.json" {
+		t.Errorf("Codex SettingsFile = %q, want ~/.codex/hooks.json", codex.SettingsFile)
+	}
+	if codex.Format != "hooks-only" {
+		t.Errorf("Codex Format = %q, want hooks-only", codex.Format)
+	}
+	// And Codex must NOT appear in the legacy cleanup list (no settings.json predecessor).
+	for _, l := range legacyCleanupTargets {
+		if l.AgentLabel == "Codex" {
+			t.Error("Codex must not be in legacyCleanupTargets — it had no pre-Phase-1 settings.json schema")
+		}
 	}
 }
