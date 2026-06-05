@@ -9,21 +9,23 @@ import (
 // produced by vibecoding-pager-cc-bridge. They MUST stay in sync with the switch cases in
 // session.DeriveStatus.
 const (
-	EventPreToolUse       = "PreToolUse"
-	EventPostToolUse      = "PostToolUse"
-	EventStop             = "Stop"
-	EventStopFailure      = "StopFailure"
-	EventError            = "Error"
-	EventNotification     = "Notification"
-	EventSessionStart     = "SessionStart"
-	EventSessionEnd       = "SessionEnd"
-	EventUserPromptSubmit = "UserPromptSubmit"
-	EventSubagentStop     = "SubagentStop"
-	EventPreCompact       = "PreCompact"
-	EventPermissionRequest = "PermissionRequest"
-	EventPermissionDenied  = "PermissionDenied"
-	EventElicitation       = "Elicitation"
+	EventPreToolUse         = "PreToolUse"
+	EventPostToolUse        = "PostToolUse"
+	EventStop               = "Stop"
+	EventStopFailure        = "StopFailure"
+	EventError              = "Error"
+	EventNotification       = "Notification"
+	EventSessionStart       = "SessionStart"
+	EventSessionEnd         = "SessionEnd"
+	EventUserPromptSubmit   = "UserPromptSubmit"
+	EventSubagentStop       = "SubagentStop"
+	EventPreCompact         = "PreCompact"
+	EventPermissionRequest  = "PermissionRequest"
+	EventPermissionDenied   = "PermissionDenied"
+	EventElicitation        = "Elicitation"
 	EventPostToolUseFailure = "PostToolUseFailure"
+	EventPostCompact        = "PostCompact"
+	EventSubagentStart      = "SubagentStart"
 )
 
 // Agent constants
@@ -46,20 +48,20 @@ const (
 // AgentEvent is the single cross-layer data structure.
 // Bridge fills all fields; server and UI are read-only consumers.
 type AgentEvent struct {
-	Agent          string `json:"agent"`
-	Host           string `json:"host"`
-	CWD            string `json:"cwd"`
-	TTY            string `json:"tty"`
-	SessionID      string `json:"session_id"`
-	TermProgram    string `json:"term_program"`
-	ITermSessionID string `json:"iterm_session_id,omitempty"`
-	EventType      string `json:"event_type"`
-	ToolName       string `json:"tool_name"`
-	ToolUseID      string `json:"tool_use_id"`
-	Content        string `json:"content"`
-	ContentRaw     string `json:"content_raw"`
-	AgentLabel     string `json:"agent_label"`
-	PermissionMode string `json:"permission_mode,omitempty"`
+	Agent          string          `json:"agent"`
+	Host           string          `json:"host"`
+	CWD            string          `json:"cwd"`
+	TTY            string          `json:"tty"`
+	SessionID      string          `json:"session_id"`
+	TermProgram    string          `json:"term_program"`
+	ITermSessionID string          `json:"iterm_session_id,omitempty"`
+	EventType      string          `json:"event_type"`
+	ToolName       string          `json:"tool_name"`
+	ToolUseID      string          `json:"tool_use_id"`
+	Content        string          `json:"content"`
+	ContentRaw     string          `json:"content_raw"`
+	AgentLabel     string          `json:"agent_label"`
+	PermissionMode string          `json:"permission_mode,omitempty"`
 	RawPayload     json.RawMessage `json:"raw_payload,omitempty"`
 	Timestamp      time.Time       `json:"timestamp"`
 }

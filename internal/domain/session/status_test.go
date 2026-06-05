@@ -54,3 +54,25 @@ func TestDeriveStatus(t *testing.T) {
 		})
 	}
 }
+
+func TestDeriveStatus_PostCompact(t *testing.T) {
+	got := DeriveStatus("PostCompact", "", "", false)
+	if got != entity.StatusWorking {
+		t.Errorf("PostCompact status = %v, want StatusWorking", got)
+	}
+}
+
+func TestDeriveStatus_SubagentStart(t *testing.T) {
+	got := DeriveStatus("SubagentStart", "", "", false)
+	if got != entity.StatusWorking {
+		t.Errorf("SubagentStart status = %v, want StatusWorking", got)
+	}
+}
+
+// Codex emits SessionStart on resume; same mapping as CC.
+func TestDeriveStatus_CodexSessionStart(t *testing.T) {
+	got := DeriveStatus("SessionStart", "", "", false)
+	if got != entity.StatusWorking {
+		t.Errorf("SessionStart status = %v, want StatusWorking", got)
+	}
+}
