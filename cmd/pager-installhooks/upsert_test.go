@@ -124,3 +124,65 @@ func TestIsPagerHookGroup_UserBinary(t *testing.T) {
 		t.Error("should NOT match suffix-only matches")
 	}
 }
+
+func TestRemoveAllPagerHooks_LegacyEntriesCleared(t *testing.T) {
+	settings := map[string]any{
+		"hooks": map[string]any{
+			"PreToolUse": []any{
+				map[string]any{
+					"hooks": []any{
+						map[string]any{
+							"type":    "command",
+							"command": "/old/path/vibecoding-pager-cc-bridge --event PreToolUse --agent CC",
+						},
+					},
+					"matcher": "*",
+				},
+			},
+		},
+		"permissions": map[string]any{
+			"allow": []any{"Bash(ls:*)"},
+		},
+	}
+	out := removeAllPagerHooks(settings)
+	hooks := out["hooks"].(map[string]any)
+	if _, ok := hooks["PreToolUse"]; ok {
+		t.Error("PreToolUse should be removed when only legacy pager entry existed")
+	}
+	// 用户其他配置（permissions）原样保留
+	if _, ok := out["permissions"]; !ok {
+		t.Error("permissions should be preserved")
+	}
+}
+
+func TestRemoveAllPagerHooks_PreservesUserHooks(t *testing.T) {
+	settings := map[string]any{
+		"hooks": map[string]any{
+			"PreToolUse": []any{
+				// pager 旧条目
+				map[string]any{
+					"hooks": []any{
+						map[string]any{
+							"type":    "command",
+							"command": "/old/vibecoding-pager-cc-bridge --event PreToolUse --agent CC",
+						},
+					},
+				},
+				// 用户自定义条目
+				map[string]any{
+					"hooks": []any{
+						map[string]any{
+							"type":    "command",
+							"command": "/usr/local/bin/my-tool",
+						},
+					},
+				},
+			},
+		},
+	}
+	out := removeAllPagerHooks(settings)
+	pre := out["hooks"].(map[string]any)["PreToolUse"].([]any)
+	if len(pre) != 1 {
+		t.Errorf("PreToolUse len = %d, want 1 (user entry preserved)", len(pre))
+	}
+}

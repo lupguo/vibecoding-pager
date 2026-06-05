@@ -26,6 +26,55 @@ func main() {
 	pflag.BoolVar(&verbose, "verbose", false, "print per-target operation log")
 	pflag.Parse()
 
+	// Legacy cleanup phase: scan primary settings.json files for any pager
+	// entries left over from earlier versions (which wrote there directly),
+	// and remove them. User's non-pager entries are preserved.
+	// Skipped on --dry-run (don't mutate disk).
+	if !uninstall && !dryRun {
+		for _, t := range legacyCleanupTargets {
+			path := expandPath(t.SettingsFile)
+			if _, err := os.Stat(path); os.IsNotExist(err) {
+				continue
+			}
+			settings, err := readSettings(path, t.Format)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "[%s legacy] read error: %v\n", t.AgentLabel, err)
+				continue
+			}
+			cleaned := removeAllPagerHooks(settings)
+			if err := writeSettings(path, t.Format, cleaned); err != nil {
+				fmt.Fprintf(os.Stderr, "[%s legacy] write error: %v\n", t.AgentLabel, err)
+				continue
+			}
+			if verbose {
+				fmt.Printf("[%s legacy] cleaned pager entries in %s\n", t.AgentLabel, path)
+			}
+		}
+	}
+
+	// Uninstall: also clean legacy paths so old entries don't linger after removal.
+	if uninstall && !dryRun {
+		for _, t := range legacyCleanupTargets {
+			path := expandPath(t.SettingsFile)
+			if _, err := os.Stat(path); os.IsNotExist(err) {
+				continue
+			}
+			settings, err := readSettings(path, t.Format)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "[%s legacy] read error: %v\n", t.AgentLabel, err)
+				continue
+			}
+			cleaned := removeAllPagerHooks(settings)
+			if err := writeSettings(path, t.Format, cleaned); err != nil {
+				fmt.Fprintf(os.Stderr, "[%s legacy] write error: %v\n", t.AgentLabel, err)
+				continue
+			}
+			if verbose {
+				fmt.Printf("[%s legacy] uninstalled pager entries from %s\n", t.AgentLabel, path)
+			}
+		}
+	}
+
 	for _, t := range targets {
 		if agentFilter != "" && t.AgentLabel != agentFilter {
 			continue

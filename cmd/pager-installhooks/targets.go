@@ -19,6 +19,16 @@ var targets = []Target{
 	// "Codex" 在 PR 2 阶段加进来
 }
 
+// legacyCleanupTargets 是早期版本写过的非 .local.json 路径。
+// 升级流程会扫这些文件，把里面的 pager 条目清掉（用户其他配置原样保留），
+// 防止 settings.json 与 settings.local.json 双发 hook。
+// Codex 不在列表中——它原生只读 ~/.codex/hooks.json，没有 settings.json 主+local 分层。
+var legacyCleanupTargets = []Target{
+	{"CC", "~/.claude/settings.json", "settings"},
+	{"CC-Internal", "~/.claude-internal/settings.json", "settings"},
+	{"CodeBuddy", "~/.codebuddy/settings.json", "settings"},
+}
+
 // osUserHomeDir is an indirection for testing.
 var osUserHomeDir = os.UserHomeDir
 
