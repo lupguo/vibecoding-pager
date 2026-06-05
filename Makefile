@@ -48,6 +48,7 @@ build-go:
 
 ## Build pager-bridge binary
 bridge:
+	@mkdir -p $(BIN_DIR)
 	go build -o $(BRIDGE_BIN) ./cmd/pager-bridge
 
 ## Build pager-installhooks binary (Go-based hook installer)

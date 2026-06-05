@@ -47,7 +47,7 @@
 CC / CodeBuddy hook (stdin JSON)
         │
         ▼
-  vibecoding-pager-cc-bridge   (CLI binary, must exit 0 silently)
+  pager-bridge                 (CLI binary, must exit 0 silently)
         │
         ▼  HTTP POST :7421
    VibeCoding Pager.app
@@ -99,17 +99,18 @@ open "bin/VibeCoding Pager.app"
 
 ### Install Hooks
 
-After VibeCoding Pager is running, register the bridge with your AI agent:
+After VibeCoding Pager is running, register the bridge with all supported agents in one shot:
 
 ```bash
-make install-hooks              # Claude Code         (~/.claude/settings.json)
-make install-hooks-cc-internal  # Claude Code Internal (~/.claude-internal/settings.json)
-make install-hooks-codebuddy    # CodeBuddy            (~/.codebuddy/settings.json)
+make install-bridge   # builds pager-bridge + pager-installhooks, then writes
+                      #   ~/.claude/settings.local.json           (Claude Code)
+                      #   ~/.claude-internal/settings.local.json  (Claude Code Internal)
+                      #   ~/.codebuddy/settings.local.json        (CodeBuddy)
 ```
 
-Each call writes `vibecoding-pager-cc-bridge` invocations into the agent's hook config. Subsequent agent sessions stream events to VibeCoding Pager automatically.
+The Go-based installer is **append + idempotent**: re-running it never duplicates entries, replaces stale entries that point at the old `vibecoding-pager-cc-bridge` binary, and preserves any custom hook entries you've added by hand. Subsequent agent sessions stream events to VibeCoding Pager automatically.
 
-> **After modifying any code under `internal/adapter/bridge/` or `cmd/bridge/`**, re-run `make install-bridge` to rebuild and verify deployment metadata. `make dev` / `make run` / `make build` already do this for you.
+> **After modifying any code under `internal/adapter/bridge/`, `cmd/pager-bridge/`, or `cmd/pager-installhooks/`**, re-run `make install-bridge` to rebuild and reinstall. `make dev` / `make run` / `make build` already do this for you.
 
 ## Configuration
 
@@ -130,9 +131,9 @@ make dev            Run in dev mode (Vite HMR + Wails hot-reload)
 make build          Build production .app bundle
 make run            Build Go binary + run (no Vite)
 make stop           Free ports 9245 + 7421
-make bridge         Build vibecoding-pager-cc-bridge CLI
-make install-bridge Build bridge + print deploy hash
-make install-hooks  Wire bridge into ~/.claude/settings.json
+make bridge         Build pager-bridge CLI (hook stdin → HTTP)
+make installer      Build pager-installhooks (hook installer)
+make install-bridge Build both binaries + install hooks for all agents
 make bindings       Regenerate Wails Go ↔ TS bindings
 make test           go test ./...
 make lint           go vet + tsc --noEmit
@@ -145,8 +146,9 @@ make help           List all targets
 ```text
 .
 ├── cmd/
-│   ├── bridge/          vibecoding-pager-cc-bridge (hook CLI; must exit 0)
-│   └── icongen/         dev-only icon generator
+│   ├── pager-bridge/        hook CLI binary; receives stdin, POSTs to :7421
+│   ├── pager-installhooks/  Go installer that wires pager-bridge into agent hook configs
+│   └── icongen/             dev-only icon generator
 ├── internal/
 │   ├── domain/          entity/, session/ — business rules, zero framework deps
 │   ├── adapter/         httpapi/, notify/, terminal/, bridge/ — IO boundaries
@@ -155,7 +157,7 @@ make help           List all targets
 ├── frontend/
 │   ├── src/             React + TS + Tailwind + zustand
 │   └── bindings/        auto-generated, gitignored
-├── scripts/             install-hooks.sh, install-launchd.sh
+├── scripts/             install-launchd.sh
 ├── docs/                PRD, specs, plans
 ├── ARCHITECTURE.md      directory + dependency convention
 └── CLAUDE.md            AI-collaboration cheatsheet
