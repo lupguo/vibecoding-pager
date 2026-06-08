@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"os/exec"
 	"strings"
@@ -14,6 +15,7 @@ import (
 	"github.com/lupguo/vibecoding-pager/internal/adapter/bridge"
 	"github.com/lupguo/vibecoding-pager/internal/adapter/bridge/agents"
 	"github.com/lupguo/vibecoding-pager/internal/domain/entity"
+	infralog "github.com/lupguo/vibecoding-pager/internal/infra/log"
 )
 
 func main() {
@@ -30,6 +32,15 @@ func main() {
 	pflag.BoolVar(&printHooks, "print-hooks", false, "print hook spec JSON for given --agent and exit")
 	pflag.BoolVar(&debug, "debug", false, "dump raw stdin to /tmp/pager-raw.json")
 	pflag.Parse()
+
+	// Log to stderr; --debug bumps level to DEBUG, otherwise WARN keeps the
+	// hook subprocess output quiet under normal operation.
+	level := slog.LevelWarn
+	if debug || os.Getenv("PAGER_DEBUG") == "1" {
+		level = slog.LevelDebug
+	}
+	infralog.Init(level)
+	log := infralog.Module("bridge.cli")
 
 	if printHooks {
 		printHooksJSON(agentLabel)
@@ -50,7 +61,16 @@ func main() {
 	}
 
 	env, err := agent.ParseEnvelope(raw)
-	if err != nil || !agent.Accept(eventType, env) {
+	if err != nil {
+		// Surface parse failures so malformed agent payloads (e.g. unescaped
+		// control chars in JSON strings) don't disappear silently. Hooks are
+		// fire-and-forget so this only shows up in the agent's terminal, but
+		// it's the only signal a user has when an event is dropped at the
+		// envelope-parsing stage.
+		log.Warn("parse envelope", "event", eventType, "agent", agentLabel, "err", err)
+		return
+	}
+	if !agent.Accept(eventType, env) {
 		return
 	}
 
@@ -79,6 +99,8 @@ func main() {
 func printHooksJSON(agentLabel string) {
 	agent, ok := agents.SelectByLabel(agentLabel)
 	if !ok {
+		// User-facing CLI error before exit — keep as plain stderr line so
+		// installer's output stays parseable.
 		fmt.Fprintf(os.Stderr, "unknown agent: %q\n", agentLabel)
 		os.Exit(1)
 	}
