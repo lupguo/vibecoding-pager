@@ -26,6 +26,16 @@ func main() {
 	pflag.BoolVar(&verbose, "verbose", false, "print per-target operation log")
 	pflag.Parse()
 
+	// Resolve bridgePath to an absolute path. Hook configs are read by agents
+	// from arbitrary working directories (Codex from project_grace, CC from
+	// the user's repo, etc.), so a relative `command` in hooks.json fires
+	// `exit 127` and the event silently disappears. Defensive: even if the
+	// caller (Makefile, user, CI) passes a relative path, we make sure the
+	// JSON we write always has an absolute one.
+	if abs, err := filepath.Abs(bridgePath); err == nil {
+		bridgePath = abs
+	}
+
 	// Legacy cleanup phase: scan primary settings.json files for any pager
 	// entries left over from earlier versions (which wrote there directly),
 	// and remove them. User's non-pager entries are preserved.

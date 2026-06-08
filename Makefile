@@ -4,8 +4,13 @@
 APP_NAME    := vibecoding-pager
 APP_BUNDLE  := VibeCoding Pager
 BIN_DIR     := bin
-BRIDGE_BIN  := $(BIN_DIR)/pager-bridge
-INSTALLER_BIN := $(BIN_DIR)/pager-installhooks
+# BRIDGE_BIN / INSTALLER_BIN are absolute on purpose: they get embedded into
+# agent hook configs (~/.codex/hooks.json, ~/.claude/settings.local.json) as
+# the `command` to invoke. Hooks are spawned by the agent from arbitrary
+# working directories, so a relative path resolves to a non-existent file
+# and the hook fires `exit 127` silently. Keep $(PWD)/ prefixes here.
+BRIDGE_BIN    := $(PWD)/$(BIN_DIR)/pager-bridge
+INSTALLER_BIN := $(PWD)/$(BIN_DIR)/pager-installhooks
 APP_BIN     := $(BIN_DIR)/$(APP_NAME)
 FRONTEND    := frontend
 
