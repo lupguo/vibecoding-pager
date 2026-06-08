@@ -1,43 +1,42 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/lupguo/vibecoding-pager/internal/domain/session"
 	"github.com/lupguo/vibecoding-pager/internal/adapter/httpapi"
+	"github.com/lupguo/vibecoding-pager/internal/domain/session"
+	infralog "github.com/lupguo/vibecoding-pager/internal/infra/log"
 )
 
 // Standalone test server — runs HTTP server + tracker without Wails GUI.
 // Used for integration testing the bridge → server → tracker pipeline.
 func main() {
-	log.SetFlags(log.Ltime | log.Lmicroseconds)
+	infralog.Init(slog.LevelInfo)
+	log := infralog.Module("testserver")
 
 	tracker := session.NewTracker(func(sessions []*session.Session) {
-		// Log state changes
 		for _, s := range sessions {
-			log.Printf("[onChange] session=%s status=%s tool=%s content=%q",
-				s.Key, s.Status, s.LastEvent.ToolName, s.LastEvent.Content)
+			log.Info("session changed",
+				"session_key", s.Key,
+				"status", s.Status,
+				"tool", s.LastEvent.ToolName,
+				"content", s.LastEvent.Content,
+			)
 		}
-		// Also dump full state as JSON
-		data, _ := json.MarshalIndent(sessions, "", "  ")
-		fmt.Fprintf(os.Stderr, "\n--- Current Sessions ---\n%s\n---\n\n", string(data))
+		log.Debug("tracker snapshot", "sessions", sessions)
 	})
 
 	srv := httpapi.New(tracker)
 	srv.Start()
 
-	log.Println("[test-server] Ready. Listening on 127.0.0.1:7421")
-	log.Println("[test-server] Endpoints: POST /event, GET /sessions")
-	log.Println("[test-server] Press Ctrl+C to stop")
+	log.Info("test-server ready", "addr", "127.0.0.1:7421",
+		"endpoints", "POST /event, GET /sessions")
 
-	// Wait for signal
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	<-sigCh
-	log.Println("[test-server] Shutting down")
+	log.Info("test-server shutting down")
 }

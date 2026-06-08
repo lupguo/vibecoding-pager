@@ -21,7 +21,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"log/slog"
 	"os"
@@ -118,9 +117,9 @@ func main() {
 func printHooksJSON(agentLabel string) {
 	agent, ok := agents.SelectByLabel(agentLabel)
 	if !ok {
-		// User-facing CLI error before exit — keep as plain stderr line so
-		// installer's output stays parseable.
-		fmt.Fprintf(os.Stderr, "unknown agent: %q\n", agentLabel)
+		// stdout stays clean (installer parses JSON from it); the error goes
+		// through slog to stderr like every other diagnostic in this binary.
+		infralog.Module("bridge.cli").Error("unknown agent", "agent", agentLabel)
 		os.Exit(1)
 	}
 	enc := json.NewEncoder(os.Stdout)

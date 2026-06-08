@@ -205,47 +205,26 @@ func TestRemoveAllPagerHooks_PreservesUserHooks(t *testing.T) {
 // Regressing any CC-family target back to .local.json reintroduces silent
 // failure mode (the worst kind to diagnose), so this test guards against it.
 func TestTargets_Paths(t *testing.T) {
-	want := map[string]struct {
-		settings string
-		legacy   string // empty if none
-	}{
-		"CC":          {"~/.claude/settings.json", "~/.claude/settings.local.json"},
-		"CC-Internal": {"~/.claude-internal/settings.json", "~/.claude-internal/settings.local.json"},
-		"CodeBuddy":   {"~/.codebuddy/settings.json", "~/.codebuddy/settings.local.json"},
-		"Codex":       {"~/.codex/hooks.json", ""},
+	want := map[string]string{
+		"CC":          "~/.claude/settings.json",
+		"CC-Internal": "~/.claude-internal/settings.json",
+		"CodeBuddy":   "~/.codebuddy/settings.json",
+		"Codex":       "~/.codex/hooks.json",
+	}
+	if len(targets) != len(want) {
+		t.Errorf("targets len = %d, want %d", len(targets), len(want))
 	}
 	for _, tgt := range targets {
-		w, ok := want[tgt.AgentLabel]
+		wantPath, ok := want[tgt.AgentLabel]
 		if !ok {
 			t.Errorf("unexpected agent %q", tgt.AgentLabel)
 			continue
 		}
-		if tgt.SettingsFile != w.settings {
-			t.Errorf("%s SettingsFile = %q, want %q", tgt.AgentLabel, tgt.SettingsFile, w.settings)
+		if tgt.SettingsFile != wantPath {
+			t.Errorf("%s SettingsFile = %q, want %q", tgt.AgentLabel, tgt.SettingsFile, wantPath)
 		}
 		if tgt.Format != "settings" {
 			t.Errorf("%s Format = %q, want settings", tgt.AgentLabel, tgt.Format)
-		}
-	}
-	for label, w := range want {
-		if w.legacy == "" {
-			// Codex must NOT have a legacy entry.
-			for _, l := range legacyCleanupTargets {
-				if l.AgentLabel == label {
-					t.Errorf("%s should not have a legacy cleanup entry but found %q", label, l.SettingsFile)
-				}
-			}
-			continue
-		}
-		var got string
-		for _, l := range legacyCleanupTargets {
-			if l.AgentLabel == label {
-				got = l.SettingsFile
-				break
-			}
-		}
-		if got != w.legacy {
-			t.Errorf("%s legacy cleanup path = %q, want %q", label, got, w.legacy)
 		}
 	}
 }
