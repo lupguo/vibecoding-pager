@@ -6,6 +6,31 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Removed (2026-06-08, after merge of codex-hook-bridge-refactor)
+
+- **`legacyCleanupTargets`** — dropped. The "legacy cleanup" phase that swept
+  `~/.<agent>/settings.local.json` files was based on an incorrect premise
+  (those paths were never a valid user-level hook location per Anthropic CC
+  v2 docs). Keeping it in the code suggested `.local.json` had once been
+  supported. Removed: the variable in `targets.go`, both cleanup loops in
+  `cmd/pager-installhooks/main.go`, and the corresponding assertions in
+  `TestTargets_Paths`. `removeAllPagerHooks()` itself stays — `--uninstall`
+  still uses it.
+
+### Changed (2026-06-08)
+
+- **All log output goes through `infra/log` slog**. `cmd/pager-installhooks`,
+  `cmd/pager-bridge` (printHooksJSON error path), and `cmd/testserver` no
+  longer use `fmt.Fprintf`/`fmt.Printf` for diagnostic output. `make
+  install-bridge` output changed from `[CC] installed 23 events at ...` to
+  `time=... level=INFO msg="hooks installed" module=installhooks agent=CC
+  events=23 path=...` — same information density, structured for grep/jq,
+  consistent with the existing `bridge.poster` / `bridge.cli` modules.
+  - `--verbose` flag on installer now bumps slog level to DEBUG.
+  - Two intentional `fmt.*` survivors: dry-run JSON output (the user
+    pipes/inspects this artifact directly) and HTTP response body in
+    `httpapi/server.go` (writes to ResponseWriter, not a log sink).
+
 ### Added — Codex agent integration & bridge refactor (2026-06-08)
 
 Branch `feat/codex-hook-bridge-refactor`, 25 commits, merged to `main` on
