@@ -6,17 +6,18 @@ import "os"
 type Target struct {
 	AgentLabel   string
 	SettingsFile string // 路径，~ 会展开
-	Format       string // "settings"（顶层 settings 对象）| "hooks-only"（顶层就是 hooks）
+	Format       string // 当前只有 "settings"：顶层 {"hooks": {<event>: [...]}}
+	                    // CC/CodeBuddy 写到 settings.local.json，Codex 写到 hooks.json，
+	                    // schema 完全一致（codex-rs/config/src/hook_config.rs::HooksFile 即 {"hooks": ...}）
 }
 
 // targets 是 installer 的目标清单。
-// 注意：CC-Internal 这里写 settings.local.json 是 spec 的选择；如 PR1 实施时
-// 验证 CC-Internal loader 不识别 .local.json，则改回 settings.json。
+// 所有 4 个 agent 都用同一份 schema：顶层一个 "hooks" 对象，下面挂 event → MatcherGroup[]。
 var targets = []Target{
 	{"CC", "~/.claude/settings.local.json", "settings"},
 	{"CC-Internal", "~/.claude-internal/settings.local.json", "settings"},
 	{"CodeBuddy", "~/.codebuddy/settings.local.json", "settings"},
-	{"Codex", "~/.codex/hooks.json", "hooks-only"},
+	{"Codex", "~/.codex/hooks.json", "settings"},
 }
 
 // legacyCleanupTargets 是早期版本写过的非 .local.json 路径。

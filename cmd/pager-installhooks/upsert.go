@@ -50,11 +50,18 @@ func isPagerHookGroup(g HookGroup) bool {
 }
 
 // buildHookGroup 构造一个新的 pager hook group。
+//
+// async 字段是 per-agent 行为：
+//   - CC / CC-Internal / CodeBuddy 支持 `async: true`，让 hook 完全非阻塞（fire-and-forget）。
+//   - Codex 0.137 还不支持 async（codex-rs/hooks/src/engine/discovery.rs 会
+//     "skipping async hook ..."），整条 hook 会被丢弃。所以 Codex 必须用 sync 形式
+//     —— 配合 5s timeout，HTTP POST 在 localhost 上也就十几毫秒，不会真的卡 codex turn。
 func buildHookGroup(spec HookSpec, agentLabel, bridgePath string) HookGroup {
 	cmd := bridgePath + " --event " + spec.Event + " --agent " + agentLabel
+	supportsAsync := agentLabel != "Codex"
 	g := HookGroup{
 		Hooks: []HookEntry{
-			{Type: "command", Command: cmd, Timeout: 5, Async: true},
+			{Type: "command", Command: cmd, Timeout: 5, Async: supportsAsync},
 		},
 	}
 	if spec.Matcher != "" {

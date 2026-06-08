@@ -128,7 +128,7 @@ func processTarget(t Target, bridgePath string, uninstall, dryRun, verbose bool)
 	}
 
 	if dryRun {
-		buf, _ := json.MarshalIndent(formatTop(t.Format, settings), "", "  ")
+		buf, _ := json.MarshalIndent(settings, "", "  ")
 		fmt.Printf("[%s] would write to %s:\n%s\n", t.AgentLabel, path, string(buf))
 		return nil
 	}
@@ -173,9 +173,10 @@ func readSettings(path, format string) (map[string]any, error) {
 	if err := json.Unmarshal(data, &top); err != nil {
 		return nil, err
 	}
-	if format == "hooks-only" {
-		return map[string]any{"hooks": top}, nil
-	}
+	_ = format // retained for symmetry with writeSettings; current installer
+	// only emits the "settings" shape ({"hooks": {<events>}}). CC, CodeBuddy
+	// and Codex (~/.codex/hooks.json) all use this top-level shape — see
+	// codex-rs/config/src/hook_config.rs::HooksFile.
 	return top, nil
 }
 
@@ -184,26 +185,12 @@ func writeSettings(path, format string, settings map[string]any) error {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return err
 	}
-	buf, err := json.MarshalIndent(formatTop(format, settings), "", "  ")
+	_ = format
+	buf, err := json.MarshalIndent(settings, "", "  ")
 	if err != nil {
 		return err
 	}
 	return os.WriteFile(path, buf, 0644)
-}
-
-// formatTop converts the internal {"hooks": {...}} settings map into the
-// shape that should actually be serialized for the given format. For
-// "hooks-only" (e.g. Codex), the top level IS the hooks object — no wrapper.
-// For "settings" (CC family), the wrapper stays.
-func formatTop(format string, settings map[string]any) any {
-	if format == "hooks-only" {
-		top := settings["hooks"]
-		if top == nil {
-			return map[string]any{}
-		}
-		return top
-	}
-	return settings
 }
 
 func removeAllPagerHooks(settings map[string]any) map[string]any {
