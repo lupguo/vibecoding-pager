@@ -187,32 +187,53 @@ func TestRemoveAllPagerHooks_PreservesUserHooks(t *testing.T) {
 	}
 }
 
-// TestTargets_CodexUsesSettingsFormat pins the Codex target's contract:
-// ~/.codex/hooks.json written with the same {"hooks": {<events>}} schema as
-// CC, per codex-rs/config/src/hook_config.rs::HooksFile. The 2026-06-08 fix
-// to integration verification (rev 6516ebe..f28171e) corrected an earlier
-// misreading that thought hooks.json was bare-events at the top level.
-func TestTargets_CodexUsesSettingsFormat(t *testing.T) {
-	var codex *Target
-	for i := range targets {
-		if targets[i].AgentLabel == "Codex" {
-			codex = &targets[i]
-			break
+// TestTargets_Paths pins each agent's write target. CC-Internal in particular
+// must write to settings.json (NOT settings.local.json) because the Tencent
+// claude-code-internal v1.1.9 fork does not load .local.json overlays.
+// Writing to .local.json appears to succeed but hooks never fire — the silent
+// failure was the root cause of the 2026-06-08 CC-Internal regression.
+func TestTargets_Paths(t *testing.T) {
+	want := map[string]struct {
+		settings string
+		legacy   string // empty if none
+	}{
+		"CC":          {"~/.claude/settings.local.json", "~/.claude/settings.json"},
+		"CC-Internal": {"~/.claude-internal/settings.json", "~/.claude-internal/settings.local.json"},
+		"CodeBuddy":   {"~/.codebuddy/settings.local.json", "~/.codebuddy/settings.json"},
+		"Codex":       {"~/.codex/hooks.json", ""},
+	}
+	for _, tgt := range targets {
+		w, ok := want[tgt.AgentLabel]
+		if !ok {
+			t.Errorf("unexpected agent %q", tgt.AgentLabel)
+			continue
+		}
+		if tgt.SettingsFile != w.settings {
+			t.Errorf("%s SettingsFile = %q, want %q", tgt.AgentLabel, tgt.SettingsFile, w.settings)
+		}
+		if tgt.Format != "settings" {
+			t.Errorf("%s Format = %q, want settings", tgt.AgentLabel, tgt.Format)
 		}
 	}
-	if codex == nil {
-		t.Fatal("Codex target missing from targets slice")
-	}
-	if codex.SettingsFile != "~/.codex/hooks.json" {
-		t.Errorf("Codex SettingsFile = %q, want ~/.codex/hooks.json", codex.SettingsFile)
-	}
-	if codex.Format != "settings" {
-		t.Errorf("Codex Format = %q, want settings (Codex hooks.json uses {\"hooks\": {...}} like CC)", codex.Format)
-	}
-	// And Codex must NOT appear in the legacy cleanup list (no settings.json predecessor).
-	for _, l := range legacyCleanupTargets {
-		if l.AgentLabel == "Codex" {
-			t.Error("Codex must not be in legacyCleanupTargets — it had no pre-Phase-1 settings.json schema")
+	for label, w := range want {
+		if w.legacy == "" {
+			// Codex must NOT have a legacy entry.
+			for _, l := range legacyCleanupTargets {
+				if l.AgentLabel == label {
+					t.Errorf("%s should not have a legacy cleanup entry but found %q", label, l.SettingsFile)
+				}
+			}
+			continue
+		}
+		var got string
+		for _, l := range legacyCleanupTargets {
+			if l.AgentLabel == label {
+				got = l.SettingsFile
+				break
+			}
+		}
+		if got != w.legacy {
+			t.Errorf("%s legacy cleanup path = %q, want %q", label, got, w.legacy)
 		}
 	}
 }
