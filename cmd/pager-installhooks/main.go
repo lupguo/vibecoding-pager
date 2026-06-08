@@ -11,6 +11,21 @@ import (
 	"github.com/spf13/pflag"
 )
 
+// main runs the installer pipeline:
+//
+//  1. (install path) legacy cleanup — sweep ~/.<agent>/settings.local.json
+//     etc. for stale pager entries left by earlier installer versions.
+//  2. For each target in `targets`, fetch its hook list via
+//     `pager-bridge --print-hooks --agent <Label>`, merge into the agent's
+//     settings.json with append+idempotent semantics, and write it back.
+//
+// Flags:
+//
+//	--agent <label>  only operate on one agent (default: all)
+//	--bridge <path>  pager-bridge binary path (auto-resolves to absolute)
+//	--dry-run        print resulting JSON, do not write
+//	--uninstall      remove all pager entries (also sweeps legacy paths)
+//	--verbose        per-target log line
 func main() {
 	var (
 		agentFilter string

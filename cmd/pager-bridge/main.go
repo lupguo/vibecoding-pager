@@ -1,3 +1,22 @@
+// Command pager-bridge is the CLI invoked by agent hook configs
+// (~/.claude/settings.json, ~/.codex/hooks.json, etc.). For each fired
+// hook event it:
+//
+//  1. Resolves --agent <Label> to a registered agents.Agent (CC / CC-Internal
+//     / CodeBuddy share ClaudeFamily; Codex has its own).
+//  2. Reads the raw hook payload from stdin and decodes it via
+//     agent.ParseEnvelope.
+//  3. Asks agent.Accept whether to forward the event (drops e.g. CodeBuddy
+//     auth_success Notifications without session_id).
+//  4. Renders display strings via bridge.Render against extract_rules.yaml.
+//  5. POSTs the resulting AgentEvent to http://127.0.0.1:7421/event.
+//
+// Hooks are fire-and-forget: the binary always exits 0 — failures land in
+// stderr via slog (module=bridge.cli / bridge.poster), visible in the agent's
+// own terminal. --debug additionally dumps stdin to /tmp/pager-raw.json.
+//
+// --print-hooks prints the agent's HookSpec list as JSON for the installer
+// (cmd/pager-installhooks).
 package main
 
 import (

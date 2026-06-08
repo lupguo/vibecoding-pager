@@ -1,3 +1,12 @@
+// Package main implements pager-installhooks — the Go-based installer
+// that writes pager-bridge into each agent's hook configuration.
+//
+// Behavior contract (referenced from CLAUDE.md "Bridge Binary Lifecycle"):
+//   - Append + idempotent: re-running never duplicates entries.
+//   - Stale "vibecoding-pager-cc-bridge" entries (pre-rename) are detected
+//     by basename and replaced.
+//   - User-defined hooks under the same event name are preserved.
+//   - Codex hooks are written sync; CC family async — see buildHookGroup.
 package main
 
 import (
@@ -14,14 +23,18 @@ const (
 var errNotMap = errors.New("hook entry is not a map")
 
 // HookEntry 是 hooks JSON 中单个 hook 命令条目。
+// 字段名匹配 Anthropic CC v2 schema (https://code.claude.com/docs/en/hooks)
+// 与 codex-rs/config/src/hook_config.rs::HookHandlerConfig — 两边兼容。
 type HookEntry struct {
 	Type    string `json:"type"`
 	Command string `json:"command"`
-	Timeout int    `json:"timeout,omitempty"`
-	Async   bool   `json:"async,omitempty"`
+	Timeout int    `json:"timeout,omitempty"` // 秒
+	Async   bool   `json:"async,omitempty"`   // CC 支持；Codex 0.137 会 skip
 }
 
 // HookGroup 是同一个事件下挂的一组 hook。
+// Matcher 仅工具事件（PreToolUse / PostToolUse / PermissionRequest 等）使用，
+// 例 "*" 表示所有工具，"^Bash$" 限定 Bash。其他事件留空。
 type HookGroup struct {
 	Hooks   []HookEntry `json:"hooks"`
 	Matcher string      `json:"matcher,omitempty"`
@@ -51,11 +64,11 @@ func isPagerHookGroup(g HookGroup) bool {
 
 // buildHookGroup 构造一个新的 pager hook group。
 //
-// async 字段是 per-agent 行为：
-//   - CC / CC-Internal / CodeBuddy 支持 `async: true`，让 hook 完全非阻塞（fire-and-forget）。
-//   - Codex 0.137 还不支持 async（codex-rs/hooks/src/engine/discovery.rs 会
-//     "skipping async hook ..."），整条 hook 会被丢弃。所以 Codex 必须用 sync 形式
-//     —— 配合 5s timeout，HTTP POST 在 localhost 上也就十几毫秒，不会真的卡 codex turn。
+// async 是 per-agent 行为，不是全局开关：
+//   - CC / CC-Internal / CodeBuddy 支持 `"async": true`，hook 完全非阻塞。
+//   - Codex 0.137 不支持 — codex-rs/hooks/src/engine/discovery.rs 会丢弃
+//     async 条目并打 "skipping async hook ..." 警告。Codex 必须 sync。
+//     5s timeout × ≤50ms 本地 HTTP POST，sync 也不会真的卡 turn。
 func buildHookGroup(spec HookSpec, agentLabel, bridgePath string) HookGroup {
 	cmd := bridgePath + " --event " + spec.Event + " --agent " + agentLabel
 	supportsAsync := agentLabel != "Codex"

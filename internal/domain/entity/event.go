@@ -5,9 +5,16 @@ import (
 	"time"
 )
 
-// EventType constants. Values are CamelCase to match the CC-native event names
-// produced by vibecoding-pager-cc-bridge. They MUST stay in sync with the switch cases in
-// session.DeriveStatus.
+// EventType constants. Values are CamelCase to match the hook event names
+// emitted by upstream agents (Claude Code, CodeBuddy, claude-code-internal,
+// Codex). pager-bridge passes them through verbatim via --event. They MUST
+// stay in sync with the switch cases in session.DeriveStatus.
+//
+// Coverage: 23 CC-family events (CC / CC-Internal / CodeBuddy share schema)
+// plus 10 Codex events (subset; Codex doesn't emit Notification / Elicitation
+// / SessionEnd / PostToolBatch / TaskCreated / TaskCompleted /
+// MessageDisplay / InstructionsLoaded / UserPromptExpansion /
+// ElicitationResult / PostToolUseFailure / StopFailure / Error).
 const (
 	EventPreToolUse         = "PreToolUse"
 	EventPostToolUse        = "PostToolUse"
@@ -28,10 +35,11 @@ const (
 	EventSubagentStart      = "SubagentStart"
 )
 
-// Agent constants
+// Agent constants — values written into AgentEvent.Agent and the
+// extract_rules.yaml namespace key.
 const (
-	AgentClaudeCode = "claude-code"
-	AgentCodex      = "codex"
+	AgentClaudeCode = "claude-code" // CC, CC-Internal, CodeBuddy (shared schema)
+	AgentCodex      = "codex"       // Codex CLI 0.137+
 )
 
 // SessionStatus is the single source of truth for session UX state.
@@ -67,7 +75,9 @@ type AgentEvent struct {
 }
 
 // SessionKey returns the unique session identifier.
-// Prefers CC-native session_id; falls back to host:cwd:tty triple.
+// Prefers the agent-native session_id (set by all 4 agents); falls back to
+// host:cwd:tty triple when an event arrives without one (e.g. early CodeBuddy
+// notifications before authentication completes).
 func (e *AgentEvent) SessionKey() string {
 	if e.SessionID != "" {
 		return e.SessionID

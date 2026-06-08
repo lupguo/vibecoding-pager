@@ -8,9 +8,15 @@ import (
 )
 
 // Codex 是 Codex CLI 的 Agent 实现。
-// 对应 Codex 0.137 的 hook schema：sessions 用 trigger 而非 source；
-// 多一个 turn_id 字段；不发 SessionEnd / Notification / Elicitation 等
-// 13 个 CC 专属事件。
+//
+// 对应 Codex 0.137 的 hook schema (codex-rs/config/src/hook_config.rs)：
+//   - SessionStart 携带 trigger（startup / resume / clear / compact）而不是 CC 的 source。
+//   - 多一个 turn_id 字段（CC 没有）。
+//   - exec_command 工具替代 CC 的 Bash 与文件编辑（含 apply_patch）。
+//   - 只发 10 个事件，比 CC 家族少 13 个 — 没有 Notification / Elicitation /
+//     SessionEnd / PostToolBatch / TaskCreated / TaskCompleted / MessageDisplay /
+//     InstructionsLoaded / UserPromptExpansion / ElicitationResult /
+//     PostToolUseFailure / StopFailure / Error。
 type Codex struct{}
 
 func (Codex) ID() string { return entity.AgentCodex }

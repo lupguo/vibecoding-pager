@@ -14,8 +14,10 @@ const serverURL = "http://127.0.0.1:7421/event"
 
 var posterLog = infralog.Module("bridge.poster")
 
-// PostEvent sends an AgentEvent to the Pager server.
-// Timeout is 1 second. Failures are logged via slog (module=bridge.poster).
+// PostEvent posts an AgentEvent to the in-process Pager HTTP server.
+// Fire-and-forget by design: hooks must never block the agent or affect
+// its decisions. 1s timeout, all failures (network, marshal, 4xx/5xx)
+// are logged via slog (module=bridge.poster) but never returned.
 func PostEvent(e entity.AgentEvent) {
 	body, err := json.Marshal(e)
 	if err != nil {
