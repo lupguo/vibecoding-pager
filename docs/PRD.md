@@ -43,7 +43,7 @@ const (
 // Agent enum
 const (
     AgentClaudeCode = "claude-code"
-    AgentCodex      = "codex" // [TODO-v1.5]
+    AgentCodex      = "codex" // wired in v1.5 via cmd/pager-bridge --agent Codex
 )
 
 // SessionStatus enum

@@ -67,6 +67,11 @@ install-bridge: bridge installer
 	@echo "✓ pager-bridge installed at $(BRIDGE_BIN)"
 	@echo "  mtime: $$(date -r $(BRIDGE_BIN) '+%F %T')"
 	@echo "  sha:   $$(shasum -a 256 $(BRIDGE_BIN) | cut -c1-12)"
+	@if [ -f $(BIN_DIR)/vibecoding-pager-cc-bridge ]; then \
+	  echo ""; \
+	  echo "ℹ️  Legacy binary $(BIN_DIR)/vibecoding-pager-cc-bridge exists. Safe to remove with:"; \
+	  echo "    rm $(BIN_DIR)/vibecoding-pager-cc-bridge"; \
+	fi
 
 
 # ─── Run ─────────────────────────────────────────────────────────────────────
@@ -135,7 +140,7 @@ help:
 	@echo "  make build          Build production .app"
 	@echo "  make build-go       Build Go binary only"
 	@echo "  make bridge         Build pager-bridge binary"
-	@echo "  make install-bridge Build & install hooks for all agents (CC/CC-Internal/CodeBuddy)"
+	@echo "  make install-bridge Build & install hooks for all agents (CC/CC-Internal/CodeBuddy/Codex)"
 	@echo "  make installer            Build pager-installhooks (Go-based hook installer)"
 	@echo "  make bindings       Regenerate Wails bindings (Go → TS, codegen)"
 	@echo "  make run            Build and run"
