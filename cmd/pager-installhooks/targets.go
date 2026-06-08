@@ -14,29 +14,36 @@ type Target struct {
 // targets 是 installer 的目标清单。
 // 所有 4 个 agent 都用同一份 schema：顶层一个 "hooks" 对象，下面挂 event → MatcherGroup[]。
 //
-// CC-Internal 例外：Tencent 的 claude-code-internal fork 不继承 Anthropic 上游
-// 对 settings.local.json 的支持（v1.1.9 验证过），只读 settings.json。
-// 写到 .local.json 看起来一切正常但运行时 hooks 永远不触发——
-// 这种"沉默失败"很难诊断，所以这里直接写 settings.json，并由 legacyCleanup
-// 清掉 .local.json 残留以免老用户升级后双发。
+// 写入位置选 settings.json (而不是 settings.local.json)：
+//   - Anthropic CC v2 文档（https://code.claude.com/docs/en/hooks）只在
+//     **.claude/settings.local.json**（per-project、git 仓库内）这一档
+//     列了 .local.json，user-level 只有 ~/.claude/settings.json。
+//     ~/.claude/settings.local.json 不在加载列表里。
+//   - CC-Internal (Tencent fork v1.1.9) 经验证不读 .local.json 覆盖层，
+//     hooks 静默不触发。
+//   - CodeBuddy 共享同一加载逻辑。
+//   - Codex 走自己的 ~/.codex/hooks.json，跟这条无关。
+//
+// 写入 user-global settings.json 是所有 agent 都识别的最大公约数。
 var targets = []Target{
-	{"CC", "~/.claude/settings.local.json", "settings"},
+	{"CC", "~/.claude/settings.json", "settings"},
 	{"CC-Internal", "~/.claude-internal/settings.json", "settings"},
-	{"CodeBuddy", "~/.codebuddy/settings.local.json", "settings"},
+	{"CodeBuddy", "~/.codebuddy/settings.json", "settings"},
 	{"Codex", "~/.codex/hooks.json", "settings"},
 }
 
 // legacyCleanupTargets 列出"过去的写入位置"，每次安装都扫一遍把里面的
 // pager 条目清掉（用户其他配置原样保留），避免新旧位置双发 hook。
 //
-// - CC / CodeBuddy: 老 installer 直接写 settings.json，现在写 .local.json
-// - CC-Internal:    *反向* — 早期版本错写 .local.json (v1.1.9 fork 不读它，hooks 静默失效)，
-//                   现在改回 settings.json。
-// - Codex:           不在列表，原生只读 ~/.codex/hooks.json，没有分层。
+// 早期版本错写到 ~/.claude/settings.local.json 等位置（按 Anthropic
+// per-project 配置文件的命名误推）。这些位置 user-level 不被加载，pager
+// 条目留在里面是死代码，但万一未来 fork 真支持了，会变双发。
+//
+// Codex 不在列表 — 原生只读 ~/.codex/hooks.json，没有分层。
 var legacyCleanupTargets = []Target{
-	{"CC", "~/.claude/settings.json", "settings"},
+	{"CC", "~/.claude/settings.local.json", "settings"},
 	{"CC-Internal", "~/.claude-internal/settings.local.json", "settings"},
-	{"CodeBuddy", "~/.codebuddy/settings.json", "settings"},
+	{"CodeBuddy", "~/.codebuddy/settings.local.json", "settings"},
 }
 
 // osUserHomeDir is an indirection for testing.

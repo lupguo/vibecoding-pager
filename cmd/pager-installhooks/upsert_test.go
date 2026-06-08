@@ -187,19 +187,31 @@ func TestRemoveAllPagerHooks_PreservesUserHooks(t *testing.T) {
 	}
 }
 
-// TestTargets_Paths pins each agent's write target. CC-Internal in particular
-// must write to settings.json (NOT settings.local.json) because the Tencent
-// claude-code-internal v1.1.9 fork does not load .local.json overlays.
-// Writing to .local.json appears to succeed but hooks never fire — the silent
-// failure was the root cause of the 2026-06-08 CC-Internal regression.
+// TestTargets_Paths pins each agent's write target. All three CC-family agents
+// must write to settings.json (NOT settings.local.json):
+//
+//   - Anthropic CC v2 docs (https://code.claude.com/docs/en/hooks) list
+//     ".claude/settings.local.json" only at the **per-project** layer (in the
+//     repo's .claude/ folder, gitignored). User-level loads only
+//     ~/.claude/settings.json — ~/.claude/settings.local.json is not in the
+//     resolution chain.
+//   - CC-Internal (Tencent fork v1.1.9) confirmed not loading .local.json
+//     overlays — hooks silently never fire.
+//   - CodeBuddy shares the same loader.
+//
+// Writing to settings.json is the union path that all three agents recognize.
+// Codex is unaffected — it has its own ~/.codex/hooks.json (no overlay).
+//
+// Regressing any CC-family target back to .local.json reintroduces silent
+// failure mode (the worst kind to diagnose), so this test guards against it.
 func TestTargets_Paths(t *testing.T) {
 	want := map[string]struct {
 		settings string
 		legacy   string // empty if none
 	}{
-		"CC":          {"~/.claude/settings.local.json", "~/.claude/settings.json"},
+		"CC":          {"~/.claude/settings.json", "~/.claude/settings.local.json"},
 		"CC-Internal": {"~/.claude-internal/settings.json", "~/.claude-internal/settings.local.json"},
-		"CodeBuddy":   {"~/.codebuddy/settings.local.json", "~/.codebuddy/settings.json"},
+		"CodeBuddy":   {"~/.codebuddy/settings.json", "~/.codebuddy/settings.local.json"},
 		"Codex":       {"~/.codex/hooks.json", ""},
 	}
 	for _, tgt := range targets {
